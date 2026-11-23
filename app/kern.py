@@ -129,7 +129,7 @@ def benutzer_aus_sitzung(req: Request, pflicht=True):
         row = db.verbindung().execute(
             'SELECT b.* FROM sitzungen s JOIN benutzer b ON b.id = s.benutzer_id WHERE s.token_hash = ? AND s.gueltig_bis > ?',
             (h(t), jetzt())).fetchone()
-    if row and not row['bestaetigt']:
+    if row and (not row['bestaetigt'] or row['gesperrt']):      # gesperrte Konten (Admin) gelten als abgemeldet
         row = None
     if pflicht and not row:
         fehler(401, 'Bitte anmelden.')

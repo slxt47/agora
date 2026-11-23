@@ -155,4 +155,5 @@ async function blockiertZeigen() {
   if (!ich) return;               // konto.js leitet zur Anmeldung weiter
   zweiFaktorZeigen();
   blockiertZeigen();
+  if (ich.admin) $('.bar .rechts')?.prepend(h('a', { class: 'pille-link', href: '/admin', id: 'admin-link' }, t('admin.link')));
 })();

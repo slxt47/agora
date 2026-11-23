@@ -212,6 +212,19 @@ async def senden(code, daten, topic='agora', an=None):
     return ergebnisse[-1]
 
 
+# ---------------------------------------------------------------- Admin-Übersicht
+async def raeume_liste():
+    """Alle LiveKit-Räume (auch Breakout): [{name, teilnehmer, erstellt}] oder None, wenn LiveKit nicht antwortet."""
+    if FAKE:
+        AUFRUFE.append(('raeume_liste', {}))
+        return [{'name': n, 'teilnehmer': len(liste), 'erstellt': 0} for n, liste in FAKE_TEILNEHMER.items() if liste]
+
+    async def f(lk):
+        r = await lk.room.list_rooms(api.ListRoomsRequest())
+        return [{'name': x.name, 'teilnehmer': x.num_participants, 'erstellt': x.creation_time} for x in r.rooms]
+    return await _aufruf('raeume_liste', f)
+
+
 def fake_zuruecksetzen():
     AUFRUFE.clear()
     FAKE_TEILNEHMER.clear()

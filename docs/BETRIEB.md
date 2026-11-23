@@ -23,8 +23,8 @@ Gibt es beim Hoster eine eigene Firewall, müssen die Ports dort auch frei sein.
 
 ## Geheimnisse (nicht im Repo, 0600)
 
-- `app.env`: `SMTP_*`, `AGORA_GEHEIM` (fest lassen: daraus werden die Schlüssel für TOTP-Geheimnisse und Wiederherstellungscodes abgeleitet – ändert er sich, kommen Konten mit Zwei-Faktor-Anmeldung nicht mehr herein, bis 2FA für sie zurückgesetzt wird: `UPDATE benutzer SET totp_an = 0, totp_geheim = NULL WHERE id = …`), `AGORA_SEITE`, `AGORA_LIVEKIT_URL` (`wss://HOST`), `LIVEKIT_API_HOST` (`http://127.0.0.1:7880`), `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
-- `app.env` optional: `AGORA_ADMIN_MAILS` – Komma-Liste der E-Mail-Adressen der Admins (nur bestätigte Konten zählen). Sie bekommen Meldungen per Mail. Ohne die Variable gibt es keine Admins.
+- `app.env`: `SMTP_*`, `AGORA_GEHEIM` (fest lassen: daraus werden die Schlüssel für TOTP-Geheimnisse und Wiederherstellungscodes abgeleitet – ändert er sich, kommen Konten mit Zwei-Faktor-Anmeldung nicht mehr herein, bis 2FA für sie zurückgesetzt wird – im Admin-Bereich „Zwei-Faktor zurücksetzen“), `AGORA_SEITE`, `AGORA_LIVEKIT_URL` (`wss://HOST`), `LIVEKIT_API_HOST` (`http://127.0.0.1:7880`), `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+- `app.env` optional: `AGORA_ADMIN_MAILS` – Komma-Liste der E-Mail-Adressen der Admins (nur bestätigte Konten zählen). Sie bekommen Meldungen per Mail und sehen den Admin-Bereich unter `/admin` (alle anderen bekommen 404). Ohne die Variable gibt es keine Admins; Änderungen gelten nach Neustart der App (`docker compose up -d app`).
 - `livekit.env`: `LIVEKIT_KEYS=<key>: <secret>` und `NODE_IP=<öffentliche IP>`
 - `.env`: nur `TUNNEL_TOKEN` (von `scripts/cloudflare-einrichten.py`)
 
@@ -45,7 +45,7 @@ Prüfen: `curl -s http://127.0.0.1:8110/api/gesund`. `https://HOST/rtc/validate`
 - Passwortlinks: 1 h
 - Zweiter Anmeldeschritt (Zwei-Faktor): 5 min
 - Warteraum-Anfragen: 30 min
-- Sicherheitsprotokoll ohne Inhalte: 30 Tage
+- Sicherheitsprotokoll ohne Inhalte: 30 Tage (Admin-Aktionen „Admin: …“: 365 Tage)
 - Chat und Umfragen: Werden beim Beenden gelöscht, außer der Raum hat „Chat speichern“.
 - Breakout-Räume (Zuteilung, wer wo ist): werden beim Beenden des Meetings gelöscht.
 - Aufnahmen: 90 Tage

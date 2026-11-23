@@ -205,7 +205,7 @@ async def anmelden_code(req: Request):
 
 
 def _gesperrt(b):
-    return 'gesperrt' in b.keys() and bool(b['gesperrt'])
+    return bool(b['gesperrt'])
 
 
 # ---------------------------------------------------------------- Verwalten (angemeldet)

@@ -278,6 +278,12 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Melden und Blockieren“ ========
+    # ======== Block „Admin-Bereich“ (beim Zusammenführen ggf. neu nummerieren) ========
+    # Version 6: Konten sperren (gesperrt = keine Anmeldung, Sitzungen werden beim Sperren gelöscht)
+    """
+    ALTER TABLE benutzer ADD COLUMN gesperrt INTEGER NOT NULL DEFAULT 0;
+    """,
+    # ======== Ende Block „Admin-Bereich“ ========
 ]
 
 

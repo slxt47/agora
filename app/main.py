@@ -26,6 +26,7 @@ from . import verlauf       # Meeting-Verlauf
 from . import dauerchat     # Dauer-Chat im persönlichen Raum
 from . import zwei_faktor
 from . import melden
+from . import admin
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -102,6 +103,7 @@ app.include_router(verlauf.router)
 app.include_router(dauerchat.router)
 app.include_router(zwei_faktor.router)
 app.include_router(melden.router)
+app.include_router(admin.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])
@@ -133,7 +135,8 @@ def aufraeumen():
     c.execute('DELETE FROM sitzungen WHERE gueltig_bis < ?', (t,))
     c.execute('DELETE FROM token WHERE gueltig_bis < ?', (t,))
     c.execute('DELETE FROM benutzer WHERE bestaetigt = 0 AND erstellt < ?', (t - 48 * 3600,))
-    c.execute('DELETE FROM protokoll WHERE zeit < ?', (t - 30 * 86400,))
+    c.execute("DELETE FROM protokoll WHERE zeit < ? AND ereignis NOT LIKE 'Admin:%'", (t - 30 * 86400,))   # Admin: 365 Tage
+    admin.aufraeumen(t)
     aufnahmen.aufraeumen(t)
     raeume.aufraeumen(t)
     verlauf.aufraeumen(t)

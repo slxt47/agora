@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de" data-modus="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e2a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f1fb" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="no-referrer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Agora">
+  <meta name="description" content="Agora – Admin-Bereich.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <script src="/modus.js?v=6"></script>
+  <title>Admin – Agora</title>
+  <script type="module" src="/src/admin.js"></script>
+</head>
+<body>
+  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
+  <header class="bar">
+    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <div class="rechts"><a class="pille-link" href="/konto">Mein Konto</a><button class="rund" type="button" data-modus-schalter></button></div>
+  </header>
+  <main class="breit" id="inhalt">
+    <section class="card" aria-labelledby="titel">
+      <div class="zeile zwischen"><h1 class="flach" id="titel">Admin<span class="punkt">.</span></h1><span class="sec klein" id="stand"></span></div>
+      <p class="sec klein">Jede Aktion hier wird im Protokoll festgehalten.</p>
+    </section>
+
+    <nav class="umschalter reiter admin-reiter" role="tablist" aria-label="Bereiche">
+      <button type="button" role="tab" id="tab-uebersicht" aria-controls="p-uebersicht" aria-selected="true">Übersicht</button>
+      <button type="button" role="tab" id="tab-konten" aria-controls="p-konten" aria-selected="false">Konten</button>
+      <button type="button" role="tab" id="tab-meldungen" aria-controls="p-meldungen" aria-selected="false">Meldungen <span class="zaehler-inline" id="meldungen-zahl" hidden></span></button>
+      <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="false">Meetings</button>
+      <button type="button" role="tab" id="tab-protokoll" aria-controls="p-protokoll" aria-selected="false">Protokoll</button>
+    </nav>
+
+    <div id="p-uebersicht" role="tabpanel" aria-labelledby="tab-uebersicht" class="formular">
+      <div class="admin-zahlen" id="zahlen"></div>
+    </div>
+
+    <div id="p-konten" role="tabpanel" aria-labelledby="tab-konten" class="formular" hidden>
+      <section class="card" aria-labelledby="h-konten">
+        <h2 id="h-konten">Konten</h2>
+        <form class="beitreten" id="f-suche" role="search">
+          <label class="nur-sr" for="suche">Name oder E-Mail</label>
+          <input id="suche" name="q" type="search" placeholder="Name oder E-Mail suchen" autocomplete="off" spellcheck="false">
+          <button class="btn primary" type="submit">Suchen</button>
+        </form>
+        <p class="sec klein oben" id="konten-info"></p>
+        <ul class="liste" id="liste-konten"></ul>
+        <div class="knoepfe oben" id="konten-seiten"></div>
+      </section>
+    </div>
+
+    <div id="p-meldungen" role="tabpanel" aria-labelledby="tab-meldungen" class="formular" hidden>
+      <section class="card" aria-labelledby="h-meldungen">
+        <div class="zeile zwischen"><h2 id="h-meldungen">Meldungen</h2>
+          <div class="umschalter admin-filter" role="radiogroup" aria-label="Status">
+            <label><input type="radio" name="m-status" value="offen" checked>Offen</label>
+            <label><input type="radio" name="m-status" value="erledigt">Erledigt</label>
+            <label><input type="radio" name="m-status" value="alle">Alle</label>
+          </div>
+        </div>
+        <ul class="liste" id="liste-meldungen"></ul>
+      </section>
+    </div>
+
+    <div id="p-meetings" role="tabpanel" aria-labelledby="tab-meetings" class="formular" hidden>
+      <section class="card" aria-labelledby="h-meetings">
+        <div class="zeile zwischen"><h2 id="h-meetings">Laufende Meetings</h2><button class="btn klein" type="button" id="meetings-neu">Aktualisieren</button></div>
+        <ul class="liste" id="liste-meetings"></ul>
+      </section>
+    </div>
+
+    <div id="p-protokoll" role="tabpanel" aria-labelledby="tab-protokoll" class="formular" hidden>
+      <section class="card" aria-labelledby="h-protokoll">
+        <h2 id="h-protokoll">Protokoll</h2>
+        <form class="formular" id="f-protokoll">
+          <div class="zwei">
+            <label class="feld"><span>Ereignis enthält</span><input name="q" autocomplete="off" spellcheck="false" placeholder="z. B. angemeldet"></label>
+            <label class="feld"><span>Konto (E-Mail oder ID)</span><input name="benutzer" autocomplete="off" spellcheck="false" autocapitalize="none"></label>
+          </div>
+          <div class="zwei">
+            <label class="feld"><span>Meeting-Code</span><input name="raum" autocomplete="off" spellcheck="false" placeholder="abc-defg-hij" autocapitalize="none"></label>
+            <label class="schalter"><span class="txt"><span>Nur Admin-Aktionen</span></span><input type="checkbox" role="switch" name="nur_admin"></label>
+          </div>
+          <button class="btn primary" type="submit">Filtern</button>
+        </form>
+        <div class="admin-tabelle-rahmen oben"><table class="admin-tabelle" id="tabelle-protokoll">
+          <thead><tr><th scope="col">Zeit</th><th scope="col">Konto</th><th scope="col">Meeting</th><th scope="col">Ereignis</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="knoepfe oben" id="protokoll-seiten"></div>
+      </section>
+    </div>
+  </main>
+  <footer>
+    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+  </footer>
+</body>
+</html>

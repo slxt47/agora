@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from . import aufnahmen, db, mail, raeume, zwei_faktor
+from . import admins, aufnahmen, db, mail, raeume, zwei_faktor
 from .kern import (TEST, SEITE, benutzer_aus_sitzung, client_ip, cookie_loeschen, fehler, grenze, h, hash_pw, iso, jetzt,
                    json_body, pw_ok, sitzung_setzen, text_feld)
 
@@ -31,7 +31,8 @@ PASSWORT_S = 3600
 def ich_json(b):
     r = db.verbindung().execute("SELECT code FROM raeume WHERE besitzer_id = ? AND art = 'persoenlich'", (b['id'],)).fetchone()
     return {'id': b['id'], 'name': b['name'], 'email': b['email'], 'zeitzone': b['zeitzone'], 'sprache': b['sprache'],
-            'farbe': b['farbe'], 'persoenlicher_raum': r['code'] if r else None, 'zwei_faktor': bool(b['totp_an'])}
+            'farbe': b['farbe'], 'persoenlicher_raum': r['code'] if r else None, 'zwei_faktor': bool(b['totp_an']),
+            'admin': admins.ist_admin(b)}
 
 
 def email_feld(d):
@@ -154,6 +155,9 @@ async def anmelden(req: Request):
         fehler(400, 'E-Mail oder Passwort falsch.')
     if not b['bestaetigt']:
         fehler(403, 'E-Mail-Adresse noch nicht bestätigt – bitte den Link in der Mail öffnen.')
+    if b['gesperrt']:
+        db.protokollieren('Anmeldung: Konto gesperrt', b['id'])
+        fehler(403, 'Dieses Konto ist gesperrt. Bei Fragen wende dich an das Agora-Team.')
     if b['totp_an']:               # Zwei-Faktor: erst nach dem Code gibt es eine Sitzung
         return {'zwei_faktor': True, 'schritt': zwei_faktor.schritt_erstellen(b)}
     c.execute('UPDATE benutzer SET letzte_anmeldung = ? WHERE id = ?', (jetzt(), b['id']))
@@ -289,6 +293,14 @@ async def konto_loeschen(req: Request):
     grenze.pruefen(f'loeschen:{b["id"]}', 5, 900)
     if not isinstance(d.get('passwort'), str) or not await run_in_threadpool(pw_ok, b['passwort_hash'], d['passwort']):
         fehler(400, 'Passwort falsch.')
+    await konto_entfernen(b)
+    resp = JSONResponse({'ok': True})
+    cookie_loeschen(resp)
+    return resp
+
+
+async def konto_entfernen(b):
+    """Konto samt Räumen, Aufnahmen und Protokoll löschen (selbst oder durch einen Admin)."""
     c = db.verbindung()
     for r in c.execute('SELECT * FROM raeume WHERE besitzer_id = ? AND aktiv = 1', (b['id'],)).fetchall():
         await raeume.meeting_beenden(r)
@@ -297,6 +309,3 @@ async def konto_loeschen(req: Request):
     c.execute('DELETE FROM benutzer WHERE id = ?', (b['id'],))       # Räume, Sitzungen, Token per CASCADE
     c.execute('DELETE FROM protokoll WHERE benutzer_id = ?', (b['id'],))
     db.protokollieren(f'Konto gelöscht (#{b["id"]})')
-    resp = JSONResponse({'ok': True})
-    cookie_loeschen(resp)
-    return resp

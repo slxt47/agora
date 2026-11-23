@@ -14,13 +14,14 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | `/r/{code}` | raum.html | Pre-Join-Lobby → (Passcode) → Warteraum → Meeting |
 | `/passwort?t=` | passwort.html | Neues Passwort setzen |
 | `/a/{token}` | a.html | Freigegebene Aufzeichnung ansehen |
+| `/admin` | admin.html | Admin-Bereich – nur für Admins, sonst 404 (`/admin.html` immer 404) |
 | `/api/konto/bestaetigen?t=` | – | E-Mail bestätigen → Weiterleitung `/?bestaetigt=1` bzw. `/?bestaetigt=0` |
 
 ## Konto
 | Methode + Pfad | Body | Antwort |
 |---|---|---|
 | POST `/api/konto/registrieren` | `{name, email, passwort}` (Passwort ≥ 10) | `{ok:true}` – Mail mit Bestätigungslink |
-| POST `/api/konto/anmelden` | `{email, passwort}` | `{ok:true, ich}` + Cookie. 403 `nicht bestätigt`. Mit Zwei-Faktor: `{zwei_faktor:true, schritt}` (noch kein Cookie) |
+| POST `/api/konto/anmelden` | `{email, passwort}` | `{ok:true, ich}` + Cookie. 403 `nicht bestätigt`, 403 `Dieses Konto ist gesperrt. …`. Mit Zwei-Faktor: `{zwei_faktor:true, schritt}` (noch kein Cookie) |
 | POST `/api/konto/anmelden/code` | `{schritt, code}` (TOTP oder Wiederherstellungscode) | `{ok:true, ich, codes_uebrig}` + Cookie. 400 `Der Code stimmt nicht.` bzw. abgelaufen/zu viele (dann neu mit Passwort) |
 | POST `/api/konto/bestaetigung-erneut` | `{email}` | `{ok:true}` (immer) |
 | POST `/api/konto/abmelden` | – | `{ok:true}` |
@@ -32,7 +33,7 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | GET `/api/konto/export` | – | JSON-Download aller eigenen Daten |
 | DELETE `/api/konto` | `{passwort}` | `{ok:true}` – löscht Konto, Räume, Aufnahmen |
 
-`ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool).
+`ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor, admin}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool).
 Grenzen: Anmelden 10/10 min je IP+Mail, Registrieren 5/h je IP, Mails 3/h je Adresse.
 
 ### Zwei-Faktor-Anmeldung (TOTP, angemeldet)
@@ -179,6 +180,28 @@ GET `/api/aufnahmen` → `{aufnahmen:[aufnahme], belegt, kontingent}` · GET `/a
 POST `/api/aufnahmen/{id}/freigabe` `{tage: 1|7|30, passwort?}` → `{link}` (`/a/<token>`) · DELETE `/api/aufnahmen/{id}/freigabe`.
 GET `/api/freigaben/{token}` → `{titel, dauer, groesse, typ, passwort_noetig}`; GET `/api/freigaben/{token}/datei?p=<passwort>`.
 `aufnahme` = `{id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf, freigabe: null|{link, bis, passwort}}`. Aufnahmen werden nach 90 Tagen gelöscht.
+
+## Admin-Bereich (Cookie eines Admins; alle anderen – auch Abgemeldete – bekommen 404 `Nicht gefunden`)
+Admin = bestätigtes Konto, dessen E-Mail in `AGORA_ADMIN_MAILS` steht. Jede ändernde Aktion schreibt `Admin: …` ins Protokoll (365 Tage).
+
+| Methode + Pfad | Body / Parameter | Antwort |
+|---|---|---|
+| GET `/api/admin/uebersicht` | – | `{konten:{gesamt, bestaetigt, gesperrt, zwei_faktor, neu_7}, laufend:{meetings, teilnehmer, livekit}, meetings:{tage_7, tage_30, raeume}, aufnahmen:{anzahl, belegt}, meldungen_offen}` |
+| GET `/api/admin/benutzer` | `?q=&seite=` (50 je Seite) | `{benutzer:[konto], gesamt, seite_groesse}` |
+| POST `/api/admin/benutzer/{id}/sperren` | `{an: bool}` | `{benutzer: konto}` – Sperren meldet überall ab und beendet eigene laufende Meetings |
+| POST `/api/admin/benutzer/{id}/2fa-zuruecksetzen` | – | `{benutzer: konto}` |
+| DELETE `/api/admin/benutzer/{id}` | – | `{ok:true}` (wie Konto löschen) |
+| GET `/api/admin/meldungen` | `?status=offen\|erledigt\|alle` | `{meldungen:[meldung + von_konto, ziel_konto]}` (max. 200) |
+| POST `/api/admin/meldungen/{id}` | `{status: "offen"\|"erledigt", notiz?}` | `{meldung}` |
+| GET `/api/admin/protokoll` | `?q=&benutzer=<id\|email>&raum=&nur_admin=1&seite=` | `{eintraege:[{zeit, benutzer_id, email, name, raum_code, ereignis}], weitere}` |
+| GET `/api/admin/meetings` | – | `{meetings:[{code, titel, besitzer_name, besitzer_email, gestartet, teilnehmer, aufnahme}]}` |
+| POST `/api/admin/meetings/{code}/beenden` | – | `{ok:true}`; 409 wenn nicht laufend |
+
+`konto` = `{id, name, email, bestaetigt, gesperrt, zwei_faktor, admin, erstellt, letzte_anmeldung, raeume, aufnahmen_belegt}`.
+`meldung` = `{id, zeit, raum_code, raum_titel, von_name, von_benutzer, ziel_name, ziel_benutzer, grund, grund_text, text, status, notiz, bearbeitet}`.
+Admin-Konten (und das eigene) lassen sich hier nicht sperren/löschen (403). Live-Zahlen kommen aus LiveKit `ListRooms`
+(`laufend.livekit:false` = LiveKit nicht erreichbar, dann Zahl aus der Datenbank, `teilnehmer:null`). „Meetings 7/30 Tage“ =
+beendete Meetings laut Protokoll + gerade laufende. Gesperrte Konten: Anmelden 403, bestehende Sitzungen ungültig.
 
 ## Sonstiges
 GET `/api/gesund` → `{ok:true}` · GET `/api/einstellungen` → `{livekit_url, max_teilnehmer, version}`.

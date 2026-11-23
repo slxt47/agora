@@ -1,4 +1,4 @@
-// Vite-Build: sechs Seiten (Start, Konto, Raum, Passwort, Aufnahme-Freigabe, Offline) + Service Worker (/sw.js).
+// Vite-Build: sieben Seiten (Start, Konto, Raum, Passwort, Aufnahme-Freigabe, Offline, Admin) + Service Worker (/sw.js).
 // Alles selbst gehostet, keine data:-URLs (strenge CSP). Das Backend liefert web/dist aus: /r/{code} → raum.html,
 // /a/{token} → a.html, /konto → konto.html.
 // Entwicklung: `npm run dev` leitet /api an das Backend weiter (AGORA_API, Standard http://127.0.0.1:8000).
@@ -56,7 +56,7 @@ export default defineConfig({
     outDir: 'dist', emptyOutDir: true, sourcemap: false, assetsInlineLimit: 0, modulePreload: { polyfill: false },
     target: 'es2022',
     chunkSizeWarningLimit: 700,   // livekit-client allein ist ~520 kB (nur auf der Raum-Seite)
-    rollupOptions: { input: { index: 'index.html', konto: 'konto.html', raum: 'raum.html', passwort: 'passwort.html', a: 'a.html', offline: 'offline.html' } },
+    rollupOptions: { input: { index: 'index.html', konto: 'konto.html', raum: 'raum.html', passwort: 'passwort.html', a: 'a.html', offline: 'offline.html', admin: 'admin.html' } },
   },
   server: { proxy: { '/api': process.env.AGORA_API || 'http://127.0.0.1:8000' } },
 });

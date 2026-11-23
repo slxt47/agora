@@ -1,0 +1,16 @@
+# Wegwerf-LiveKit für den Netzsimulations-Test (scripts/lasttest.sh netz): eigenes Docker-Netz agora-lastnetz
+# (10.250.77.0/28), LiveKit auf 10.250.77.10, Medien UDP 7712 / TCP 7711 nur in diesem Netz. Nicht für den Betrieb.
+port: 7710
+rtc:
+  tcp_port: 7711
+  udp_port: 7712
+  node_ip: 10.250.77.10
+  use_external_ip: false
+  interfaces:
+    includes: [eth0]
+keys:
+  lastschluessel: lastgeheimnis-lastgeheimnis-lastgeheimnis-123
+room:
+  empty_timeout: 60
+logging:
+  level: warn

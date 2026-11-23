@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="de" data-modus="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e2a">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="no-referrer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Agora">
+  <meta name="description" content="Agora-Konto: Meetings planen und verwalten, Aufzeichnungen, Profil.">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <script src="/modus.js?v=6"></script>
+  <title>Mein Konto – Agora</title>
+  <script type="module" src="/src/konto.js"></script>
+</head>
+<body>
+  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
+  <header class="bar">
+    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <div class="rechts"><a class="pille-link" href="/">Start</a><button class="rund" type="button" data-modus-schalter></button></div>
+  </header>
+  <main class="breit" id="inhalt">
+    <section class="card" aria-labelledby="ich-name">
+      <div class="konto-kopf">
+        <div class="avatar" id="ich-avatar" aria-hidden="true"></div>
+        <div class="text">
+          <h1 class="flach" id="ich-name">Mein Konto</h1>
+          <p class="sec klein" id="ich-email"></p>
+        </div>
+      </div>
+      <div class="knoepfe oben">
+        <button class="btn primary" type="button" id="neues-meeting">Neues Meeting</button>
+        <button class="btn" type="button" id="planen-knopf">Meeting planen</button>
+      </div>
+    </section>
+
+    <nav class="umschalter reiter" role="tablist" aria-label="Bereiche">
+      <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="true">Meetings</button>
+      <button type="button" role="tab" id="tab-aufnahmen" aria-controls="p-aufnahmen" aria-selected="false">Aufnahmen</button>
+      <button type="button" role="tab" id="tab-profil" aria-controls="p-profil" aria-selected="false">Profil</button>
+    </nav>
+
+    <div id="p-meetings" role="tabpanel" aria-labelledby="tab-meetings" class="formular">
+      <section class="card" aria-labelledby="h-persoenlich">
+        <h2 id="h-persoenlich">Persönlicher Raum</h2>
+        <div id="persoenlich"></div>
+      </section>
+      <section class="card" aria-labelledby="h-geplant">
+        <div class="zeile zwischen"><h2 id="h-geplant">Anstehend</h2></div>
+        <ul class="liste" id="liste-geplant"></ul>
+      </section>
+      <section class="card" aria-labelledby="h-vergangen">
+        <h2 id="h-vergangen">Vergangen</h2>
+        <ul class="liste" id="liste-vergangen"></ul>
+      </section>
+    </div>
+
+    <div id="p-aufnahmen" role="tabpanel" aria-labelledby="tab-aufnahmen" class="formular" hidden>
+      <section class="card" aria-labelledby="h-speicher">
+        <h2 id="h-speicher">Speicher</h2>
+        <div class="speicher">
+          <div class="zeile"><span id="speicher-text">–</span><span class="sec" id="speicher-prozent"></span></div>
+          <div class="fortschritt" role="progressbar" aria-labelledby="h-speicher" aria-valuemin="0" aria-valuemax="100" id="speicher-balken"><i></i></div>
+          <p class="sec klein">Aufnahmen werden nach 90 Tagen automatisch gelöscht. Höchstens 500 MB pro Datei.</p>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="h-aufnahmen">
+        <h2 id="h-aufnahmen">Aufnahmen</h2>
+        <ul class="liste" id="liste-aufnahmen"></ul>
+      </section>
+    </div>
+
+    <div id="p-profil" role="tabpanel" aria-labelledby="tab-profil" class="formular" hidden>
+      <section class="card" aria-labelledby="h-profil">
+        <h2 id="h-profil">Profil</h2>
+        <form class="formular" id="f-profil">
+          <label class="feld"><span>Name</span><input name="name" autocomplete="name" required maxlength="60"></label>
+          <div class="zwei">
+            <label class="feld"><span>Zeitzone</span><select name="zeitzone"></select></label>
+            <label class="feld"><span>Sprache</span><select name="sprache"><option value="de">Deutsch</option><option value="en">English (bald)</option></select></label>
+          </div>
+          <fieldset class="feld ohne-rahmen"><legend><b>Avatar-Farbe</b></legend><div class="farben" id="farben"></div></fieldset>
+          <button class="btn primary" type="submit">Speichern</button>
+        </form>
+      </section>
+      <section class="card" aria-labelledby="h-pw">
+        <h2 id="h-pw">Passwort ändern</h2>
+        <form class="formular" id="f-pw">
+          <input type="text" name="benutzer" autocomplete="username" hidden>
+          <label class="feld"><span>Aktuelles Passwort</span><input name="alt" type="password" autocomplete="current-password" required></label>
+          <label class="feld"><span>Neues Passwort</span><input name="neu" type="password" autocomplete="new-password" required minlength="10"><small>Mindestens 10 Zeichen.</small></label>
+          <button class="btn primary" type="submit">Passwort ändern</button>
+        </form>
+      </section>
+      <section class="card" aria-labelledby="h-daten">
+        <h2 id="h-daten">Deine Daten</h2>
+        <p class="sec klein">Lade alles herunter, was Agora über dich speichert (JSON), oder lösche dein Konto samt Räumen und Aufnahmen.</p>
+        <div class="knoepfe oben">
+          <a class="btn" href="/api/konto/export" download="agora-export.json">Daten exportieren</a>
+          <button class="btn" type="button" id="abmelden">Abmelden</button>
+          <button class="btn gefahr" type="button" id="konto-loeschen">Konto löschen</button>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer>
+    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+  </footer>
+</body>
+</html>

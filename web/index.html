@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="de" data-modus="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e2a">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="no-referrer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Agora">
+  <meta name="description" content="Agora – Videokonferenzen direkt im Browser: Sofort-Meeting, planen, Bildschirm teilen, aufzeichnen.">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <script src="/modus.js?v=6"></script>
+  <title>Agora – Videokonferenzen</title>
+  <script type="module" src="/src/start.js"></script>
+</head>
+<body>
+  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
+  <header class="bar">
+    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <div class="rechts" id="kopf-rechts">
+      <a class="pille-link" id="kopf-konto" href="/konto" hidden></a>
+      <button class="rund" type="button" data-modus-schalter></button>
+    </div>
+  </header>
+  <main class="breit" id="inhalt">
+    <div class="hero">
+      <section class="card" aria-labelledby="titel">
+        <h1 id="titel">Treffen ohne Umwege<span class="punkt">.</span></h1>
+        <p class="sec">Videokonferenzen direkt im Browser – ohne Installation. Link schicken, Code eingeben, los geht’s.</p>
+        <form class="oben" id="f-beitreten" novalidate>
+          <label class="nur-sr" for="code-eingabe">Meeting-Code oder Link</label>
+          <div class="beitreten">
+            <input id="code-eingabe" name="code" placeholder="Code oder Link einfügen" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" enterkeyhint="go" aria-describedby="code-hinweis">
+            <button class="btn primary" type="submit">Beitreten</button>
+          </div>
+          <p class="sec klein oben" id="code-hinweis">Zum Beispiel <span class="mono">abc-defg-hij</span> oder der ganze Einladungslink.</p>
+        </form>
+        <div class="status oben" id="beitreten-status" role="alert" hidden></div>
+        <ul class="vorteile">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.5l5-3v9l-5-3z"/></svg><span><b>Galerie und Sprecheransicht</b><br><span class="sec klein">Bildschirm, Fenster oder Tab teilen, Hand heben, Reaktionen, Chat.</span></span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span><b>Warteraum, Passcode, Sperre</b><br><span class="sec klein">Du entscheidest, wer hereinkommt – Gäste brauchen kein Konto.</span></span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span><b>Aufzeichnen und teilen</b><br><span class="sec klein">Aufnahmen landen in deiner Bibliothek – teilen per Link mit Ablauf und Passwort.</span></span></li>
+        </ul>
+      </section>
+
+      <section class="card" id="konto-karte" aria-live="polite">
+        <div id="angemeldet" hidden>
+          <div class="konto-kopf">
+            <div class="avatar" id="ich-avatar" aria-hidden="true"></div>
+            <div><h2 class="flach">Angemeldet</h2><p><b id="ich-name"></b></p></div>
+          </div>
+          <div class="kacheln oben">
+            <button class="kachel haupt" type="button" id="neues-meeting">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.5l5-3v9l-5-3zM9.25 9.5v5M6.75 12h5"/></svg>
+              <span class="name">Neues Meeting</span><span class="sub">Sofort starten</span>
+            </button>
+            <a class="kachel" id="persoenlich-link" href="/konto#meetings">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              <span class="name">Persönlicher Raum</span><span class="sub" id="persoenlich-code">Immer gleicher Link</span>
+            </a>
+            <a class="kachel" href="/konto#planen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <span class="name">Planen</span><span class="sub">Termin + Einladung</span>
+            </a>
+            <a class="kachel" href="/konto#aufnahmen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+              <span class="name">Aufnahmen</span><span class="sub">Bibliothek</span>
+            </a>
+          </div>
+          <div class="knoepfe oben">
+            <a class="btn" href="/konto">Mein Konto</a>
+            <button class="btn leise" type="button" id="abmelden">Abmelden</button>
+          </div>
+        </div>
+
+        <div id="abgemeldet" hidden>
+          <div class="umschalter" role="tablist" aria-label="Konto">
+            <button type="button" role="tab" id="tab-anmelden" aria-selected="true" aria-controls="f-anmelden">Anmelden</button>
+            <button type="button" role="tab" id="tab-registrieren" aria-selected="false" aria-controls="f-registrieren">Registrieren</button>
+          </div>
+
+          <form class="formular oben" id="f-anmelden" role="tabpanel" aria-labelledby="tab-anmelden">
+            <p class="sec klein">Mit Konto startest und planst du Meetings. Zum Beitreten brauchst du keins.</p>
+            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <label class="feld"><span>Passwort</span><input name="passwort" type="password" autocomplete="current-password" required></label>
+            <button class="btn primary" type="submit">Anmelden</button>
+            <div class="knoepfe">
+              <button class="btn leise klein" type="button" data-zeige="f-vergessen">Passwort vergessen?</button>
+              <button class="btn leise klein" type="button" data-zeige="f-erneut">Bestätigungs-Mail erneut senden</button>
+            </div>
+          </form>
+
+          <form class="formular oben" id="f-registrieren" role="tabpanel" aria-labelledby="tab-registrieren" hidden>
+            <label class="feld"><span>Name</span><input name="name" autocomplete="name" required maxlength="60"><small>So sehen dich andere im Meeting.</small></label>
+            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required><small>Wir schicken dir einen Bestätigungslink.</small></label>
+            <label class="feld"><span>Passwort</span><input name="passwort" type="password" autocomplete="new-password" required minlength="10"><small>Mindestens 10 Zeichen.</small></label>
+            <p class="sec klein">Mit „Konto anlegen“ stimmst du den <a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a> zu. Wie wir mit Daten umgehen: <a href="https://slxt.org/datenschutz/#agora">Datenschutz</a>.</p>
+            <button class="btn primary" type="submit">Konto anlegen</button>
+          </form>
+
+          <form class="formular oben" id="f-vergessen" hidden>
+            <h3>Passwort vergessen</h3>
+            <p class="sec klein">Wir schicken dir einen Link, mit dem du ein neues Passwort setzt. Danach bist du überall abgemeldet.</p>
+            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <button class="btn primary" type="submit">Link schicken</button>
+            <button class="btn leise" type="button" data-zeige="f-anmelden">Zurück zur Anmeldung</button>
+          </form>
+
+          <form class="formular oben" id="f-erneut" hidden>
+            <h3>Bestätigung erneut senden</h3>
+            <p class="sec klein">Keine Mail bekommen? Schau auch im Spam-Ordner. Höchstens drei Mails pro Stunde.</p>
+            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <button class="btn primary" type="submit">Erneut senden</button>
+            <button class="btn leise" type="button" data-zeige="f-anmelden">Zurück zur Anmeldung</button>
+          </form>
+        </div>
+
+        <div class="status oben" id="status" role="status" hidden></div>
+      </section>
+    </div>
+  </main>
+  <footer>
+    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+  </footer>
+</body>
+</html>

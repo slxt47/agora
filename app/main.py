@@ -47,7 +47,9 @@ async def eingabe_fehler(req, e):
 
 
 SICHERHEIT = {
-    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; "
+    # 'wasm-unsafe-eval': nur WebAssembly kompilieren (MediaPipe für Video-Effekte, Dateien selbst gehostet unter /vendor/),
+    # kein eval() für JavaScript. worker-src blob: für LiveKit (E2EE/Audio-Worklets).
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; "
                                f"media-src 'self' blob:; connect-src 'self' {livekit_herkunft()}; worker-src 'self' blob:; "
                                "manifest-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; "
                                "frame-ancestors 'none'",
@@ -71,7 +73,7 @@ async def schutz(req: Request, call_next):
     for k, v in SICHERHEIT.items():
         r.headers.setdefault(k, v)
     p = req.url.path
-    if p.startswith('/assets/'):
+    if p.startswith('/assets/') or (p.startswith('/vendor/') and r.status_code == 200):   # Hash bzw. Version im Pfad
         r.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     elif not p.startswith('/icons/'):
         r.headers['Cache-Control'] = 'no-store'

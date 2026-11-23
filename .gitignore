@@ -10,3 +10,5 @@ __pycache__/
 livekit.env
 tests/e2e/bilder/
 .claude/
+web/public/vendor/
+web/src/raum/hintergruende/

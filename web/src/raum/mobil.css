@@ -1,0 +1,16 @@
+/* Meeting auf Touch-Geräten: alle Bedienelemente mindestens 44 × 44 px, Steuerleiste über dem Home-Indikator
+   (Safe Area kommt vom .meeting-Rahmen), Querformat auf dem Handy kompakter. */
+@media (pointer: coarse) {
+  .chat-eingabe select, .leute-liste .btn, .m-banner .btn, .effekte > .btn.klein { min-height: 44px; }
+  .steuer { min-width: 48px; min-height: 52px; }
+  .m-leiste { gap: 4px; }
+}
+/* Handy quer: wenig Höhe – Kopf und Leiste schlanker, Beschriftungen weg */
+@media (orientation: landscape) and (max-height: 520px) {
+  .m-kopf { min-height: 44px; padding: 2px 12px; }
+  .m-unter { display: none; }
+  .m-leiste { padding: 2px 12px 4px; }
+  .steuer { min-height: 46px; min-width: 48px; padding: 4px; }
+  .steuer .lbl { display: none; }
+  .m-banner { margin-bottom: 4px; padding: 4px 10px; }
+}

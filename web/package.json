@@ -7,14 +7,15 @@
   "license": "MIT",
   "author": "Florian Neubauer",
   "dependencies": {
+    "@livekit/track-processors": "0.8.3",
     "livekit-client": "2.25.0"
   },
   "devDependencies": {
     "vite": "8.3.8"
   },
   "scripts": {
-    "build": "node scripts/icons.mjs && vite build",
-    "dev": "vite",
+    "build": "node scripts/icons.mjs && node scripts/hintergruende.mjs && node scripts/mediapipe.mjs && vite build",
+    "dev": "node scripts/hintergruende.mjs && node scripts/mediapipe.mjs && vite",
     "test": "node --test test/*.test.js"
   }
 }

@@ -14,6 +14,14 @@ export const de = {
   'start.bestaetigtJa': 'E-Mail bestätigt – du bist angemeldet. Viel Spaß mit Agora!', 'start.bestaetigtNein': 'Der Bestätigungslink ist ungültig oder abgelaufen. Lass dir unten einen neuen schicken.',
   'start.sitzungAbgelaufen': 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
 
+  // PWA (pwa.js, offline.js, start.js)
+  'pwa.neueVersion': 'Eine neue Version von Agora ist da.', 'pwa.neuLaden': 'Neu laden',
+  'pwa.installieren': 'App installieren', 'pwa.installierenText': 'Agora als App: eigenes Fenster, Start vom Home-Bildschirm.',
+  'pwa.iosText': 'Leg Agora auf den Home-Bildschirm – dann startet es wie eine App.', 'pwa.iosKnopf': 'So geht’s',
+  'pwa.iosTitel': 'Zum Home-Bildschirm', 'pwa.iosSchritt1': 'Tippe in Safari auf „Teilen“ (Quadrat mit Pfeil nach oben).',
+  'pwa.iosSchritt2': 'Wähle „Zum Home-Bildschirm“.', 'pwa.iosSchritt3': 'Tippe auf „Hinzufügen“.', 'pwa.nichtMehr': 'Nicht mehr anzeigen',
+  'pwa.zuerstAnmelden': 'Melde dich an, um ein neues Meeting zu starten.', 'pwa.nochOffline': 'Noch keine Verbindung …',
+
   'passwort.ohneToken': 'Der Link ist unvollständig. Öffne ihn bitte direkt aus der E-Mail oder fordere einen neuen an.',
   'passwort.ungleich': 'Die beiden Passwörter stimmen nicht überein.', 'passwort.gesetzt': 'Neues Passwort gespeichert. Du kannst dich jetzt anmelden.',
 
@@ -60,6 +68,21 @@ export const de = {
   'geraet.keins': '{wer}: kein Gerät gefunden. Schließ eins an – du kannst auch ohne beitreten.',
   'geraet.belegt': '{wer} wird gerade von einer anderen App benutzt. Schließ sie und versuch es erneut.',
   'geraet.anderer': '{wer} lässt sich nicht starten. {text}',
+
+  // Video-Effekte (raum/effekte.js)
+  'effekte.titel': 'Hintergrund und Effekte', 'effekte.knopf': 'Hintergrund und Effekte', 'effekte.hintergrund': 'Hintergrund',
+  'effekte.aus': 'Kein Effekt', 'effekte.leicht': 'Leicht unscharf', 'effekte.stark': 'Stark unscharf',
+  'effekte.bild.nachthimmel': 'Nachthimmel', 'effekte.bild.polarlicht': 'Polarlicht', 'effekte.bild.nebel': 'Violetter Nebel',
+  'effekte.bild.daemmerung': 'Dämmerung', 'effekte.bild.studio': 'Studio', 'effekte.bild.morgen': 'Morgenlicht',
+  'effekte.eigenes': 'Eigenes Bild', 'effekte.eigenesKurz': 'Bild wählen', 'effekte.eigenesWaehlen': 'Eigenes Bild wählen', 'effekte.eigenesEntfernen': 'Eigenes Bild entfernen',
+  'effekte.eigenesHinweis': 'Dein eigenes Bild bleibt auf diesem Gerät – es wird nicht hochgeladen.',
+  'effekte.verbessern': 'Aussehen verbessern', 'effekte.verbessernHinweis': 'Etwas heller, mit mehr Kontrast – hilft bei schwachem Licht.',
+  'effekte.verbessernFehlt': 'Kann dieser Browser leider nicht.',
+  'effekte.laedt': 'Effekt wird geladen …', 'effekte.kameraAus': 'Die Kamera ist aus – der Effekt gilt, sobald du sie einschaltest.',
+  'effekte.nichtUnterstuetzt': 'Dieser Browser kann keine Hintergrund-Effekte. Mit einem aktuellen Chrome, Edge, Firefox oder Safari klappt es.',
+  'effekte.fehler': 'Der Effekt ließ sich nicht starten. Dein Video läuft ohne Effekt weiter.',
+  'effekte.pausiert': 'Im Datensparmodus sind Video-Effekte pausiert.', 'effekte.zuLangsam': 'Effekt ausgeschaltet – dein Gerät kommt nicht hinterher.',
+  'effekte.bildFehler': 'Das Bild ließ sich nicht öffnen.', 'effekte.bildNurSitzung': 'Das Bild ist zu groß zum Merken – es gilt nur, bis du die Seite schließt.',
 
   'steuer.micAn': 'Mikrofon einschalten', 'steuer.micAus': 'Mikrofon stummschalten', 'steuer.camAn': 'Kamera einschalten', 'steuer.camAus': 'Kamera ausschalten',
   'steuer.stumm': 'Stumm', 'steuer.entstummen': 'Entstummen', 'steuer.videoStopp': 'Video aus', 'steuer.videoStart': 'Video an',

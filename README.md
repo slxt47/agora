@@ -18,10 +18,20 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Vorschau vor dem Beitritt mit Geräteauswahl, Pegelanzeige und Lautsprechertest
   - Gerätewechsel im laufenden Meeting
   - Verbindungsqualität, Datensparmodus
+  - Video-Effekte in Lobby und Meeting: Hintergrund leicht oder stark unscharf, sechs eigene Hintergründe im slxt-Stil,
+    eigenes Bild (bleibt im Browser, wird nie hochgeladen), „Aussehen verbessern“ (milder Helligkeits-/Kontrastfilter).
+    Läuft mit `@livekit/track-processors` und MediaPipe komplett im Browser; WASM und Modell liegen unter `/vendor/`,
+    nichts kommt von einem CDN. Im Datensparmodus pausiert, auf zu langsamen Geräten schaltet es sich selbst ab.
 - **Oberfläche:**
   - Galerie und Sprecheransicht, Anheften und Spotlight, Seiten bei vielen Teilnehmenden
   - Vollbild, Bild-in-Bild
   - Hell und Dunkel, Tastenkürzel, für Handy, Tablet und Desktop
+- **App (PWA) und Mobil:**
+  - installierbar (Knopf auf der Startseite, auf iPhone/iPad Anleitung „Zum Home-Bildschirm“), Verknüpfungen „Neues Meeting“ und „Beitreten“
+  - Service Worker cacht nur App-Hülle und statische Dateien (versioniert; nie `/api`, `/rtc`, Medien oder MediaPipe),
+    ohne Netz erscheint „Keine Verbindung“; eine neue Version übernimmt erst nach „Neu laden“ (nie mitten im Meeting)
+  - im Meeting: Bildschirm bleibt an (Wake Lock), Drehen ordnet neu, nach dem Zurückkommen aus dem Hintergrund (iOS)
+    werden Kamera/Mikro und Ton wieder aufgenommen, Safe Areas, Bedienelemente mindestens 44 px
 - **Bildschirmfreigabe:** Bildschirm, Fenster oder Tab, mit Systemton, wo der Browser es kann. Standardmäßig nur eine Person gleichzeitig.
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Host-Kontrollen:**
@@ -39,7 +49,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 | Teil | Technik |
 |---|---|
 | `app/` | FastAPI + SQLite, argon2, LiveKit-Server-API (`livekit-api`), Mails über SMTP |
-| `web/` | Vite, Vanilla JS, `livekit-client`, slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
+| `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
 | `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges) |
 
@@ -57,7 +67,7 @@ docker compose up -d --build
 ## Tests
 
 ```sh
-docker build --target test -t agora:test . && docker run --rm agora:test        # 30 API-Tests
+docker build --target test -t agora:test . && docker run --rm agora:test        # 32 API-Tests
 docker run --rm -v "$PWD/web:/web" -w /web node:22.23.5-alpine sh -c "npm ci --ignore-scripts && npm test"
 sh tests/e2e/lauf.sh       # Browser-E2E: echte LiveKit, zwei Browser mit Kamera-Attrappe
 ```

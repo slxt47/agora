@@ -1,0 +1,36 @@
+/* Video-Effekte: Auswahl im Popover (Lobby + Meeting). Kacheln ≥ 44 px, Vorschaubilder 16:9. */
+.menue:has(.effekte) { width: min(344px, calc(100vw - 16px)); max-width: none; }
+.effekte { display: grid; gap: 10px; padding: 6px; }
+.effekte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.effekte-kopf b { font: 700 1rem/1.3 var(--display); }
+.effekte .status { font-size: .875rem; padding: 10px 12px; }
+.effekt-raster { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.effekt-kachel { position: relative; display: grid; grid-template-rows: auto auto; gap: 4px; padding: 0; border: 0; background: transparent; color: inherit;
+  font: 500 .75rem/1.2 var(--font); cursor: pointer; text-align: center; min-height: 44px; }
+.effekt-kachel > img, .effekt-kachel > .effekt-symbol { width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; object-fit: cover; display: grid; place-items: center;
+  background: var(--m-flaeche-2); border: 1px solid var(--m-linie); box-sizing: border-box; transition: box-shadow .15s, transform .15s; }
+.effekt-symbol svg { width: 24px; height: 24px; }
+.effekt-symbol.leicht svg { filter: blur(.4px); }
+.effekt-symbol.stark svg { filter: blur(1.1px); }
+.effekt-symbol.leicht, .effekt-symbol.stark { background: linear-gradient(135deg, color-mix(in srgb, #6d4aff 35%, var(--m-flaeche-2)), color-mix(in srgb, #3b82f6 30%, var(--m-flaeche-2))); }
+.effekt-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--m-sec); }
+.effekt-kachel:hover > img, .effekt-kachel:hover > .effekt-symbol { transform: translateY(-1px); }
+.effekt-kachel[aria-checked="true"] > img, .effekt-kachel[aria-checked="true"] > .effekt-symbol { box-shadow: 0 0 0 2px var(--m-flaeche), 0 0 0 4px var(--accent); }
+.effekt-kachel[aria-checked="true"] .effekt-name { color: var(--m-text); font-weight: 600; }
+.effekt-kachel:focus-visible { outline: none; }
+.effekt-kachel:focus-visible > img, .effekt-kachel:focus-visible > .effekt-symbol { outline: 3px solid var(--accent); outline-offset: 2px; }
+.effekt-kachel:disabled { opacity: .4; cursor: not-allowed; }
+.effekt-kachel.hochladen > .effekt-symbol { border-style: dashed; }
+.effekte .schalter { min-height: 48px; font-size: .9375rem; }
+.effekte .schalter .txt small { color: var(--m-sec); }
+.effekte > .btn.klein { justify-self: start; min-height: 36px; }
+.effekt-hinweis { margin: 0; color: var(--m-sec); }
+.effekt-status { margin: 0; font-size: .8125rem; color: var(--m-sec); }
+.effekt-status[data-zustand="fehler"] { color: var(--err); }
+.effekt-status[data-zustand="laedt"]::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent; vertical-align: -1px; animation: effekt-dreh .8s linear infinite; }
+@keyframes effekt-dreh { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .effekt-status[data-zustand="laedt"]::before { animation: none; } }
+/* Lobby: dritter runder Knopf in der Vorschau */
+.vorschau-leiste #lobby-effekte[aria-pressed="false"] { background: rgba(20, 22, 40, .72); }
+.vorschau-leiste #lobby-effekte.an { background: color-mix(in srgb, var(--accent) 70%, rgba(20, 22, 40, .72)); }

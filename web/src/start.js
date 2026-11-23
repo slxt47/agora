@@ -141,4 +141,13 @@ $('#abmelden').addEventListener('click', (e) => beschaeftigt(e.currentTarget, as
   if (weiter && ich) location.replace(weiter);
   const vorgabe = params.get('code');
   if (vorgabe) codeFeld.value = codeAusText(vorgabe) || '';
+  // App-Verknüpfungen aus dem Manifest: /?aktion=neu | /?aktion=beitreten
+  const aktion = params.get('aktion');
+  if (aktion) {
+    params.delete('aktion');
+    history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : ''));
+    if (aktion === 'neu' && ich) $('#neues-meeting').click();
+    else if (aktion === 'neu') meldung(t('pwa.zuerstAnmelden'), 'warn');
+    else if (aktion === 'beitreten') codeFeld.focus();
+  }
 })();

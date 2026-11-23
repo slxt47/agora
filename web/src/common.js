@@ -7,6 +7,7 @@
 import './app.css';
 import { t, seiteUebersetzen } from './i18n.js';
 import { icon } from './icons.js';
+import { pwaStarten } from './pwa.js';
 
 const d = document.documentElement;
 const ruhig = matchMedia('(prefers-reduced-motion: reduce)');
@@ -274,3 +275,4 @@ export async function wachBleiben() {
 }
 
 seiteUebersetzen();
+pwaStarten();      // Service Worker, „Neue Version“, Installieren (siehe pwa.js)

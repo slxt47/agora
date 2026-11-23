@@ -54,6 +54,10 @@ const P = {
   haken: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   welle: '<path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h-2"/>',
   bildImBild: '<rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><rect x="11.5" y="11" width="8" height="6" rx="1.5"/>',
+  // Video-Effekte: Person vor Hintergrund, Person vor unscharfen Punkten, Bild mit Plus
+  hintergrund: '<rect x="2.5" y="3.5" width="19" height="17" rx="3"/><circle cx="12" cy="10" r="3.2"/><path d="M6 20.5a6 6 0 0 1 12 0"/>',
+  unschaerfe: '<circle cx="12" cy="9" r="3.2"/><path d="M6 20.5a6 6 0 0 1 12 0"/><path d="M3 5h.01M3 10h.01M3 15h.01M21 5h.01M21 10h.01M21 15h.01M6.5 3h.01M17.5 3h.01"/>',
+  bildPlus: '<rect x="2.5" y="4.5" width="15" height="14" rx="2.5"/><path d="m2.5 15 4-4 4.5 4.5 2-2 4.5 4.5"/><circle cx="12.5" cy="9" r="1.4"/><path d="M20 3v6M17 6h6"/>',
 };
 
 /** SVG-Zeichenkette für ein Symbol. */

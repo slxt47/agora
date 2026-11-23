@@ -5,8 +5,13 @@
 set -e
 cd "$(dirname "$0")/.."
 [ -z "$(git status --porcelain)" ] || { echo "✗ Nicht committete Änderungen – erst committen"; git status --short; exit 1; }
-docker build -q --target test -t agora:test . >/dev/null && docker run --rm agora:test | tail -1
-[ "${1:-}" = --ohne-e2e ] || sh tests/e2e/lauf.sh | tail -2
+docker build -q --target test -t agora:test . >/dev/null
+ERG=$(docker run --rm agora:test 2>&1) || { echo "$ERG" | tail -30; echo "✗ API-Tests fehlgeschlagen"; exit 1; }
+echo "$ERG" | tail -1
+if [ "${1:-}" != --ohne-e2e ]; then
+  ERG=$(sh tests/e2e/lauf.sh 2>&1) || { echo "$ERG" | tail -30; echo "✗ Browser-E2E fehlgeschlagen"; exit 1; }
+  echo "$ERG" | tail -2
+fi
 docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.0 git /repo --no-banner >/dev/null 2>&1 || { echo "✗ gitleaks hat etwas gefunden"; exit 1; }
 echo "✓ gitleaks sauber"
 git push -q github main && echo "✓ GitHub"

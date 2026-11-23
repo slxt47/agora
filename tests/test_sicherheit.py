@@ -30,7 +30,11 @@ def test_arten_zuordnung_und_frontend_liste():
     assert sicherheit.art('2FA: Wiederherstellungscode benutzt (7 übrig)') == 'zwei_faktor_code_benutzt'
     assert sicherheit.art('Raum angelegt (sofort)') is None and sicherheit.art('angemeldetX') is None
     # Frontend kennt genau dieselben Arten (web/src/sicherheit-arten.js)
-    js = (pathlib.Path(__file__).parent.parent / 'web/src/sicherheit-arten.js').read_text()
+    quelle = pathlib.Path(__file__).parent.parent / 'web/src/sicherheit-arten.js'
+    if not quelle.exists():          # im Docker-Testziel liegt nur das gebaute Frontend
+        import pytest
+        pytest.skip('Frontend-Quellen nicht im Image')
+    js = quelle.read_text()
     assert set(re.findall(r'\b([a-z_0-9]+): \[', js)) == {a for _p, a in sicherheit.ARTEN}
 
 

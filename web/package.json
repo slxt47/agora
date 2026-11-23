@@ -1,0 +1,20 @@
+{
+  "name": "agora-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Agora – Videokonferenzen im slxt-Design (Frontend)",
+  "type": "module",
+  "license": "MIT",
+  "author": "Florian Neubauer",
+  "dependencies": {
+    "livekit-client": "2.25.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.8"
+  },
+  "scripts": {
+    "build": "node scripts/icons.mjs && vite build",
+    "dev": "vite",
+    "test": "node --test test/*.test.js"
+  }
+}

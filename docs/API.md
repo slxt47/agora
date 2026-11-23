@@ -228,3 +228,16 @@ höchstens eine je Termin und Empfänger (Schlüssel in der Datenbank, übersteh
 Meeting bzw. Einladung erst innerhalb des Fensters entstanden sind. Besitzer: vor jedem Vorkommen; Eingeladene: nur vor dem nächsten
 Termin (bei Wiederholung das Vorkommen zur Zeit der Einladung). Erinnerungsmails enthalten nie einen Passcode.
 
+## Meeting-Verlauf (angemeldet, Besitzer)
+`eintrag` = `{id, code, titel, start, ende, dauer_s, spitze, teilnahmen, chat, sitzung}` – `spitze` = höchste Zahl gleichzeitig
+Verbundener (Haupt- und Breakout-Räume, minütlich gemessen, mindestens 1 nach einem Beitritt), `teilnahmen` = ausgegebene Zugänge,
+`chat` = Chat/Umfragen dieses Meetings sind gespeichert (`chat_speichern`) und der Raum existiert noch.
+
+| Methode + Pfad | Antwort |
+|---|---|
+| GET `/api/verlauf` | `{meetings:[eintrag]}` – nur beendete, neueste zuerst, max. 100 |
+| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat |
+| DELETE `/api/verlauf/{id}` | `{ok:true}` |
+
+Server-Haken in `raeume.py` für Module: `BEIM_START`, `BEIM_BEITRITT`, `BEI_ZAEHLUNG(raum, anzahl)` (neben `BEIM_ENDE`).
+

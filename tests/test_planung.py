@@ -290,3 +290,77 @@ def test_erinnerung_eingeladene_nur_mit_haken_und_danach_geloescht():
     # Sofort-Meeting: Haken wird ignoriert (kein Termin)
     s = raum(c)
     assert c.post(f'/api/raeume/{s["code"]}/einladen', json={'emails': ['s@example.org'], 'erinnerung': True}).json() == {'ok': True, 'gesendet': 1}
+
+
+# ---------------------------------------------------------------- Meeting-Verlauf
+def test_verlauf_zeichnet_meetings_auf():
+    from app import verlauf
+    c, _e, _p = konto(name='Verlauf')
+    assert c.get('/api/verlauf').json() == {'meetings': []}
+    r = raum(c, titel='Runde', chat_speichern=True)
+    code = r['code']
+    hz = zugang(c, code)
+    g1, g2 = neu_client(), neu_client()
+    z1 = zugang(g1, code, name='Eins')
+    zugang(g2, code, name='Zwei')
+    assert c.get('/api/verlauf').json() == {'meetings': []}             # läuft noch → nicht in der Liste
+    lk.FAKE_TEILNEHMER[code] = [{'identity': hz['identity'], 'name': 'H', 'tracks': []},
+                                {'identity': z1['identity'], 'name': 'E', 'tracks': []}]
+    asyncio.run(raeume.leere_pruefen())
+    lk.FAKE_TEILNEHMER[code] = [{'identity': i, 'name': i, 'tracks': []} for i in ('a', 'b', 'c')]
+    asyncio.run(raeume.leere_pruefen())
+    lk.FAKE_TEILNEHMER[code] = [{'identity': 'a', 'name': 'a', 'tracks': []}]
+    asyncio.run(raeume.leere_pruefen())
+    c.post(f'/api/raeume/{code}/chat', json={'text': 'Protokoll'}, headers=T(hz))
+    c.post(f'/api/raeume/{code}/umfragen', json={'frage': 'Pizza?', 'optionen': ['Ja', 'Nein']}, headers=T(hz))
+    g1.post(f'/api/raeume/{code}/chat', json={'text': 'Privat an Zwei', 'an': zugang(neu_client(), code, name='Drei')['identity']}, headers=T(z1))
+    steuern(c, code, hz, aktion='beenden')
+    lk.FAKE_TEILNEHMER.clear()
+    m = c.get('/api/verlauf').json()['meetings']
+    assert len(m) == 1
+    e = m[0]
+    assert e['code'] == code and e['titel'] == 'Runde' and e['spitze'] == 3 and e['teilnahmen'] == 4 and e['chat'] is True
+    assert e['dauer_s'] is not None and e['dauer_s'] >= 0 and e['start'].endswith('Z') and e['sitzung'] == 1
+    i = c.get(f'/api/verlauf/{e["id"]}/inhalt').json()
+    assert [n['text'] for n in i['nachrichten']] == ['Protokoll'] and [u['frage'] for u in i['umfragen']] == ['Pizza?']
+    # Zweites Meeting im selben Raum: eigener Eintrag, Inhalt nur dieser Sitzung
+    hz2 = zugang(c, code)
+    c.post(f'/api/raeume/{code}/chat', json={'text': 'Zweites'}, headers=T(hz2))
+    steuern(c, code, hz2, aktion='beenden')
+    m = c.get('/api/verlauf').json()['meetings']
+    assert [x['sitzung'] for x in m] == [2, 1] and m[0]['spitze'] == 1 and m[0]['teilnahmen'] == 1
+    assert [n['text'] for n in c.get(f'/api/verlauf/{m[0]["id"]}/inhalt').json()['nachrichten']] == ['Zweites']
+    # Ohne gespeicherten Chat: kein Inhalt; fremde Einträge unsichtbar
+    s = raum(c, titel='Ohne Chat')
+    hs = zugang(c, s['code'])
+    steuern(c, s['code'], hs, aktion='beenden')
+    ohne = c.get('/api/verlauf').json()['meetings'][0]
+    assert ohne['titel'] == 'Ohne Chat' and ohne['chat'] is False
+    assert c.get(f'/api/verlauf/{ohne["id"]}/inhalt').status_code == 404
+    andere, _e2, _p2 = konto()
+    assert andere.get('/api/verlauf').json() == {'meetings': []}
+    assert andere.get(f'/api/verlauf/{e["id"]}/inhalt').status_code == 404
+    assert andere.request('DELETE', f'/api/verlauf/{e["id"]}').status_code == 404
+    assert len(c.get('/api/konto/export').json()['meeting_verlauf']) == 3
+    # Raum gelöscht → Eintrag bleibt (ohne Inhalt), einzeln löschbar; nach 90 Tagen weg
+    c.request('DELETE', f'/api/raeume/{code}')
+    m = c.get('/api/verlauf').json()['meetings']
+    assert len(m) == 3 and all(x['chat'] is False for x in m if x['code'] == code)
+    assert c.request('DELETE', f'/api/verlauf/{m[0]["id"]}').json() == {'ok': True}
+    assert len(c.get('/api/verlauf').json()['meetings']) == 2
+    verlauf.aufraeumen(int(datetime.now(timezone.utc).timestamp()) + 91 * 86400)
+    assert c.get('/api/verlauf').json() == {'meetings': []}
+
+
+def test_verlauf_leerlauf_ende():
+    c, _e, _p = konto()
+    r = raum(c, titel='Leer')
+    code = r['code']
+    zugang(c, code)
+    row = db.verbindung().execute('SELECT * FROM raeume WHERE code = ?', (code,)).fetchone()
+    lk.FAKE_TEILNEHMER[code] = []
+    t = row['letzte_aktivitaet']
+    asyncio.run(raeume.leere_pruefen(t + 10))
+    asyncio.run(raeume.leere_pruefen(t + 10 + raeume.LEER_S))
+    m = c.get('/api/verlauf').json()['meetings']
+    assert len(m) == 1 and m[0]['spitze'] == 1 and m[0]['teilnahmen'] == 1

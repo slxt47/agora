@@ -12,6 +12,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Warteraum mit Zulassen und Ablehnen, Meeting sperren
   - Planen mit Zeitzone, auch täglich oder wöchentlich wiederkehrend
   - persönlicher Dauer-Raum
+  - Meeting-Verlauf im Konto: vergangene Meetings mit Datum, Dauer, Spitzenzahl gleichzeitig Verbundener und (bei gespeichertem Chat) Chat und Umfragen
   - Vorlagen: Titel, Dauer, Passcode an/aus, Warteraum, Chat speichern, Beschreibung, Standard-Rechte und „alle stumm beim Beitritt“
     speichern und daraus sofort starten oder planen
   - Einladung per E-Mail mit `.ics`

@@ -22,6 +22,7 @@ from . import breakout
 from . import kalender      # Kalender-Abo (iCal-Feed)
 from . import vorlagen      # Meeting-Vorlagen
 from . import erinnerungen  # Erinnerungs-Mails
+from . import verlauf       # Meeting-Verlauf
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -94,6 +95,7 @@ app.include_router(breakout.router)
 app.include_router(kalender.router)
 app.include_router(vorlagen.router)
 app.include_router(erinnerungen.router)
+app.include_router(verlauf.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])
@@ -128,6 +130,7 @@ def aufraeumen():
     c.execute('DELETE FROM protokoll WHERE zeit < ?', (t - 30 * 86400,))
     aufnahmen.aufraeumen(t)
     raeume.aufraeumen(t)
+    verlauf.aufraeumen(t)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

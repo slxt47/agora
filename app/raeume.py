@@ -29,6 +29,9 @@ ANFRAGE_S = 1800              # Warteraum-Anfragen verfallen nach 30 min
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
 RANG = {'host': 3, 'cohost': 2, 'teilnehmer': 1, 'gast': 1}
 BEIM_ENDE = []                # Module (Umfragen, Breakout) hängen sich hier ein: f(raum) räumt beim Meeting-Ende auf
+BEIM_START = []               # f(raum) nach dem Start eines neuen Meetings (Verlauf)
+BEIM_BEITRITT = []            # f(raum) bei jedem ausgegebenen Zugang (Verlauf)
+BEI_ZAEHLUNG = []             # f(raum, anzahl) – minütliche Zahl der Verbundenen aller Räume des Meetings (Verlauf)
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -195,7 +198,10 @@ def meeting_starten(r):
     c = db.verbindung()
     c.execute('UPDATE raeume SET aktiv = 1, sitzung = sitzung + 1, gestartet = ?, leer_seit = ?, gesperrt = 0, aufnahme_von = NULL, '
               'beendet = 0, letzte_aktivitaet = ? WHERE id = ? AND aktiv = 0', (jetzt(), jetzt(), jetzt(), r['id']))
-    return neu_laden(r)
+    r = neu_laden(r)
+    for f in BEIM_START:
+        f(r)
+    return r
 
 
 async def meeting_beenden(r, grund='host'):
@@ -269,6 +275,13 @@ async def zugang_erstellen(r, name, benutzer_id, ip):
               (h(geheim), r['id'], r['sitzung'], identity, name, rolle, b['id'] if b else None, ip, farbe, jetzt()))
     c.execute('UPDATE raeume SET letzte_aktivitaet = ? WHERE id = ?', (jetzt(), r['id']))
     await lk.raum_anlegen(r['code'], meta(r), MAX_TEILNEHMER)
+    for f in BEIM_BEITRITT:
+        f(r)
+    if BEI_ZAEHLUNG:              # Verlauf: Spitze auch beim Beitritt messen (Verbundene + wer gerade beitritt)
+        liste = await lk.teilnehmer(r['code'])
+        if liste is not None:
+            for f in BEI_ZAEHLUNG:
+                f(r, len(liste) + 1)
     return {'token': lk.token(r['code'], identity, name, rolle, farbe, rechte(r)), 'url': lk_url(), 'identity': identity,
             'name': name, 'rolle': rolle, 'teilnahme': geheim,
             'stumm_beitritt': bool(r['stumm_beitritt']) and rolle != 'host'}      # Vorlage: stumm beitreten (Client-Hinweis)
@@ -287,6 +300,8 @@ async def leere_pruefen(t=None):
         liste = await lk.teilnehmer(r['code'])
         if liste is None:
             continue                     # LiveKit nicht erreichbar → nichts entscheiden
+        for f in BEI_ZAEHLUNG:
+            f(r, len(liste))
         if liste or c.execute("SELECT 1 FROM anfragen WHERE raum_id = ? AND sitzung = ? AND status = 'wartet' AND erstellt > ?",
                               (r['id'], r['sitzung'], t - ANFRAGE_S)).fetchone():
             c.execute('UPDATE raeume SET leer_seit = NULL, letzte_aktivitaet = ? WHERE id = ?', (t, r['id']))

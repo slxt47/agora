@@ -11,6 +11,7 @@ import {
 import { kalenderDialog, kalenderAboEinrichten } from './kalender.js';
 import { vorlagenEinrichten, alsVorlage, passcodeZeigen } from './vorlagen.js';
 import { erinnerungEinrichten, einladenErinnerung } from './erinnerung.js';
+import { verlaufEinrichten } from './verlauf.js';
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -475,6 +476,7 @@ $('#planen-knopf').addEventListener('click', () => planenDialog());
   kalenderAboEinrichten();
   vorlagenEinrichten({ planen: (vorlage) => planenDialog(null, { vorlage }) });
   erinnerungEinrichten();
+  verlaufEinrichten({ zeitzone: zone });
   const ziel = location.hash.slice(1);
   reiter(ziel === 'planen' ? 'meetings' : ziel);
   try { await meetingsLaden(); } catch (e) { toast(e.message, 'err'); }

@@ -12,3 +12,7 @@
 .kal-link .symbol svg { width: 18px; height: 18px; }
 .kal-link .text { display: grid; min-width: 0; }
 .kal-link small { color: var(--sec); font-size: .8125rem; }
+
+/* Meeting-Verlauf: Umfragen im Inhalt-Dialog */
+.verlauf-umfrage { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--tile); border: 1px solid var(--card-line); }
+.verlauf-umfrage ul { margin: 0; padding-left: 18px; }

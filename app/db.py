@@ -211,6 +211,24 @@ SCHEMA = [
       zeit INTEGER NOT NULL
     );
     """,
+    # ==== Version 7 (Meeting-Verlauf) – eigener Block, beim Zusammenführen ggf. umnummerieren ====
+    """
+    CREATE TABLE meeting_verlauf (     -- je Meeting (Raum + Sitzung): Zeiten und Zahlen, keine Namen; 90 Tage
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER REFERENCES raeume(id) ON DELETE SET NULL,
+      sitzung INTEGER NOT NULL,
+      besitzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      code TEXT NOT NULL,
+      titel TEXT NOT NULL,
+      start INTEGER NOT NULL,
+      ende INTEGER,
+      spitze INTEGER NOT NULL DEFAULT 0,       -- höchste Zahl gleichzeitig Verbundener (minütlich gemessen)
+      teilnahmen INTEGER NOT NULL DEFAULT 0,   -- ausgegebene Zugänge (Beitritte)
+      chat INTEGER NOT NULL DEFAULT 0,         -- Chat/Umfragen dieser Sitzung gespeichert
+      UNIQUE (raum_id, sitzung)
+    );
+    CREATE INDEX meeting_verlauf_besitzer ON meeting_verlauf(besitzer_id, start);
+    """,
 ]
 
 

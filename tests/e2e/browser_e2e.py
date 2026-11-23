@@ -286,6 +286,11 @@ with sync_playwright() as p:
         hp.wait_for_selector('#v-ende:not([hidden])', timeout=15000)
         print('Gast-Ende:', gp.inner_text('#ende-titel'), '| Host-Ende:', hp.inner_text('#ende-titel'))
         gp.screenshot(path=OUT + '18-gast-ende.png')
+        # Meeting-Verlauf: das beendete Meeting steht unter „Vergangene Meetings“
+        hp.goto(B + '/konto#meetings')
+        hp.wait_for_selector('#liste-verlauf li[data-verlauf] .name:has-text("Testmeeting")', timeout=10000)
+        print('Verlauf:', hp.inner_text('#liste-verlauf li[data-verlauf]').replace('\n', ' | '))
+        hp.screenshot(path=OUT + '18i-verlauf.png', full_page=True)
         # PWA: im Cache nur App-Hülle/statische Dateien – nie API, Medien, MediaPipe
         gecacht = hp.evaluate("(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) out.push(new URL(r.url).pathname); return out; })()")
         print('Im Cache:', len(gecacht), 'Einträge')

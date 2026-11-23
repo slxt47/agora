@@ -241,4 +241,9 @@ export const de = {
   'erinnerung.feld': 'Erinnerung per Mail', 'erinnerung.aus': 'Aus', 'erinnerung.vorher': '{n} Minuten vorher',
   'erinnerung.an': 'Erinnerung {n} Minuten vorher ist an.', 'erinnerung.ausOk': 'Erinnerungen sind aus.',
   'erinnerung.schicken': 'Erinnerung schicken', 'erinnerung.schickenHinweis': 'Die Eingeladenen bekommen vor dem nächsten Termin eine Mail. Dafür speichert Agora die Adressen bis nach dem Termin.',
+  'verlauf.leer': 'Noch keine beendeten Meetings. Hier erscheinen Datum, Dauer und wie viele dabei waren.',
+  'verlauf.dauer': 'Dauer {zeit}', 'verlauf.spitze': 'höchstens {n} gleichzeitig', 'verlauf.spitzeLang': 'Höchste Zahl gleichzeitig Verbundener (minütlich gemessen)',
+  'verlauf.beitritte': '{n} Beitritt(e)', 'verlauf.inhalt': 'Chat und Umfragen', 'verlauf.inhaltTitel': 'Gespeichert: {titel}',
+  'verlauf.chat': 'Chat', 'verlauf.umfragen': 'Umfragen', 'verlauf.stimmen': '{n} Stimme(n)',
+  'verlauf.entfernen': 'Aus Verlauf entfernen', 'verlauf.entfernenTitel': 'Eintrag entfernen?', 'verlauf.entfernenText': 'Der Eintrag verschwindet aus dem Verlauf. Gespeicherte Chats bleiben beim Raum.',
 };

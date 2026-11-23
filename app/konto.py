@@ -10,11 +10,17 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
 from . import aufnahmen, db, mail, raeume
-from .kern import (SEITE, benutzer_aus_sitzung, client_ip, cookie_loeschen, fehler, grenze, h, hash_pw, iso, jetzt,
+from .kern import (TEST, SEITE, benutzer_aus_sitzung, client_ip, cookie_loeschen, fehler, grenze, h, hash_pw, iso, jetzt,
                    json_body, pw_ok, sitzung_setzen, text_feld)
 
 router = APIRouter()
 MAIL_RE = re.compile(r'^[^@\s<>"]{1,64}@[^@\s<>"]{1,190}\.[a-z]{2,24}$', re.I)
+# Reservierte Namen (RFC 2606/6761): Mails dorthin kommen nie an und erzeugen nur Unzustellbar-Meldungen beim Absender
+RESERVIERT_RE = re.compile(r'@(?:[^@]+\.)?(?:example\.(?:com|net|org)|[^@]+\.(?:invalid|test|localhost|example|local))$', re.I)
+
+
+def zustellbar(e):
+    return bool(MAIL_RE.match(e)) and (TEST or not RESERVIERT_RE.search(e))   # Tests nutzen example.org
 FARBE_RE = re.compile(r'^#[0-9a-f]{6}$')
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
 BESTAETIGEN_S = 48 * 3600
@@ -29,7 +35,7 @@ def ich_json(b):
 
 def email_feld(d):
     e = str(d.get('email', '')).strip()
-    if not MAIL_RE.match(e):
+    if not zustellbar(e):
         fehler(400, 'Bitte eine gültige E-Mail-Adresse eingeben.')
     return e
 

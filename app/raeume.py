@@ -388,10 +388,10 @@ async def einladen(code: str, req: Request):
     emails = d.get('emails')
     if not isinstance(emails, list) or not 1 <= len(emails) <= 20:
         fehler(400, 'Bitte 1 bis 20 E-Mail-Adressen angeben.')
-    from .konto import MAIL_RE
+    from .konto import zustellbar
     adressen = []
     for e in emails:
-        if not isinstance(e, str) or not MAIL_RE.match(e.strip()):
+        if not isinstance(e, str) or not zustellbar(e.strip()):
             fehler(400, f'Ungültige E-Mail-Adresse: {str(e)[:80]}')
         if e.strip().lower() not in [a.lower() for a in adressen]:
             adressen.append(e.strip())

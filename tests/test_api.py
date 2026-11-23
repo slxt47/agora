@@ -715,3 +715,12 @@ def test_aufraeumen_alte_raeume_und_sitzungen():
     main.aufraeumen()
     assert host.get(f'/api/raeume/{r["code"]}').status_code == 404
     assert host.get('/api/konto/ich').json() == {'angemeldet': False}
+
+
+def test_reservierte_mail_domains_erkannt():
+    # Reservierte Domains (RFC 2606/6761) bekommen außerhalb des Testmodus keine Mail – sonst Unzustellbar-Meldungen
+    from app.konto import RESERVIERT_RE
+    for e in ('a@example.invalid', 'a@x.test', 'a@example.com', 'a@mail.example.org', 'a@host.localhost'):
+        assert RESERVIERT_RE.search(e), e
+    for e in ('a@slxt.org', 'a@gmail.com', 'a@example-firma.at', 'a@testfirma.de'):
+        assert not RESERVIERT_RE.search(e), e

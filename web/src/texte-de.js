@@ -214,4 +214,16 @@ export const de = {
   'breakout.schliesstIn': 'Breakout-Räume schließen in {zeit}.', 'breakout.jetztZurueck': 'Jetzt zurück', 'breakout.geoeffnet': 'Breakout-Räume sind offen.',
   'breakout.aufnahmeGestoppt': 'Aufnahme beendet, weil du den Raum gewechselt hast.', 'breakout.verwalten': 'Breakout-Räume verwalten', 'breakout.zuWenige': 'Bitte 2 bis 50 Räume angeben.',
   'breakout.timerFalsch': 'Timer: 1 bis 240 Minuten.', 'breakout.niemand': 'Gerade ist niemand zum Verteilen da.',
+  // ==== Planung und Komfort (kalender.js, vorlagen.js, erinnerung.js, verlauf.js) – eigener Block ====
+  'kal.knopf': 'Zum Kalender', 'kal.titel': 'Zum Kalender hinzufügen', 'kal.text': 'Übernimm das Meeting mit einem Klick – ohne Anmeldung bei Agora.',
+  'kal.google': 'Zu Google Kalender', 'kal.office365': 'Zu Outlook/Office 365', 'kal.outlook': 'Zu Outlook.com', 'kal.ics': 'Kalenderdatei (.ics)',
+  'kal.mitWiederholung': 'mit allen Wiederholungen', 'kal.nurNaechster': 'nur der nächste Termin – für die ganze Serie die .ics nehmen',
+  'kal.icsHinweis': 'Apple Kalender, Outlook, Thunderbird – mit allen Wiederholungen',
+  'kal.aboHinweis': 'Alle Meetings automatisch im Kalender? Schalte im Profil das Kalender-Abo ein.',
+  'kal.aboText': 'Ein privater Link, den Apple Kalender, Google Kalender oder Outlook abonnieren. Neue und geänderte Meetings erscheinen dort von selbst (die Apps fragen etwa stündlich nach).',
+  'kal.aboAn': 'Kalender-Abo einschalten', 'kal.aboOeffnen': 'In Kalender-App öffnen', 'kal.aboNeu': 'Neuen Link erzeugen', 'kal.aboAus': 'Abo ausschalten',
+  'kal.aboNeuTitel': 'Neuen Link erzeugen?', 'kal.aboNeuText': 'Der bisherige Link funktioniert danach nicht mehr. Abonnierte Kalender musst du mit dem neuen Link neu einrichten.',
+  'kal.aboNeuOk': 'Neuer Link erzeugt.', 'kal.aboAusTitel': 'Kalender-Abo ausschalten?', 'kal.aboAusText': 'Der Link funktioniert danach nicht mehr.',
+  'kal.abgerufen': 'Zuletzt abgerufen: {zeit}', 'kal.nochNie': 'Noch nicht abgerufen.',
+  'kal.aboSchutz': 'Behandle den Link wie ein Passwort: Wer ihn kennt, sieht Titel, Zeiten und Links deiner Meetings (nie Passcodes).',
 };

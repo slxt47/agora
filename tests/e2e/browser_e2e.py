@@ -61,6 +61,23 @@ with sync_playwright() as p:
         hp.click('dialog button[type=submit]')
         hp.wait_for_selector('#liste-geplant li .name')
         hp.screenshot(path=OUT + '04-konto.png', full_page=True)
+        # Kalender: Links je Meeting (Google/Outlook/Office 365/.ics) und privates Kalender-Abo im Profil
+        hp.click('#liste-geplant [data-kalender]')
+        hp.wait_for_selector('dialog .kal-link')
+        kal = hp.eval_on_selector_all('dialog .kal-link', 'els => els.map(e => e.href)')
+        print('Kalender-Links:', [k.split('?')[0] for k in kal])
+        if not (any(k.startswith('https://calendar.google.com/calendar/render?action=TEMPLATE') for k in kal)
+                and any('outlook.office.com' in k for k in kal) and any('outlook.live.com' in k for k in kal) and any(k.endswith('/ics') for k in kal)):
+            fehler.append(f'Kalender-Links fehlen: {kal}')
+        hp.screenshot(path=OUT + '04b-kalender.png')
+        hp.click('dialog .blatt-kopf .icon-btn')
+        hp.click('#tab-profil')
+        hp.click('#kal-abo-an')
+        hp.wait_for_selector('#kal-abo-url')
+        feed = hp.request.get(hp.inner_text('#kal-abo-url').strip())
+        if feed.status != 200 or 'SUMMARY:Wochenbesprechung' not in feed.text(): fehler.append(f'Kalender-Abo liefert nichts ({feed.status})')
+        hp.screenshot(path=OUT + '04c-kalender-abo.png')
+        hp.click('#tab-meetings')
         # Sofort-Meeting mit Warteraum
         r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Testmeeting', warteraum:true})})).json())""")
         code = r['raum']['code']

@@ -8,6 +8,7 @@ import {
   initialen, zeitText, minutenText, wiederholungText, lokalZuUtc, utcZuLokal, groesseText, datumText, uhrzeitText,
   passcodeVorschlag, emailsAusText, linkTeile,
 } from './helfer.js';
+import { kalenderDialog, kalenderAboEinrichten } from './kalender.js';
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -97,7 +98,9 @@ function raumEintrag(raum, vergangen) {
   if (!vergangen) {
     aktionen.append(
       knopf(t('konto.einladen'), { klasse: 'btn klein', symbol: 'mail', onclick: () => einladenDialog(raum) }),
-      h('a', { class: 'btn klein', href: `/api/raeume/${raum.code}/ics`, download: `${raum.code}.ics`, html: icon('kalender') }, h('span', {}, t('konto.kalender'))),
+      raum.kalender
+        ? knopf(t('kal.knopf'), { klasse: 'btn klein', symbol: 'kalender', 'data-kalender': raum.code, onclick: () => kalenderDialog(raum) })
+        : null,
       knopf(t('konto.bearbeiten'), { klasse: 'btn klein', symbol: 'stift', onclick: () => planenDialog(raum) }),
     );
   } else {
@@ -459,6 +462,7 @@ $('#planen-knopf').addEventListener('click', () => planenDialog());
   ich = await ichLaden();
   if (!ich) { location.replace(`/?weiter=${encodeURIComponent('/konto' + location.hash)}`); return; }
   kopfZeigen();
+  kalenderAboEinrichten();
   const ziel = location.hash.slice(1);
   reiter(ziel === 'planen' ? 'meetings' : ziel);
   try { await meetingsLaden(); } catch (e) { toast(e.message, 'err'); }

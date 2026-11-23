@@ -117,17 +117,17 @@ def vtimezone(name, jahr):
     return zeilen
 
 
-def kalender(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederholung, bis, erstellt, veranstalter='Agora', sequenz=0):
-    """Vollständige .ics (METHOD:PUBLISH) für ein geplantes Meeting."""
+def _beschreibung(beschreibung, link, code):
+    return (beschreibung + '\n\n' if beschreibung else '') + f'Beitreten: {link}\nMeeting-Code: {code}'
+
+
+def _vevent(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederholung, bis, erstellt, veranstalter='Agora',
+            sequenz=0):
+    """Zeilen eines VEVENT (wiederkehrend in Ortszeit mit TZID + RRULE, sonst UTC)."""
     tz = zone(zeitzone)
     ende = start + (dauer_min or 60) * 60
-    text = (beschreibung + '\n\n' if beschreibung else '') + f'Beitreten: {link}\nMeeting-Code: {code}'
-    zeilen = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//slxt//Agora//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH']
-    wiederkehrend = wiederholung in RRULE
-    if wiederkehrend:
-        zeilen += vtimezone(zeitzone, datetime.fromtimestamp(start, tz).year)
-    zeilen += ['BEGIN:VEVENT', f'UID:{code}@agora.slxt.dev', f'DTSTAMP:{_utc(erstellt)}', f'SEQUENCE:{sequenz}']
-    if wiederkehrend:
+    zeilen = ['BEGIN:VEVENT', f'UID:{code}@agora.slxt.dev', f'DTSTAMP:{_utc(erstellt)}', f'SEQUENCE:{sequenz}']
+    if wiederholung in RRULE:
         zeilen += [f'DTSTART;TZID={zeitzone}:{_lokal(start, tz)}', f'DTEND;TZID={zeitzone}:{_lokal(ende, tz)}']
         regel = f'RRULE:FREQ={RRULE[wiederholung]}'
         if bis is not None:
@@ -135,8 +135,70 @@ def kalender(code, titel, beschreibung, link, start, dauer_min, zeitzone, wieder
         zeilen.append(regel)
     else:
         zeilen += [f'DTSTART:{_utc(start)}', f'DTEND:{_utc(ende)}']
-    zeilen += [f'SUMMARY:{_esc(titel)}', f'DESCRIPTION:{_esc(text)}', f'LOCATION:{_esc(link)}', f'URL:{link}',
-               'ORGANIZER;CN="' + veranstalter.replace('"', "'")[:60] + '":mailto:noreply@slxt.dev', 'STATUS:CONFIRMED', 'TRANSP:OPAQUE',
-               'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Meeting beginnt', 'TRIGGER:-PT10M', 'END:VALARM',
-               'END:VEVENT', 'END:VCALENDAR']
+    zeilen += [f'SUMMARY:{_esc(titel)}', f'DESCRIPTION:{_esc(_beschreibung(beschreibung, link, code))}', f'LOCATION:{_esc(link)}',
+               f'URL:{link}', 'ORGANIZER;CN="' + veranstalter.replace('"', "'")[:60] + '":mailto:noreply@slxt.dev',
+               'STATUS:CONFIRMED', 'TRANSP:OPAQUE',
+               'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Meeting beginnt', 'TRIGGER:-PT10M', 'END:VALARM', 'END:VEVENT']
+    return zeilen
+
+
+def _ausgabe(zeilen):
     return '\r\n'.join(_falten(z) for z in zeilen) + '\r\n'
+
+
+def kalender(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederholung, bis, erstellt, veranstalter='Agora', sequenz=0):
+    """Vollständige .ics (METHOD:PUBLISH) für ein geplantes Meeting."""
+    zeilen = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//slxt//Agora//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH']
+    if wiederholung in RRULE:
+        zeilen += vtimezone(zeitzone, datetime.fromtimestamp(start, zone(zeitzone)).year)
+    zeilen += _vevent(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederholung, bis, erstellt, veranstalter, sequenz)
+    zeilen.append('END:VCALENDAR')
+    return _ausgabe(zeilen)
+
+
+# ---------------------------------------------------------------- Kalender-Abo (iCal-Feed) und Links „Zu … hinzufügen“
+def abo_kalender(name, termine):
+    """Abo-Feed (webcal): alle anstehenden Meetings einer Person. termine = [dict mit den Argumenten von _vevent].
+    Ohne METHOD (Abo, keine Einladung); Kalender-Apps fragen laut REFRESH-INTERVAL stündlich nach."""
+    zeilen = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//slxt//Agora//DE', 'CALSCALE:GREGORIAN',
+              f'X-WR-CALNAME:{_esc(name)}', 'X-WR-CALDESC:Meetings aus Agora', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+              'X-PUBLISHED-TTL:PT1H']
+    zonen = {}
+    for e in termine:
+        if e['wiederholung'] in RRULE and e['zeitzone'] not in zonen:
+            zonen[e['zeitzone']] = datetime.fromtimestamp(e['start'], zone(e['zeitzone'])).year
+    for name_, jahr in sorted(zonen.items()):
+        zeilen += vtimezone(name_, jahr)
+    for e in termine:
+        zeilen += _vevent(**e)
+    zeilen.append('END:VCALENDAR')
+    return _ausgabe(zeilen)
+
+
+def _iso_z(t):
+    return datetime.fromtimestamp(t, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def kalender_links(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederholung, bis, naechster, ics_url):
+    """Vorlagen-Links zum Eintragen ohne OAuth. Google kann Wiederholungen (recur=RRULE, Serie ab dem ersten Termin);
+    Outlook/Office 365 kennen in den Links keine Wiederholung → dort der nächste Termin, Hinweis im Text auf die .ics."""
+    from urllib.parse import urlencode, quote
+    dauer = (dauer_min or 60) * 60
+    text = _beschreibung(beschreibung, link, code)
+    wiederkehrend = wiederholung in RRULE
+    g = {'action': 'TEMPLATE', 'text': titel, 'dates': f'{_utc(start)}/{_utc(start + dauer)}', 'details': text, 'location': link,
+         'ctz': zeitzone or 'UTC'}
+    if wiederkehrend:
+        g['recur'] = f'RRULE:FREQ={RRULE[wiederholung]}' + (f';UNTIL={_utc(bis)}' if bis is not None else '')
+    einzeln = naechster if naechster is not None else start
+    o_text = text
+    if wiederkehrend:
+        o_text += '\n\nWiederholt sich ' + ('täglich' if wiederholung == 'taeglich' else 'wöchentlich') + \
+            f' – alle Termine auf einmal: {ics_url}'
+    o = {'path': '/calendar/action/compose', 'rru': 'addevent', 'subject': titel, 'startdt': _iso_z(einzeln),
+         'enddt': _iso_z(einzeln + dauer), 'body': o_text, 'location': link}
+    q = lambda d: urlencode(d, quote_via=quote)   # noqa: E731  (Leerzeichen als %20 – Outlook mag kein +)
+    return {'google': 'https://calendar.google.com/calendar/render?' + q(g),
+            'outlook': 'https://outlook.live.com/calendar/0/action/compose?' + q(o),
+            'office365': 'https://outlook.office.com/calendar/0/action/compose?' + q(o),
+            'ics': ics_url}

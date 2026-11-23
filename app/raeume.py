@@ -82,7 +82,16 @@ def raum_json(r, b=None):
             'ist_host': bool(b) and b['id'] == r['besitzer_id'], 'passcode_noetig': bool(r['passcode_hash']),
             'warteraum': bool(r['warteraum']), 'gesperrt': bool(r['gesperrt']), 'aktiv': bool(r['aktiv']),
             'persoenlich': r['art'] == 'persoenlich', 'chat_speichern': bool(r['chat_speichern']),
-            'beendet': bool(r['beendet']), 'geplant': geplant, 'naechster_termin': iso(termin(r)), 'link': link(r['code'])}
+            'beendet': bool(r['beendet']), 'geplant': geplant, 'naechster_termin': iso(termin(r)), 'link': link(r['code']),
+            'kalender': kalender_links(r)}
+
+
+def kalender_links(r):
+    """„Zu Google/Outlook/Office 365 hinzufügen“ + .ics – nur für geplante Meetings."""
+    if r['art'] != 'geplant':
+        return None
+    return ics.kalender_links(r['code'], r['titel'], r['beschreibung'], link(r['code']), r['start'], r['dauer_min'], r['zeitzone'],
+                              r['wiederholung'], r['bis'], termin(r), f'{SEITE}/api/raeume/{r["code"]}/ics')
 
 
 def nachricht_json(n):
@@ -408,7 +417,8 @@ async def einladen(code: str, req: Request):
     gesendet = 0
     for a in adressen:
         if grenze.ok('mail:' + a.lower(), 3, 3600):
-            mail.im_hintergrund(mail.einladung_mail, a, b['name'], r['titel'], link(code), details, ics_daten, passcode)
+            mail.im_hintergrund(mail.einladung_mail, a, b['name'], r['titel'], link(code), details, ics_daten, passcode,
+                                kalender_links(r))
             gesendet += 1
     db.protokollieren(f'Einladungen verschickt ({gesendet})', b['id'], code)
     return {'ok': True, 'gesendet': gesendet}

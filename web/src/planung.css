@@ -1,0 +1,14 @@
+/* Planung und Komfort im Konto: Kalender-Links, Kalender-Abo, Vorlagen, Erinnerungen, Meeting-Verlauf, Dauer-Chat.
+   Nutzt nur die Design-Variablen aus app.css (Hell/Dunkel kommt von dort). */
+
+/* Kalender-Dialog: große Ziele (≥ 44 px), Symbol links, Name + Hinweis rechts */
+.kal-links { display: grid; gap: 8px; }
+.kal-link { display: flex; gap: 12px; align-items: center; min-height: 56px; padding: 10px 14px; border-radius: var(--r-tile);
+  background: var(--tile); border: 1px solid var(--card-line); color: inherit; text-decoration: none; }
+.kal-link:hover { background: var(--tile-hover); }
+.kal-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.kal-link .symbol { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.kal-link .symbol svg { width: 18px; height: 18px; }
+.kal-link .text { display: grid; min-width: 0; }
+.kal-link small { color: var(--sec); font-size: .8125rem; }

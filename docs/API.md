@@ -178,3 +178,22 @@ GET `/api/gesund` → `{ok:true}` · GET `/api/einstellungen` → `{livekit_url,
 - Download eigener Aufnahme als Datei: GET `/api/aufnahmen/{id}/datei?download=1`.
 - Nur bei `AGORA_TEST=1`: GET `/api/test/posteingang` → `{mails:[{an, betreff, text}]}`, GET `/api/test/livekit` (Fake-Aufrufe).
   `AGORA_GRENZEN_AUS=1` schaltet alle Rate-Limits ab (nur für E2E).
+
+## Kalender ohne OAuth
+`raum.kalender` = `null` (kein Termin) oder `{google, outlook, office365, ics}` – fertige Links zum Eintragen:
+Google (`calendar.google.com/calendar/render?action=TEMPLATE`, Zeiten in UTC, `ctz` = Zeitzone des Meetings, bei Wiederholung
+`recur=RRULE:…` ab dem ersten Termin), Outlook.com (`outlook.live.com/calendar/0/action/compose`) und Outlook/Office 365
+(`outlook.office.com/…`) mit `startdt`/`enddt` in UTC – diese Links kennen keine Wiederholung, daher der nächste Termin und im
+Text ein Hinweis auf die `.ics`. `ics` = absolute URL von GET `/api/raeume/{code}/ics`. Einladungsmails enthalten die Links ebenfalls.
+
+Kalender-Abo (privater iCal-Feed, abonnierbar in Apple/Google/Outlook):
+| Methode + Pfad | Antwort |
+|---|---|
+| GET `/api/konto/kalender` | `{abo}` |
+| POST `/api/konto/kalender` | `{abo}` – einschalten bzw. neuen Link erzeugen (der alte ist sofort ungültig) |
+| DELETE `/api/konto/kalender` | `{abo}` (aus) |
+| GET `/kalender/{token}.ics` (ohne Anmeldung) | `text/calendar` – alle eigenen geplanten Meetings mit kommendem Termin, wiederkehrende als Serie (VTIMEZONE + RRULE), nie Passcodes; 404 bei unbekanntem Token. 120 Abrufe/h je IP. |
+
+`abo` = `{aktiv, url|null, webcal|null, erstellt|null, abgerufen|null}`. Das Token wird per HMAC aus `AGORA_GEHEIM` und einem
+zufälligen Salz abgeleitet und nur als Hash gespeichert (ändert sich `AGORA_GEHEIM`, ändern sich alle Abo-Links).
+

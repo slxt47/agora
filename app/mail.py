@@ -20,7 +20,7 @@ SEITE = os.environ.get('AGORA_SEITE', 'https://agora.slxt.dev').rstrip('/')
 MARKE = 'Agora'
 
 
-def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=None):
+def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=None, links=None):
     """slxt-Design: Nachthimmel, Glaskarte, violetter Akzent, Systemschrift. Alles inline."""
     e = html.escape
     absatz_html = ''.join(f'<p style="margin:0 0 14px;font-size:16px;line-height:1.55;color:#c9cbe0" class="sec">{e(a)}</p>' for a in absaetze)
@@ -36,6 +36,9 @@ def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=No
         knopf_html = (f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 18px"><tr><td style="border-radius:999px;background:#a993ff">'
                       f'<a href="{e(url)}" style="display:inline-block;padding:14px 26px;font-weight:700;font-size:16px;color:#0b0b10;text-decoration:none;border-radius:999px">{e(text)}</a></td></tr></table>')
     hinweis_html = f'<p style="margin:4px 0 0;font-size:13px;line-height:1.5;color:#8e90ad" class="leise">{e(hinweis)}</p>' if hinweis else ''
+    if links:      # kleine Textlinks unter dem Knopf, z. B. „Zu Google Kalender“ (nur https-Ziele)
+        teile = ' · '.join(f'<a href="{e(u)}" class="akzent" style="color:#a993ff;text-decoration:none">{e(t)}</a>' for t, u in links)
+        hinweis_html = f'<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#8e90ad" class="leise">{teile}</p>' + hinweis_html
     return f'''<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>{e(titel)}</title>
@@ -144,14 +147,20 @@ def passwort_mail(an, name, link):
                      hinweis='Der Link gilt 1 Stunde. ' + IGNORIEREN, vorschau='Neues Passwort setzen'))
 
 
-def einladung_mail(an, von_name, titel, link, details, ics_daten=None, passcode=None):
+KALENDER_NAMEN = (('google', 'Zu Google Kalender'), ('outlook', 'Zu Outlook.com'), ('office365', 'Zu Outlook/Office 365'))
+
+
+def einladung_mail(an, von_name, titel, link, details, ics_daten=None, passcode=None, kalender=None):
     saetze = [f'{von_name} lädt dich zu einem Meeting ein: „{titel}“.']
     zeilen = list(details)
     if passcode:
         zeilen.append(('Passcode', passcode))
     text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in zeilen) + f'\n\nBeitreten: {link}\n'
+    links = [(name, kalender[k]) for k, name in KALENDER_NAMEN if kalender and kalender.get(k)]
+    if links:
+        text += '\n' + '\n'.join(f'{name}: {u}' for name, u in links) + '\n'
     anhaenge = [('einladung.ics', 'text', 'calendar', ics_daten.encode(), {'method': 'PUBLISH', 'charset': 'utf-8'})] if ics_daten else []
     hinweis = 'Den Termin kannst du mit dem Anhang in deinen Kalender übernehmen.' if ics_daten else None
     senden(an, f'Einladung: {titel}', text,
            html_mail('Einladung zum Meeting', saetze, knopf=('Meeting beitreten', link), details=zeilen,
-                     hinweis=hinweis, vorschau=f'{von_name} lädt dich ein'), anhaenge)
+                     hinweis=hinweis, vorschau=f'{von_name} lädt dich ein', links=links), anhaenge)

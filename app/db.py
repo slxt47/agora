@@ -166,6 +166,18 @@ SCHEMA = [
       PRIMARY KEY (raum_id, identity)
     );
     """,
+    # ==== Version 4 (Kalender-Abo) – eigener Block, beim Zusammenführen ggf. umnummerieren ====
+    # Geheimer iCal-Feed je Konto (nur nach Einschalten). Das Token wird aus AGORA_GEHEIM + salz abgeleitet
+    # (HMAC) und nur als Hash gespeichert; neues salz = neues Token (alter Link ungültig).
+    """
+    CREATE TABLE kalender_abo (
+      benutzer_id INTEGER PRIMARY KEY REFERENCES benutzer(id) ON DELETE CASCADE,
+      salz TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      erstellt INTEGER NOT NULL,
+      abgerufen INTEGER                -- letzter Abruf (Anzeige im Profil), keine IP
+    );
+    """,
 ]
 
 

@@ -19,6 +19,7 @@ from starlette.staticfiles import StaticFiles
 from . import aufnahmen, db, konto, mail, meeting, raeume
 from . import umfragen
 from . import breakout
+from . import kalender      # Kalender-Abo (iCal-Feed)
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -88,6 +89,7 @@ app.include_router(meeting.router)
 app.include_router(aufnahmen.router)
 app.include_router(umfragen.router)
 app.include_router(breakout.router)
+app.include_router(kalender.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])

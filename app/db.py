@@ -1,0 +1,163 @@
+"""SQLite-Datenbank für Agora. WAL-Modus, eine Verbindung pro Thread, Schema per Version."""
+import os
+import sqlite3
+import threading
+import time
+
+DATEN = os.environ.get('AGORA_DATEN', '/daten')
+DB = os.path.join(DATEN, 'agora.sqlite3')
+_lokal = threading.local()
+
+SCHEMA = [
+    # Version 1
+    """
+    CREATE TABLE benutzer (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      passwort_hash TEXT NOT NULL,     -- argon2
+      bestaetigt INTEGER NOT NULL DEFAULT 0,
+      zeitzone TEXT NOT NULL DEFAULT 'Europe/Berlin',
+      sprache TEXT NOT NULL DEFAULT 'de',
+      farbe TEXT NOT NULL,             -- Avatar-Farbe #rrggbb
+      erstellt INTEGER NOT NULL,
+      letzte_anmeldung INTEGER
+    );
+    CREATE TABLE token (                -- Links aus Mails (Bestätigung, Passwort), nur als Hash gespeichert
+      token_hash TEXT PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      art TEXT NOT NULL,               -- bestaetigen | passwort
+      gueltig_bis INTEGER NOT NULL
+    );
+    CREATE TABLE sitzungen (
+      token_hash TEXT PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      erstellt INTEGER NOT NULL,
+      gueltig_bis INTEGER NOT NULL
+    );
+    CREATE TABLE raeume (
+      id INTEGER PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,       -- abc-defg-hij
+      besitzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      art TEXT NOT NULL,               -- sofort | geplant | persoenlich
+      titel TEXT NOT NULL,
+      passcode_hash TEXT,              -- argon2 oder NULL
+      warteraum INTEGER NOT NULL DEFAULT 0,
+      chat_speichern INTEGER NOT NULL DEFAULT 0,
+      start INTEGER,                   -- geplant: Unix-Zeit (UTC)
+      dauer_min INTEGER,
+      zeitzone TEXT,
+      beschreibung TEXT,
+      wiederholung TEXT NOT NULL DEFAULT 'keine',
+      bis INTEGER,
+      rechte TEXT NOT NULL,            -- JSON
+      gesperrt INTEGER NOT NULL DEFAULT 0,
+      aktiv INTEGER NOT NULL DEFAULT 0,
+      sitzung INTEGER NOT NULL DEFAULT 0,   -- laufende Nummer des Meetings in diesem Raum
+      gestartet INTEGER,
+      leer_seit INTEGER,
+      beendet INTEGER NOT NULL DEFAULT 0,   -- Sofort-Meeting endgültig beendet
+      aufnahme_von TEXT,               -- Name, wenn gerade aufgezeichnet wird
+      erstellt INTEGER NOT NULL,
+      letzte_aktivitaet INTEGER NOT NULL
+    );
+    CREATE INDEX raeume_besitzer ON raeume(besitzer_id);
+    CREATE TABLE teilnahmen (
+      geheim_hash TEXT PRIMARY KEY,    -- Geheimnis für X-Teilnahme
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      rolle TEXT NOT NULL,             -- host | cohost | teilnehmer | gast
+      benutzer_id INTEGER,
+      ip TEXT NOT NULL,
+      farbe TEXT NOT NULL,
+      erstellt INTEGER NOT NULL
+    );
+    CREATE INDEX teilnahmen_raum ON teilnahmen(raum_id, sitzung);
+    CREATE TABLE anfragen (            -- Warteraum
+      id TEXT PRIMARY KEY,
+      geheim_hash TEXT NOT NULL,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      benutzer_id INTEGER,
+      ip TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'wartet',   -- wartet | zugelassen | abgelehnt | beendet
+      erstellt INTEGER NOT NULL
+    );
+    CREATE TABLE sperren (             -- entfernte Teilnehmer, je Meeting
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      art TEXT NOT NULL,               -- identity | benutzer | ip
+      wert TEXT NOT NULL
+    );
+    CREATE TABLE nachrichten (
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      von TEXT NOT NULL, von_name TEXT NOT NULL, von_benutzer INTEGER,
+      an TEXT, an_name TEXT, an_benutzer INTEGER,
+      text TEXT NOT NULL,
+      zeit INTEGER NOT NULL
+    );
+    CREATE INDEX nachrichten_raum ON nachrichten(raum_id, sitzung);
+    CREATE TABLE aufnahmen (
+      id TEXT PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      titel TEXT NOT NULL,
+      raum_code TEXT,
+      groesse INTEGER NOT NULL,
+      typ TEXT NOT NULL,
+      dauer INTEGER,                   -- Sekunden (vom Browser gemeldet) oder NULL
+      erstellt INTEGER NOT NULL,
+      ablauf INTEGER NOT NULL,
+      freigabe_token TEXT UNIQUE,
+      freigabe_bis INTEGER,
+      freigabe_passwort TEXT           -- argon2 oder NULL
+    );
+    CREATE INDEX aufnahmen_benutzer ON aufnahmen(benutzer_id);
+    CREATE TABLE protokoll (            -- Host-Aktionen und Anmeldungen ohne Inhalte, 30 Tage
+      zeit INTEGER NOT NULL, benutzer_id INTEGER, raum_code TEXT, ereignis TEXT NOT NULL
+    );
+    """,
+]
+
+
+def verbindung():
+    c = getattr(_lokal, 'c', None)
+    if c is None:
+        c = sqlite3.connect(DB, timeout=10, isolation_level=None, check_same_thread=False)
+        c.row_factory = sqlite3.Row
+        c.execute('PRAGMA journal_mode=WAL')
+        c.execute('PRAGMA foreign_keys=ON')
+        c.execute('PRAGMA busy_timeout=5000')
+        _lokal.c = c
+    return c
+
+
+def einrichten():
+    for d in ('aufnahmen', 'tmp', 'sicherung'):
+        os.makedirs(os.path.join(DATEN, d), exist_ok=True)
+    c = verbindung()
+    c.execute('CREATE TABLE IF NOT EXISTS schema_version (v INTEGER NOT NULL)')
+    v = (c.execute('SELECT v FROM schema_version').fetchone() or [0])[0]
+    if v == 0 and not c.execute('SELECT 1 FROM schema_version').fetchone():
+        c.execute('INSERT INTO schema_version VALUES (0)')
+    for nr, sql in enumerate(SCHEMA, start=1):
+        if v < nr:
+            c.executescript('BEGIN;' + sql + f'UPDATE schema_version SET v = {nr}; COMMIT;')
+
+
+def protokollieren(ereignis, benutzer_id=None, raum_code=None):
+    verbindung().execute('INSERT INTO protokoll VALUES (?, ?, ?, ?)', (int(time.time()), benutzer_id, raum_code, ereignis[:200]))
+
+
+def sichern():
+    """Konsistente Kopie der Datenbank (für das nächtliche Server-Backup, das den Ordner per tar sichert)."""
+    ziel = os.path.join(DATEN, 'sicherung', 'agora.sqlite3')
+    tmp = ziel + '.neu'
+    b = sqlite3.connect(tmp)
+    verbindung().backup(b)
+    b.close()
+    os.replace(tmp, ziel)

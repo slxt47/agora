@@ -1,0 +1,57 @@
+# Agora – Videokonferenzen (agora.slxt.dev). Start: docker compose up -d --build
+# Alle Dienste im Host-Netz: App + LiveKit-Signalisierung nur auf 127.0.0.1, der Cloudflare-Tunnel holt sie dort ab.
+# Öffentlich offen sind nur die Medienports von LiveKit (UDP 7882, TCP 7881) – siehe docs/BETRIEB.md.
+name: agora
+
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.11@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
+    restart: unless-stopped
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    env_file: livekit.env                  # LIVEKIT_KEYS + NODE_IP (0600, nicht im Repo)
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD", "/livekit-server", "--help"]
+      interval: 5m
+      timeout: 5s
+
+  app:
+    build: { context: ., target: laufzeit }
+    image: agora:1.0.0
+    restart: unless-stopped
+    network_mode: host                     # lauscht nur auf 127.0.0.1:8110, spricht LiveKit über 127.0.0.1:7880
+    env_file: app.env                      # SMTP, Geheimnis, LiveKit-Schlüssel (0600, nicht im Repo)
+    volumes:
+      - ./daten:/daten                     # SQLite + Aufzeichnungen (im nächtlichen Home-Backup)
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    depends_on: [livekit]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
+    restart: unless-stopped
+    network_mode: host
+    command: ["tunnel", "--no-autoupdate", "--loglevel", "info", "run"]
+    environment:
+      - TUNNEL_TOKEN          # nur aus .env
+    depends_on:
+      app:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true

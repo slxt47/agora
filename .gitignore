@@ -1,0 +1,11 @@
+.env
+*.env
+!.env.example
+daten/
+node_modules/
+web/dist/
+web/public/icons/
+__pycache__/
+.pytest_cache/
+livekit.env
+tests/e2e/bilder/

@@ -20,9 +20,13 @@ def effekt_waehlen(page, wert, bild):
     page.screenshot(path=OUT + bild)
     page.keyboard.press('Escape')
 
+# Bekannte Browser-Meldung aus @livekit/track-processors (Chromium räumt VideoFrames selbst auf) – kein Fehler von Agora
+BEKANNT = lambda text: 'VideoFrame was garbage collected without being closed' in text
+
+
 def beobachten(page, wer):
     page.on('pageerror', lambda e: fehler.append(f'[{wer}] pageerror: {e}'))
-    page.on('console', lambda m: m.type == 'error' and fehler.append(f'[{wer}] console: {m.text}'))
+    page.on('console', lambda m: m.type == 'error' and not BEKANNT(m.text) and fehler.append(f'[{wer}] console: {m.text}'))
     page.on('requestfailed', lambda r: print(f'[{wer}] Anfrage fehlgeschlagen: {r.url[:120]} {r.failure}'))
 
 with sync_playwright() as p:

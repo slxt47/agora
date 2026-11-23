@@ -741,3 +741,301 @@ def test_reservierte_mail_domains_erkannt():
         assert RESERVIERT_RE.search(e), e
     for e in ('a@slxt.org', 'a@gmail.com', 'a@example-firma.at', 'a@testfirma.de'):
         assert not RESERVIERT_RE.search(e), e
+
+
+# ---------------------------------------------------------------- Umfragen
+def umfrage_neu(c, code, z, **kw):
+    body = {'frage': 'Pizza oder Pasta?', 'optionen': ['Pizza', 'Pasta', 'Beides']} | kw
+    return c.post(f'/api/raeume/{code}/umfragen', json=body, headers=T(z))
+
+
+def test_umfrage_anlegen_rechte_und_pruefung():
+    host, code, hz, [(g1, z1)] = meeting(1)
+    assert umfrage_neu(g1, code, z1).status_code == 403
+    assert umfrage_neu(host, code, hz, optionen=['nur eine']).status_code == 400
+    assert umfrage_neu(host, code, hz, optionen=[str(i) for i in range(11)]).status_code == 400
+    assert umfrage_neu(host, code, hz, optionen=['A', '']).status_code == 400
+    assert umfrage_neu(host, code, hz, optionen=['A', 'a']).status_code == 400
+    assert umfrage_neu(host, code, hz, frage='').status_code == 400
+    assert umfrage_neu(host, code, hz, mehrfach='ja').status_code == 400
+    assert umfrage_neu(host, code, hz, optionen='A,B').status_code == 400
+    r = umfrage_neu(host, code, hz, anonym=False)
+    assert r.status_code == 200, r.text
+    u = r.json()['umfrage']
+    assert u['status'] == 'entwurf' and u['optionen'] == ['Pizza', 'Pasta', 'Beides'] and not u['mehrfach'] and not u['anonym']
+    assert u['ergebnis'] == {'stimmen': 0, 'zaehler': [0, 0, 0], 'namen': [[], [], []]} and u['von_name'] == 'Ada'
+    # Entwurf sieht nur die Moderation; Ereignis „angelegt“ nur an Host/Co-Hosts
+    assert ereignisse('umfrage')[-1]['an'] == [hz['identity']]
+    assert g1.get(f'/api/raeume/{code}/umfragen', headers=T(z1)).json() == {'umfragen': []}
+    assert len(host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json()['umfragen']) == 1
+    assert g1.post(f'/api/raeume/{code}/umfragen/{u["id"]}/abstimmen', json={'auswahl': [0]}, headers=T(z1)).status_code == 409
+    assert g1.post(f'/api/raeume/{code}/umfragen/{u["id"]}/starten', headers=T(z1)).status_code == 403
+    assert host.post(f'/api/raeume/{code}/umfragen/9999/starten', headers=T(hz)).status_code == 404
+
+
+def test_umfrage_abstimmen_live_beenden_teilen():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    u = umfrage_neu(host, code, hz, anonym=False).json()['umfrage']
+    url = f'/api/raeume/{code}/umfragen/{u["id"]}'
+    r = host.post(url + '/starten', headers=T(hz)).json()['umfrage']
+    assert r['status'] == 'laeuft' and r['gestartet'].endswith('Z')
+    alle = [e for e in ereignisse('umfrage') if e['an'] is None][-1]['daten']
+    assert alle['aktion'] == 'gestartet' and alle['umfrage']['ergebnis'] is None and alle['umfrage']['frage'] == 'Pizza oder Pasta?'
+    assert host.post(url + '/starten', headers=T(hz)).status_code == 409
+    # Gast sieht die laufende Umfrage, ohne Ergebnis
+    sicht = g1.get(f'/api/raeume/{code}/umfragen', headers=T(z1)).json()['umfragen'][0]
+    assert sicht['status'] == 'laeuft' and sicht['ergebnis'] is None and sicht['meine_auswahl'] is None
+    # Abstimmen: Prüfungen, genau einmal je Teilnahme
+    for falsch in ([], [3], [-1], [0, 1], ['0'], [True], 0, [0, 0]):
+        assert g1.post(url + '/abstimmen', json={'auswahl': falsch}, headers=T(z1)).status_code == 400, falsch
+    r = g1.post(url + '/abstimmen', json={'auswahl': [1]}, headers=T(z1))
+    assert r.status_code == 200 and r.json()['umfrage']['meine_auswahl'] == [1] and r.json()['umfrage']['ergebnis'] is None
+    assert g1.post(url + '/abstimmen', json={'auswahl': [0]}, headers=T(z1)).json()['fehler'] == 'Du hast schon abgestimmt.'
+    assert g1.post(url + '/abstimmen', json={'auswahl': [0]}, headers={'X-Teilnahme': 'falsch'}).status_code == 403
+    # Live-Ergebnis nur an Host/Co-Host (mit Namen, weil namentlich)
+    live = ereignisse('umfrage')[-1]
+    assert live['an'] == [hz['identity']] and live['daten']['aktion'] == 'stimme'
+    assert live['daten']['umfrage']['ergebnis'] == {'stimmen': 1, 'zaehler': [0, 1, 0], 'namen': [[], ['Gast 1'], []]}
+    g2.post(url + '/abstimmen', json={'auswahl': [1]}, headers=T(z2))
+    host.post(url + '/abstimmen', json={'auswahl': [0]}, headers=T(hz))
+    erg = host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json()['umfragen'][0]
+    assert erg['ergebnis']['zaehler'] == [1, 2, 0] and erg['meine_auswahl'] == [0]
+    # Beenden: Gäste sehen noch kein Ergebnis; danach keine Stimmen mehr
+    assert g1.post(url + '/beenden', headers=T(z1)).status_code == 403
+    assert host.post(url + '/beenden', headers=T(hz)).json()['umfrage']['status'] == 'beendet'
+    assert host.post(url + '/beenden', headers=T(hz)).status_code == 409
+    g3 = neu_client()
+    z3 = zugang(g3, code, name='Spät')
+    assert g3.post(url + '/abstimmen', json={'auswahl': [2]}, headers=T(z3)).status_code == 409
+    sicht = g2.get(f'/api/raeume/{code}/umfragen', headers=T(z2)).json()['umfragen'][0]
+    assert sicht['status'] == 'beendet' and sicht['ergebnis'] is None and sicht['meine_auswahl'] == [1]
+    # Teilen: alle sehen Zahlen, aber keine Namen
+    assert host.post(url + '/teilen', headers=T(hz)).status_code == 200
+    geteilt = [e for e in ereignisse('umfrage') if e['an'] is None][-1]['daten']
+    assert geteilt['aktion'] == 'geteilt' and geteilt['umfrage']['ergebnis'] == {'stimmen': 3, 'zaehler': [1, 2, 0]}
+    sicht = g3.get(f'/api/raeume/{code}/umfragen', headers=T(z3)).json()['umfragen'][0]
+    assert sicht['geteilt'] and sicht['ergebnis'] == {'stimmen': 3, 'zaehler': [1, 2, 0]}
+
+
+def test_umfrage_mehrfach_anonym_cohost_loeschen():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    steuern(host, code, hz, aktion='rolle', ziel=z1['identity'], rolle='cohost')
+    u = umfrage_neu(g1, code, z1, frage='Welche Tage?', optionen=['Mo', 'Di', 'Mi'], mehrfach=True).json()['umfrage']
+    assert u['anonym'] and u['mehrfach']
+    url = f'/api/raeume/{code}/umfragen/{u["id"]}'
+    g1.post(url + '/starten', headers=T(z1))
+    assert g2.post(url + '/abstimmen', json={'auswahl': [0, 2]}, headers=T(z2)).status_code == 200
+    erg = host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json()['umfragen'][0]['ergebnis']
+    assert erg == {'stimmen': 1, 'zaehler': [1, 0, 1]}                    # anonym → keine Namen, auch nicht für den Host
+    assert sorted(ereignisse('umfrage')[-1]['an']) == sorted([hz['identity'], z1['identity']])
+    # Teilen beendet eine laufende Umfrage gleich mit
+    assert host.post(url + '/teilen', headers=T(hz)).json()['umfrage']['status'] == 'beendet'
+    assert g2.delete(url, headers=T(z2)).status_code == 403
+    assert host.delete(url, headers=T(hz)).json() == {'ok': True}
+    assert ereignisse('umfrage')[-1]['daten'] == {'typ': 'umfrage', 'aktion': 'geloescht', 'umfrage': {'id': u['id']}}
+    assert host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json() == {'umfragen': []}
+
+
+def test_umfragen_mit_meeting_geloescht_ausser_chat_speichern():
+    host, code, hz, _ = meeting(0)
+    u = umfrage_neu(host, code, hz).json()['umfrage']
+    host.post(f'/api/raeume/{code}/umfragen/{u["id"]}/starten', headers=T(hz))
+    steuern(host, code, hz, aktion='beenden')
+    assert db.verbindung().execute('SELECT COUNT(*) FROM umfragen u JOIN raeume r ON r.id = u.raum_id WHERE r.code = ?',
+                                   (code,)).fetchone()[0] == 0
+    # mit chat_speichern: bleibt, Besitzer sieht sie im Verlauf
+    r = raum(host, chat_speichern=True)
+    hz2 = zugang(host, r['code'])
+    u = umfrage_neu(host, r['code'], hz2).json()['umfrage']
+    host.post(f'/api/raeume/{r["code"]}/umfragen/{u["id"]}/starten', headers=T(hz2))
+    host.post(f'/api/raeume/{r["code"]}/umfragen/{u["id"]}/abstimmen', json={'auswahl': [2]}, headers=T(hz2))
+    umfrage_neu(host, r['code'], hz2, frage='Nur Entwurf')
+    steuern(host, r['code'], hz2, aktion='beenden')
+    v = host.get(f'/api/raeume/{r["code"]}/umfragen/verlauf').json()['umfragen']
+    assert [x['frage'] for x in v] == ['Pizza oder Pasta?'] and v[0]['ergebnis']['zaehler'] == [0, 0, 1] and v[0]['sitzung'] == 1
+    andere, _e, _p = konto()
+    assert andere.get(f'/api/raeume/{r["code"]}/umfragen/verlauf').status_code == 403
+    # Neues Meeting im selben Raum sieht die alten Umfragen nicht
+    hz3 = zugang(host, r['code'])
+    assert host.get(f'/api/raeume/{r["code"]}/umfragen', headers=T(hz3)).json() == {'umfragen': []}
+
+
+def test_schema_version_aktuell():
+    assert db.verbindung().execute('SELECT v FROM schema_version').fetchone()[0] == len(db.SCHEMA)
+
+
+# ---------------------------------------------------------------- Breakout-Räume
+def bo(c, code, z, pfad='', methode='post', **kw):
+    return getattr(c, methode)(f'/api/raeume/{code}/breakout{pfad}', headers=T(z), **({'json': kw} if methode != 'get' else {}))
+
+
+def verbunden(code, *zs):
+    lk.FAKE_TEILNEHMER[code] = [{'identity': z['identity'], 'name': z['name'], 'tracks': []} for z in zs]
+
+
+def test_breakout_anlegen_rechte_und_automatisch():
+    host, code, hz, gaeste = meeting(5)
+    zs = [z for _c, z in gaeste]
+    verbunden(code, hz, *zs)
+    g1, z1 = gaeste[0]
+    assert bo(g1, code, z1, anzahl=2).status_code == 403
+    assert bo(g1, code, z1, '', 'get').json() == {'breakout': None}
+    for falsch in ({'anzahl': 1}, {'anzahl': 51}, {'anzahl': '2'}, {'anzahl': 2, 'dauer_min': 0}, {'anzahl': 2, 'dauer_min': 241},
+                   {'anzahl': 2, 'rueckkehr': 'ja'}):
+        assert bo(host, code, hz, **falsch).status_code == 400, falsch
+    r = bo(host, code, hz, anzahl=2, dauer_min=10, automatisch=True)
+    assert r.status_code == 200, r.text
+    b = r.json()['breakout']
+    assert b['status'] == 'entwurf' and b['anzahl'] == 2 and b['dauer_min'] == 10 and b['rueckkehr'] and b['runde'] == 0
+    groessen = sorted(len(x['teilnehmer']) for x in b['raeume'])
+    assert groessen == [2, 3]                                      # gleichmäßig, Host nicht verteilt
+    assert [p['identity'] for p in b['ohne_raum']] == [hz['identity']]
+    assert {p['identity'] for x in b['raeume'] for p in x['teilnehmer']} == {z['identity'] for z in zs}
+    assert ereignisse('breakout')[-1]['an'] == [hz['identity']]   # Entwurf: nur Moderation
+    # Teilnehmende sehen nur ihre eigene Zuteilung
+    g = bo(g1, code, z1, '', 'get').json()['breakout']
+    assert 'raeume' not in g and 'ohne_raum' not in g and g['mein_raum'] in (1, 2) and g['ort'] == 0
+    # Von Hand umsetzen
+    assert bo(host, code, hz, '/zuteilung', 'put', zuteilung={z1['identity']: 3}).status_code == 400
+    assert bo(host, code, hz, '/zuteilung', 'put', zuteilung={'gibts-nicht': 1}).status_code == 404
+    assert bo(g1, code, z1, '/zuteilung', 'put', zuteilung={z1['identity']: 1}).status_code == 403
+    b = bo(host, code, hz, '/zuteilung', 'put', zuteilung={z1['identity']: 2, hz['identity']: 1}).json()['breakout']
+    assert any(p['identity'] == z1['identity'] for p in b['raeume'][1]['teilnehmer'])
+    assert any(p['identity'] == hz['identity'] for p in b['raeume'][0]['teilnehmer'])
+    b = bo(host, code, hz, '/zuteilung', 'put', zuteilung={z1['identity']: 0}).json()['breakout']
+    assert z1['identity'] in [p['identity'] for p in b['ohne_raum']]
+    b = bo(host, code, hz, '/zuteilung', 'put', automatisch=True).json()['breakout']
+    assert sorted(len(x['teilnehmer']) for x in b['raeume']) == [2, 3] and [p['identity'] for p in b['ohne_raum']] == [hz['identity']]
+
+
+def test_breakout_oeffnen_token_wechseln_und_grenzen():
+    host, code, hz, [(g1, z1), (g2, z2), (g3, z3)] = meeting(3)
+    verbunden(code, hz, z1, z2, z3)
+    bo(host, code, hz, anzahl=2)
+    bo(host, code, hz, '/zuteilung', 'put', zuteilung={z1['identity']: 1, z2['identity']: 2})
+    # vor dem Öffnen: kein Breakout-Raum erreichbar
+    assert bo(g1, code, z1, '/wechseln', nr=1).status_code == 400
+    assert bo(g1, code, z1, '/oeffnen').status_code == 403
+    lk.AUFRUFE.clear()
+    b = bo(host, code, hz, '/oeffnen').json()['breakout']
+    assert b['status'] == 'offen' and b['runde'] == 1 and b['rest_s'] is None and b['dauer_min'] is None
+    assert [a['code'] for a in aufrufe('raum_anlegen')] == [f'{code}__b1', f'{code}__b2']
+    assert ereignisse('breakout')[-1]['daten'] == {'typ': 'breakout', 'aktion': 'geoeffnet', 'runde': 1}
+    # Ereignisse gehen jetzt an alle Räume (Hauptraum zuletzt)
+    assert [e['code'] for e in ereignisse('breakout')] == [f'{code}__b1', f'{code}__b2', code]
+    assert bo(host, code, hz, '/oeffnen').status_code == 409
+    # Teilnehmer: nur in den eigenen Raum, Token für <code>__b1
+    assert bo(g1, code, z1, '/wechseln', nr=2).status_code == 403
+    assert bo(g1, code, z1, '/wechseln', nr=3).status_code == 400
+    assert bo(g3, code, z3, '/wechseln', nr=1).status_code == 403              # nicht zugeteilt
+    zg = bo(g1, code, z1, '/wechseln', nr=1).json()['zugang']
+    assert zg['raum'] == f'{code}__b1' and zg['nr'] == 1 and zg['url'] == 'ws://127.0.0.1:7980'
+    claims = jwt.decode(zg['token'], lk.API_SECRET, algorithms=['HS256'], options={'verify_iss': False})
+    assert claims['video']['room'] == f'{code}__b1' and claims['sub'] == z1['identity'] and claims['attributes']['rolle'] == 'gast'
+    assert bo(g1, code, z1, '', 'get').json()['breakout']['ort'] == 1
+    # Der Breakout-Raum ist kein Meeting-Code: weder Info noch Beitreten
+    assert neu_client().get(f'/api/raeume/{code}__b1').status_code == 404
+    assert beitreten(neu_client(), f'{code}__b1', name='Fremd').status_code == 404
+    # Host besucht jeden Raum, kommt zurück
+    assert bo(host, code, hz, '/wechseln', nr=2).json()['zugang']['raum'] == f'{code}__b2'
+    b = bo(host, code, hz, '', 'get').json()['breakout']
+    assert b['ort'] == 2 and b['raeume'][1]['anwesend'] == 1 and b['raeume'][0]['anwesend'] == 1
+    assert bo(host, code, hz, '/wechseln', nr=0).json()['zugang']['raum'] == code
+    # Steuerung erreicht Leute im Breakout-Raum: Rolle/Name gehen an ihren LiveKit-Raum
+    steuern(host, code, hz, aktion='umbenennen', ziel=z1['identity'], name='Anna')
+    assert aufrufe('aktualisieren')[-1]['code'] == f'{code}__b1'
+    lk.FAKE_TEILNEHMER[f'{code}__b1'] = [{'identity': z1['identity'], 'name': 'Anna', 'tracks': [{'sid': 'TR_x', 'quelle': 'mikrofon', 'stumm': False}]}]
+    lk.FAKE_TEILNEHMER[code] = [{'identity': hz['identity'], 'name': 'H', 'tracks': []}]
+    steuern(host, code, hz, aktion='stumm', ziel=z1['identity'])
+    assert aufrufe('mute_published_track')[-1] == {'code': f'{code}__b1', 'identity': z1['identity'], 'sid': 'TR_x'}
+    steuern(host, code, hz, aktion='entfernen', ziel=z3['identity'])
+    assert [a['code'] for a in aufrufe('entfernen')][-3:] == [f'{code}__b1', f'{code}__b2', code]
+    # Zurück in den Hauptraum: erlaubt (Standard) …
+    assert bo(g1, code, z1, '/wechseln', nr=0).json()['zugang']['raum'] == code
+    assert bo(g1, code, z1, '/wechseln', nr=1).status_code == 200
+
+
+def test_breakout_rueckkehr_verboten_hilfe_nachricht():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    verbunden(code, hz, z1, z2)
+    bo(host, code, hz, anzahl=2, rueckkehr=False)
+    bo(host, code, hz, '/zuteilung', 'put', zuteilung={z1['identity']: 1})
+    bo(host, code, hz, '/oeffnen')
+    assert bo(g1, code, z1, '/hilfe').status_code == 400                       # noch im Hauptraum
+    bo(g1, code, z1, '/wechseln', nr=1)
+    r = bo(g1, code, z1, '/wechseln', nr=0)
+    assert r.status_code == 403 and 'Rückkehr' in r.json()['fehler']
+    assert bo(g2, code, z2, '/wechseln', nr=0).status_code == 200              # nicht zugeteilt → darf
+    # Hilfe rufen → an Host/Co-Hosts, mit Raumnummer
+    assert bo(g1, code, z1, '/hilfe').json() == {'ok': True}
+    e = [x for x in lk.AUFRUFE if x[0] == 'senden' and x[1]['daten'].get('typ') == 'breakout_hilfe'][-1][1]
+    assert e['an'] == [hz['identity']] and e['daten'] == {'typ': 'breakout_hilfe', 'nr': 1, 'identity': z1['identity'], 'von_name': 'Gast 1'}
+    for _ in range(2):
+        bo(g1, code, z1, '/hilfe')
+    assert bo(g1, code, z1, '/hilfe').status_code == 429
+    # Nachricht an alle Räume (nur Moderation)
+    assert bo(g1, code, z1, '/nachricht', text='Hallo').status_code == 403
+    assert bo(host, code, hz, '/nachricht', text='').status_code == 400
+    assert bo(host, code, hz, '/nachricht', text='Noch 2 Minuten').json() == {'ok': True}
+    gesendet = [x[1] for x in lk.AUFRUFE if x[0] == 'senden' and x[1]['daten'].get('typ') == 'breakout_nachricht']
+    assert [x['code'] for x in gesendet] == [f'{code}__b1', f'{code}__b2', code] and gesendet[-1]['an'] is None
+    assert gesendet[-1]['daten'] == {'typ': 'breakout_nachricht', 'text': 'Noch 2 Minuten', 'von_name': 'Ada'}
+    # Chat erreicht ebenfalls alle Räume
+    host.post(f'/api/raeume/{code}/chat', json={'text': 'An alle'}, headers=T(hz))
+    assert [a['code'] for a in aufrufe('senden') if a['topic'] == 'chat'] == [f'{code}__b1', f'{code}__b2', code]
+
+
+def test_breakout_schliessen_countdown_und_timer():
+    import asyncio
+    from app import breakout
+    host, code, hz, [(g1, z1)] = meeting(1)
+    verbunden(code, hz, z1)
+    assert bo(host, code, hz, '/schliessen').status_code == 404
+    bo(host, code, hz, anzahl=2, dauer_min=5, automatisch=True)
+    assert bo(host, code, hz, '/schliessen').status_code == 409
+    bo(host, code, hz, '/oeffnen')
+    bo(g1, code, z1, '/wechseln', nr=1)
+    b = bo(host, code, hz, '', 'get').json()['breakout']
+    assert 295 <= b['rest_s'] <= 300 and b['endet'].endswith('Z')
+    assert bo(g1, code, z1, '/schliessen').status_code == 403
+    b = bo(host, code, hz, '/schliessen').json()['breakout']
+    assert b['status'] == 'schliesst' and 55 <= b['schliesst_in_s'] <= 60
+    assert ereignisse('breakout')[-1]['daten'] == {'typ': 'breakout', 'aktion': 'schliesst', 'runde': 1, 'schliesst_in_s': 60}
+    assert bo(host, code, hz, anzahl=3).status_code == 409                     # während offen keine neue Runde
+    assert bo(g1, code, z1, '/wechseln', nr=0).status_code == 200              # Countdown: zurück geht immer
+    bo(g1, code, z1, '/wechseln', nr=1)
+    # Countdown noch nicht vorbei → nichts passiert
+    asyncio.run(breakout.faellige_pruefen())
+    assert bo(host, code, hz, '', 'get').json()['breakout']['status'] == 'schliesst'
+    lk.AUFRUFE.clear()
+    asyncio.run(breakout.faellige_pruefen(t=breakout.jetzt() + 61))
+    b = bo(host, code, hz, '', 'get').json()['breakout']
+    assert b['status'] == 'geschlossen' and b['ort'] == 0
+    assert [e['code'] for e in ereignisse('breakout')] == [f'{code}__b1', f'{code}__b2', code]
+    assert ereignisse('breakout')[-1]['daten']['aktion'] == 'geschlossen'
+    assert sorted(a['code'] for a in aufrufe('raum_loeschen')) == [f'{code}__b1', f'{code}__b2']
+    assert bo(g1, code, z1, '/wechseln', nr=1).status_code == 400              # geschlossen
+    assert bo(g1, code, z1, '/wechseln', nr=0).json()['zugang']['raum'] == code
+    # nach dem Schließen gehen Ereignisse nur noch an den Hauptraum
+    lk.AUFRUFE.clear()
+    steuern(host, code, hz, aktion='sperren', an=True)
+    assert [e['code'] for e in ereignisse('gesperrt')] == [code]
+    # Neue Runde mit Timer: Ablauf startet den Countdown von selbst
+    bo(host, code, hz, anzahl=2, dauer_min=1, automatisch=True)
+    assert bo(host, code, hz, '/oeffnen').json()['breakout']['runde'] == 2
+    asyncio.run(breakout.faellige_pruefen(t=breakout.jetzt() + 61))
+    assert bo(host, code, hz, '', 'get').json()['breakout']['status'] == 'schliesst'
+
+
+def test_breakout_mit_meeting_beendet():
+    host, code, hz, [(g1, z1)] = meeting(1)
+    verbunden(code, hz, z1)
+    bo(host, code, hz, anzahl=2, automatisch=True)
+    bo(host, code, hz, '/oeffnen')
+    lk.AUFRUFE.clear()
+    steuern(host, code, hz, aktion='beenden')
+    assert [e['code'] for e in ereignisse('beendet')] == [f'{code}__b1', f'{code}__b2', code]
+    assert [a['code'] for a in aufrufe('raum_loeschen')] == [f'{code}__b1', f'{code}__b2', code]
+    assert db.verbindung().execute('SELECT COUNT(*) FROM breakout b JOIN raeume r ON r.id = b.raum_id WHERE r.code = ?', (code,)).fetchone()[0] == 0
+    hz2 = zugang(host, code)
+    assert bo(host, code, hz2, '', 'get').json() == {'breakout': None}

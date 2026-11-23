@@ -16,6 +16,8 @@ import { Rekorder, aufnahmeAblegen, kannAufnehmen } from './aufnahme.js';
 import { geraeteMerken, geraeteFehler, VIDEO_AUFLOESUNG } from './lobby.js';
 import { effekte, effektePanel } from './effekte.js';
 import { mobilEinrichten } from './mobil.js';
+import { Umfragen } from './umfragen.js';
+import { Breakout } from './breakout.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -79,6 +81,8 @@ export class Meeting {
     mobilEinrichten(this);     // Drehen, Rückkehr aus dem Hintergrund (iOS)
     this.chat = new Chat(this);
     this.leute = new Leute(this);
+    this.umfragen = new Umfragen(this);
+    this.breakout = new Breakout(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.startZeit = Date.now();
@@ -100,6 +104,8 @@ export class Meeting {
     this.chat.empfaengerAktualisieren();
     this.chat.rechteAktualisieren();
     this.chat.laden();
+    this.umfragen.laden();
+    this.breakout.laden();
     this.buehne.sync();
     this.steuerAktualisieren();
     if (!this.room.canPlaybackAudio) this.bannerSetzen('audio', 'warn', t('meeting.tonBlockiert'), { text: t('meeting.tonEinschalten'), fn: () => this.room.startAudio().then(() => this.bannerSetzen('audio')) });
@@ -135,6 +141,7 @@ export class Meeting {
   // ---------------------------------------------------------------- LiveKit-Ereignisse
   ereignisse() {
     const r = this.room;
+    const aktiv = () => r === this.room;     // nach einem Raumwechsel (Breakout) zählt nur der neue Raum
     const neuZeichnen = (p) => { this.buehne.aktualisieren(p); this.leute.planen(); };
     r.on(RoomEvent.ParticipantConnected, (p) => {
       this.buehne.sync(); this.chat.empfaengerAktualisieren(); this.leute.planen(); this.rekorder?.audioAbgleichen();
@@ -165,7 +172,7 @@ export class Meeting {
         if (p.isLocal && 'hand' in geaendert) { this.hand = geaendert.hand === '1'; this.steuerAktualisieren(); }
       })
       .on(RoomEvent.RoomMetadataChanged, (md) => this.metadatenLesen(md))
-      .on(RoomEvent.DataReceived, (daten, p, _kind, topic) => this.datenEmpfangen(daten, p, topic))
+      .on(RoomEvent.DataReceived, (daten, p, _kind, topic) => aktiv() && this.datenEmpfangen(daten, p, topic))
       .on(RoomEvent.AudioPlaybackStatusChanged, () => {
         if (r.canPlaybackAudio) this.bannerSetzen('audio');
         else this.bannerSetzen('audio', 'warn', t('meeting.tonBlockiert'), { text: t('meeting.tonEinschalten'), fn: () => r.startAudio().then(() => this.bannerSetzen('audio')) });
@@ -175,7 +182,7 @@ export class Meeting {
       .on(RoomEvent.Reconnecting, () => this.verbindung(true))
       .on(RoomEvent.SignalReconnecting, () => this.verbindung(true))
       .on(RoomEvent.Reconnected, () => { this.verbindung(false); toast(t('meeting.wiederVerbunden'), 'ok', { dauer: 2500 }); this.zustandLaden(); })
-      .on(RoomEvent.Disconnected, (grund) => this.getrennt(grund));
+      .on(RoomEvent.Disconnected, (grund) => aktiv() && this.getrennt(grund));
   }
 
   datenEmpfangen(daten, p, topic) {
@@ -227,6 +234,7 @@ export class Meeting {
           this.rolle = d.rolle;
           if (war !== d.rolle) toast(t(`meeting.rolleNeu.${d.rolle}`), 'ok');
           if (this.istMod()) this.leute.warteraumLaden();
+          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.breakout.laden(); }
           this.chat.rechteAktualisieren();
           this.steuerAktualisieren();
         }
@@ -243,6 +251,8 @@ export class Meeting {
       case 'beendet': this.grund = 'beendet'; this.room.disconnect(); break;
       case 'entfernt': this.grund = 'entfernt'; break;
       case 'aufnahme': this.aufnahmeSetzen(d.aktiv ? { von_name: d.von_name } : null); break;
+      case 'umfrage': this.umfragen.ereignis(d); break;
+      case 'breakout': case 'breakout_hilfe': case 'breakout_nachricht': this.breakout.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
         lp.setMicrophoneEnabled(false).catch(() => {});
@@ -311,6 +321,7 @@ export class Meeting {
     $('#leiste-zu').addEventListener('click', () => this.leisteSchliessen());
     $('#tab-chat').addEventListener('click', () => this.leisteOeffnen('chat'));
     $('#tab-leute').addEventListener('click', () => this.leisteOeffnen('leute'));
+    $('#tab-umfragen').addEventListener('click', () => this.leisteOeffnen('umfragen'));
 
     $('#s-mic').addEventListener('click', () => this.micUmschalten());
     $('#s-cam').addEventListener('click', () => this.kameraUmschalten());
@@ -607,18 +618,19 @@ export class Meeting {
   }
 
   // ---------------------------------------------------------------- Seitenleiste
-  leisteOeffnen(welche) {
+  leisteOeffnen(welche, fokus = true) {
     this.leisteOffen = welche;
     $('#seitenleiste').hidden = false;
-    $('#panel-chat').hidden = welche !== 'chat';
-    $('#panel-leute').hidden = welche !== 'leute';
-    $('#tab-chat').setAttribute('aria-selected', String(welche === 'chat'));
-    $('#tab-leute').setAttribute('aria-selected', String(welche === 'leute'));
+    for (const p of ['chat', 'leute', 'umfragen']) {
+      $(`#panel-${p}`).hidden = welche !== p;
+      $(`#tab-${p}`).setAttribute('aria-selected', String(welche === p));
+    }
     this.chat.zeigen(welche === 'chat');
     this.leute.zeigen(welche === 'leute');
+    this.umfragen.zeigen(welche === 'umfragen');
     this.steuerAktualisieren();
-    if (welche === 'chat') this.chat.feld.focus({ preventScroll: true });
-    else $('#tab-leute').focus({ preventScroll: true });
+    if (!fokus) { /* automatisch geöffnet (z. B. neue Umfrage) – Fokus bleibt, wo er ist */ } else if (welche === 'chat') this.chat.feld.focus({ preventScroll: true });
+    else $(`#tab-${welche}`).focus({ preventScroll: true });
     this.buehne.planen();
   }
 
@@ -627,6 +639,7 @@ export class Meeting {
     $('#seitenleiste').hidden = true;
     this.chat.zeigen(false);
     this.leute.zeigen(false);
+    this.umfragen.zeigen(false);
     this.steuerAktualisieren();
     this.buehne.planen();
   }
@@ -639,6 +652,8 @@ export class Meeting {
     menue(anker, [
       { text: this.hand ? t('steuer.handSenken') : t('steuer.handHeben'), symbol: 'hand', aktion: () => this.handUmschalten() },
       { text: t('steuer.reaktion'), symbol: 'smiley', aktion: () => this.reaktionWahl(anker) },
+      { text: t('umfrage.tab'), symbol: 'umfrage', aktion: () => this.leisteOeffnen('umfragen') },
+      ...this.breakout.menueEintraege(),
       '-',
       this.istMod() ? { text: this.rekorder?.laeuft ? t('aufnahme.stoppen') : t('aufnahme.starten'), symbol: this.rekorder?.laeuft ? 'stopp' : 'aufnahme',
         deaktiviert: !aufnahmeMoeglich || (!!this.aufnahmeInfo && !this.rekorder?.laeuft), aktion: () => this.aufnahmeUmschalten() } : null,
@@ -785,7 +800,40 @@ export class Meeting {
     await this.room.disconnect();
   }
 
+  /** Breakout: Verbindung vom aktuellen LiveKit-Raum lösen und mit dem Ziel ({url, token}) verbinden; Mikro/Kamera wie vorher. */
+  async raumWechseln(ziel) {
+    const alt = this.room, lp = alt.localParticipant;
+    const mic = lp.isMicrophoneEnabled, cam = lp.isCameraEnabled;
+    const geraet = (art) => alt.getActiveDevice(art) || undefined;
+    if (this.rekorder?.laeuft) await this.aufnahmeUmschalten(t('breakout.aufnahmeGestoppt'));
+    menueSchliessen();
+    this.room = new Room({
+      ...alt.options,
+      videoCaptureDefaults: { ...alt.options.videoCaptureDefaults, deviceId: geraet('videoinput') },
+      audioCaptureDefaults: { ...alt.options.audioCaptureDefaults, deviceId: geraet('audioinput') },
+      audioOutput: geraet('audiooutput') ? { deviceId: geraet('audiooutput') } : alt.options.audioOutput,
+    });
+    this.ereignisse();
+    await alt.disconnect();
+    $('#audio-ablage').replaceChildren();
+    this.buehne.spotlight(null);
+    this.buehne.sync();
+    await this.room.connect(ziel.url, ziel.token);
+    this.metadatenLesen(this.room.metadata);
+    try {
+      if (mic) await this.room.localParticipant.setMicrophoneEnabled(true);
+      if (cam && this.sparmodus !== 'audio') await this.room.localParticipant.setCameraEnabled(true);
+    } catch (e) { toast(t('meeting.veroeffentlichenFehler', { text: e.message }), 'err'); }
+    this.buehne.sync();
+    this.chat.empfaengerAktualisieren();
+    this.leute.planen();
+    this.steuerAktualisieren();
+    this.zustandLaden();
+    document.dispatchEvent(new CustomEvent('agora:raumwechsel', { detail: { room: this.room } }));
+  }
+
   async getrennt(grundLk) {
+    if (await this.breakout?.getrennt(grundLk, this.grund)) return;   // Breakout-Raum gelöscht → zurück in den Hauptraum
     if (this.beendet) return;
     this.beendet = true;
     clearInterval(this.uhr);

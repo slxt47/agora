@@ -94,3 +94,8 @@ def test_blockieren_beitritt_und_privatchat():
     ada.post(f'/api/raeume/{r["code"]}/blockieren', json={'ziel': bz['identity']}, headers=T(az))
     assert bob.request('DELETE', '/api/konto', json={'passwort': _p2}).status_code == 200
     assert ada.get('/api/konto/blockiert').json() == {'blockiert': []}
+
+
+def test_export_enthaelt_blockierte():
+    from app import konto
+    assert any('blockiert' in (f({'id': -1}) or {}) for f in konto.EXPORT)

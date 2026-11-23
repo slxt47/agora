@@ -9,7 +9,7 @@ Blockierenden nicht mehr betreten und ihm im Chat keine privaten Nachrichten sch
 """
 from fastapi import APIRouter, Request
 
-from . import admins, db, mail, meeting, raeume
+from . import admins, db, konto, mail, meeting, raeume
 from . import livekit_dienst as lk
 from .kern import SEITE, benutzer_aus_sitzung, fehler, grenze, iso, jetzt, json_body, text_feld
 from .meeting import teilnahme, ziel_laden
@@ -134,3 +134,8 @@ def entblocken(ziel_id: int, req: Request):
 
 def aufraeumen(t):
     db.verbindung().execute("DELETE FROM meldungen WHERE status = 'erledigt' AND zeit < ?", (t - AUFBEWAHRUNG_S,))
+
+
+# Datenexport (DSGVO): wen ich blockiert habe
+konto.EXPORT.append(lambda b: {'blockiert': [{'name': r['name'], 'seit': iso(r['zeit'])} for r in db.verbindung().execute(
+    'SELECT name, zeit FROM blockiert WHERE benutzer_id = ? ORDER BY zeit', (b['id'],))]})

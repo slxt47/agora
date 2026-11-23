@@ -10,7 +10,12 @@ als None/False gemeldet: Ein kurz nicht erreichbares LiveKit darf keine Raum-Akt
 
 Testmodus (AGORA_TEST=1 ohne LIVEKIT_API_HOST): Fälschung, die alle Aufrufe in AUFRUFE mitschreibt; die
 Teilnehmerliste kommt aus FAKE_TEILNEHMER[code] (von Tests befüllt).
+
+Breakout-Räume sind eigene LiveKit-Räume (`<code>__b<n>`). Damit Ereignisse, Metadaten, Stummschalten, Entfernen
+und das Ende des Meetings alle erreichen, arbeiten diese Aufrufe über alle Räume eines Meetings: `nebenraeume(code)`
+und `ort(code, identity)` setzt das Modul breakout (ohne Breakout: nur der Hauptraum).
 """
+import asyncio
 import datetime
 import json
 import os
@@ -36,6 +41,19 @@ QUELLEN_JWT = {'kamera': 'camera', 'mikrofon': 'microphone', 'bildschirm': 'scre
 QUELLEN_PROTO = {'kamera': api.TrackSource.CAMERA, 'mikrofon': api.TrackSource.MICROPHONE,
                  'bildschirm': api.TrackSource.SCREEN_SHARE, 'bildschirm_ton': api.TrackSource.SCREEN_SHARE_AUDIO}
 QUELLE_NAME = {v: k for k, v in QUELLEN_PROTO.items()}
+
+
+def nebenraeume(code):            # wird von breakout.py ersetzt: offene Breakout-Räume (LiveKit-Raumnamen)
+    return []
+
+
+def ort(code, identity):          # wird von breakout.py ersetzt: LiveKit-Raum, in dem identity gerade ist
+    return code
+
+
+def alle_raeume(code):
+    """Breakout-Räume zuerst, der Hauptraum zuletzt (im Testmodus ist der letzte Aufruf so der des Hauptraums)."""
+    return [*nebenraeume(code), code]
 
 
 def quellen(rolle, rechte):
@@ -91,33 +109,41 @@ async def metadaten(code, daten):
     async def f(lk, code, daten):
         await lk.room.update_room_metadata(api.UpdateRoomMetadataRequest(room=code, metadata=json.dumps(daten)))
         return True
-    return await _aufruf('metadaten', f, code=code, daten=daten)
+    ergebnisse = [await _aufruf('metadaten', f, code=raum, daten=daten) for raum in alle_raeume(code)]
+    return ergebnisse[-1]
 
 
-async def raum_loeschen(code):
+async def raum_loeschen(code, mit_nebenraeumen=True):
     async def f(lk, code):
         await lk.room.delete_room(api.DeleteRoomRequest(room=code))
         return True
-    return await _aufruf('raum_loeschen', f, code=code)
+    ergebnisse = [await _aufruf('raum_loeschen', f, code=raum) for raum in (alle_raeume(code) if mit_nebenraeumen else [code])]
+    return ergebnisse[-1]
 
 
 async def teilnehmer(code):
-    """[{identity, name, tracks:[{sid, quelle, stumm}]}] oder None, wenn LiveKit nicht antwortet."""
+    """Alle Verbundenen des Meetings (Hauptraum + offene Breakout-Räume):
+    [{identity, name, raum, tracks:[{sid, quelle, stumm}]}] oder None, wenn LiveKit nicht antwortet."""
     if FAKE:
         AUFRUFE.append(('teilnehmer', {'code': code}))
-        return [dict(t) for t in FAKE_TEILNEHMER.get(code, [])]
+        return [dict(t) | {'raum': raum} for raum in alle_raeume(code) for t in FAKE_TEILNEHMER.get(raum, [])]
 
-    async def f(lk, code):
-        r = await lk.room.list_participants(api.ListParticipantsRequest(room=code))
-        return [{'identity': p.identity, 'name': p.name,
+    async def f(lk, raum):
+        r = await lk.room.list_participants(api.ListParticipantsRequest(room=raum))
+        return [{'identity': p.identity, 'name': p.name, 'raum': raum,
                  'tracks': [{'sid': t.sid, 'quelle': QUELLE_NAME.get(t.source, ''), 'stumm': t.muted} for t in p.tracks]}
                 for p in r.participants]
+    alle = []
     try:
         async with _client() as lk:
-            return await f(lk, code)
+            for raum in alle_raeume(code):
+                try:
+                    alle += await f(lk, raum)
+                except api.TwirpError as e:
+                    if getattr(e, 'code', '') != 'not_found':   # Raum gibt es bei LiveKit (noch/nicht mehr) nicht → leer
+                        raise
+        return alle
     except api.TwirpError as e:
-        if getattr(e, 'code', '') == 'not_found':      # Raum gibt es bei LiveKit (noch/nicht mehr) nicht → leer
-            return []
         print(f'livekit-fehler teilnehmer: {e}', flush=True)
         return None
     except Exception as e:   # noqa: BLE001
@@ -140,7 +166,7 @@ async def stummschalten(code, identities, quelle='mikrofon'):
                 async def f(lk, code, identity, sid):
                     await lk.room.mute_published_track(api.MuteRoomTrackRequest(room=code, identity=identity, track_sid=sid, muted=True))
                     return True
-                await _aufruf('mute_published_track', f, code=code, identity=identity, sid=t['sid'])
+                await _aufruf('mute_published_track', f, code=p.get('raum', code), identity=identity, sid=t['sid'])
     return True
 
 
@@ -149,7 +175,8 @@ async def entfernen(code, identity):
         # revoke_token_ts: vorher ausgestellte Token dieser identity gelten nicht mehr (kein Wiederverbinden)
         await lk.room.remove_participant(api.RoomParticipantIdentity(room=code, identity=identity, revoke_token_ts=int(time.time())))
         return True
-    return await _aufruf('entfernen', f, code=code, identity=identity)
+    ergebnisse = [await _aufruf('entfernen', f, code=raum, identity=identity) for raum in alle_raeume(code)]
+    return ergebnisse[-1]
 
 
 async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, rechte=None):
@@ -165,7 +192,7 @@ async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, recht
             req.permission.CopyFrom(berechtigung(rolle, rechte or {}))
         await lk.room.update_participant(req)
         return True
-    return await _aufruf('aktualisieren', f, code=code, identity=identity, name=name, rolle=rolle, farbe=farbe, rechte=rechte)
+    return await _aufruf('aktualisieren', f, code=ort(code, identity), identity=identity, name=name, rolle=rolle, farbe=farbe, rechte=rechte)
 
 
 async def senden(code, daten, topic='agora', an=None):
@@ -176,7 +203,13 @@ async def senden(code, daten, topic='agora', an=None):
         return True
     if an is not None and not an:
         return True     # niemand zu benachrichtigen
-    return await _aufruf('senden', f, code=code, daten=daten, topic=topic, an=list(an) if an else None)
+    raeume = alle_raeume(code)
+    if FAKE or len(raeume) == 1:
+        ergebnisse = [await _aufruf('senden', f, code=raum, daten=daten, topic=topic, an=list(an) if an else None) for raum in raeume]
+    else:               # an alle Räume gleichzeitig (Ziel-identities, die nicht im Raum sind, ignoriert LiveKit)
+        ergebnisse = await asyncio.gather(*[_aufruf('senden', f, code=raum, daten=daten, topic=topic, an=list(an) if an else None)
+                                            for raum in raeume])
+    return ergebnisse[-1]
 
 
 def fake_zuruecksetzen():

@@ -146,6 +146,26 @@ SCHEMA = [
       PRIMARY KEY (umfrage_id, identity)
     );
     """,
+    # Version 3: Breakout-Räume (je Meeting eine Runde; wird beim Meeting-Ende gelöscht)
+    """
+    CREATE TABLE breakout (
+      raum_id INTEGER PRIMARY KEY REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      anzahl INTEGER NOT NULL,         -- 2–50 Räume, LiveKit-Name <code>__b<nr>
+      status TEXT NOT NULL DEFAULT 'entwurf',   -- entwurf | offen | schliesst | geschlossen
+      runde INTEGER NOT NULL DEFAULT 0,         -- zählt jedes Öffnen hoch
+      dauer_min INTEGER,               -- Timer (NULL = ohne)
+      rueckkehr INTEGER NOT NULL DEFAULT 1,     -- Teilnehmende dürfen selbst in den Hauptraum zurück
+      geoeffnet INTEGER, endet INTEGER, schliesst_um INTEGER
+    );
+    CREATE TABLE breakout_teilnehmer (
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      identity TEXT NOT NULL,
+      nr INTEGER NOT NULL DEFAULT 0,   -- zugeteilter Breakout-Raum (0 = keiner)
+      ort INTEGER NOT NULL DEFAULT 0,  -- wo die Person gerade ist (0 = Hauptraum)
+      PRIMARY KEY (raum_id, identity)
+    );
+    """,
 ]
 
 

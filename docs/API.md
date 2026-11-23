@@ -111,6 +111,38 @@ Umfragen werden mit dem Meeting gelöscht, außer der Raum hat `chat_speichern`.
 Ereignis (Topic `agora`): `{typ:"umfrage", aktion, umfrage}` – `aktion` `gestartet`/`beendet`/`geteilt` an alle (ohne Live-Ergebnis) und
 zusätzlich mit Ergebnis an Host/Co-Hosts; `angelegt` und `stimme` nur an Host/Co-Hosts; `geloescht` an alle (`umfrage` = `{id}`).
 
+## Breakout-Räume (X-Teilnahme)
+Jeder Breakout-Raum ist ein eigener LiveKit-Raum `<code>__b<nr>` (nr 1–50). Das ist kein gültiger Meeting-Code (Info/Beitreten per Code → 404);
+Zugang nur mit einem Token von POST `…/breakout/wechseln`. Je Meeting gibt es eine Runde; sie wird beim Meeting-Ende gelöscht.
+
+`breakout` = `null | {status: "entwurf"|"offen"|"schliesst"|"geschlossen", anzahl, runde (zählt jedes Öffnen hoch), dauer_min|null, rueckkehr,
+endet (ISO|null), rest_s (Sekunden bis Timer-Ende, nur offen), schliesst_um (ISO|null), schliesst_in_s (nur schliesst), mein_raum (0 = keiner),
+ort (wo ich gerade bin, 0 = Hauptraum)}` – Host/Co-Host zusätzlich `raeume:[{nr, teilnehmer:[person], anwesend}]` und `ohne_raum:[person]`,
+`person` = `{identity, name, rolle, nr, ort}` (nur gerade Verbundene).
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| GET `/api/raeume/{code}/breakout` | alle | – | `{breakout}` |
+| POST `/api/raeume/{code}/breakout` | host/cohost | `{anzahl: 2–50, dauer_min?: 1–240\|null, rueckkehr?: true, automatisch?: false}` | `{breakout}` – neue Runde (Entwurf), ersetzt eine geschlossene; 409 während offen |
+| PUT `/api/raeume/{code}/breakout/zuteilung` | host/cohost | `{zuteilung:{identity: nr (0 = keiner)}}` oder `{automatisch:true}` | `{breakout}` (Entwurf oder offen) |
+| POST `/api/raeume/{code}/breakout/oeffnen` | host/cohost | – | `{breakout}`; legt die LiveKit-Räume an, startet den Timer |
+| POST `/api/raeume/{code}/breakout/wechseln` | alle | `{nr}` (0 = Hauptraum) | `{zugang:{token, url, raum (LiveKit-Raumname), nr}}` |
+| POST `/api/raeume/{code}/breakout/hilfe` | in einem Breakout-Raum | – | `{ok:true}` (3/min) |
+| POST `/api/raeume/{code}/breakout/nachricht` | host/cohost | `{text ≤ 500}` | `{ok:true}` |
+| POST `/api/raeume/{code}/breakout/schliessen` | host/cohost | – | `{breakout}` – Countdown 60 s (`AGORA_BREAKOUT_COUNTDOWN_S`) |
+
+Regeln für `wechseln`: Teilnehmende nur in den eigenen Raum (status offen), Host/Co-Host in jeden (auch zu Besuch); zurück in den Hauptraum
+immer für Host/Co-Host, Nicht-Zugeteilte und während des Countdowns, sonst nur bei `rueckkehr` (403). Nach dem Schließen gibt es nur noch
+den Hauptraum. Automatisch verteilt werden alle Verbundenen außer Host/Co-Hosts (gleichmäßig, zufällig).
+Timer abgelaufen → Schließen beginnt von selbst; Countdown abgelaufen → Ereignis `geschlossen`, nach 15 s werden die LiveKit-Räume gelöscht.
+
+Ereignisse (Topic `agora`): `{typ:"breakout", aktion, runde}` mit `aktion` `angelegt` (nur Moderation), `zuteilung` (im Entwurf nur Moderation),
+`geoeffnet`, `ort` (nur Moderation), `schliesst` (+ `schliesst_in_s`), `geschlossen` → Clients holen GET `…/breakout` und wechseln selbst.
+`{typ:"breakout_hilfe", nr, identity, von_name}` (an Host/Co-Hosts) · `{typ:"breakout_nachricht", text, von_name}` (an alle).
+Solange Räume offen sind, gehen alle Server-Ereignisse, Chat und Raum-Metadaten an Haupt- und Breakout-Räume (der Chat ist meetingweit);
+Stummschalten, Entfernen, Rollen/Umbenennen wirken in dem Raum, in dem die Person gerade ist. „Leer“ und „voll“ zählen alle Räume.
+Client: Ein Raumwechsel löst im Dokument `agora:raumwechsel` (`detail.room`) aus – z. B. für Video-Effekte, die den neuen Raum brauchen.
+
 ## Aufzeichnung (lokal im Browser des Hosts, dann Upload in die Bibliothek)
 POST `/api/raeume/{code}/aufnahme` (X-Teilnahme, host/cohost) `{aktiv:bool}` → setzt Indikator für alle (Metadaten + Ereignis).
 POST `/api/aufnahmen` (angemeldet) roher Body `video/webm` oder `video/mp4`, Header `X-Raum: <code>`, `X-Titel: <urlencoded>`, optional `X-Dauer: <sekunden>` → `{aufnahme}`. 413/415/507 bei zu groß/falschem Typ/Speicher voll. Max 500 MB/Datei, 5 GB/Konto.

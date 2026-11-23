@@ -126,6 +126,60 @@ with sync_playwright() as p:
         hp.evaluate("window.slxtModus.setzen('hell')"); time.sleep(0.5)
         hp.screenshot(path=OUT + '17e-host-ergebnis-hell.png')
         hp.evaluate("window.slxtModus.setzen('dunkel')")
+        # Breakout-Räume: Host legt 2 Räume an (automatisch, Timer), öffnet; Gast landet im Breakout-Raum und ruft Hilfe;
+        # Host besucht ihn über den Hinweis, schickt eine Nachricht an alle Räume und schließt (60 s Countdown) → alle zurück
+        def warten_bis(seite, sel, anzahl, sekunden=20):
+            ende = time.time() + sekunden
+            while time.time() < ende:
+                if seite.locator(sel).count() == anzahl:
+                    return True
+                time.sleep(0.3)
+            raise AssertionError(f'{sel}: {seite.locator(sel).count()} statt {anzahl}')
+        hp.click('#s-mehr'); hp.click('.menue [role=menuitem] >> text=Breakout-Räume')
+        hp.wait_for_selector('dialog input[name=anzahl]')
+        hp.fill('dialog input[name=anzahl]', '2')
+        hp.click('dialog label.schalter:has([name=timer])')
+        hp.fill('dialog input[name=minuten]', '5')
+        hp.screenshot(path=OUT + '18a-breakout-anlegen.png')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('dialog .breakout-karte:not(.ohne) .breakout-chip')
+        hp.screenshot(path=OUT + '18b-breakout-zuteilung.png')
+        hp.click('dialog .breakout-knoepfe button:has-text("Räume öffnen")')
+        hp.wait_for_selector('dialog .breakout-karte button:has-text("Besuchen")')
+        hp.screenshot(path=OUT + '18c-breakout-offen.png')
+        hp.click('dialog .blatt-kopf .icon-btn')
+        if gp.locator('#seitenleiste:not([hidden])').count():
+            gp.click('#leiste-zu')                           # Handy: Seitenleiste deckt die Kopfzeile ab
+        gp.wait_for_selector('#m-breakout-hilfe:not([hidden])', timeout=20000)
+        warten_bis(gp, '#buehne .kv', 1)                  # nur noch man selbst: Gast ist im Breakout-Raum
+        print('Gast im Breakout:', gp.inner_text('#m-breakout').replace('\n', ' '))
+        time.sleep(1)
+        gp.screenshot(path=OUT + '18d-gast-breakout.png')
+        gp.click('#m-breakout-hilfe')
+        hp.click('.toast:has-text("um Hilfe") button:has-text("Besuchen")', timeout=10000)
+        hp.wait_for_selector('#m-breakout:has-text("Breakout-Raum")', timeout=20000)
+        warten_bis(hp, '#buehne .kv.mit-video', 2)         # Host sieht das Video des Gastes im Breakout-Raum
+        warten_bis(gp, '#buehne .kv', 2)
+        time.sleep(1)
+        hp.screenshot(path=OUT + '18e-host-besucht.png')
+        hp.click('#m-breakout'); hp.click('.menue [role=menuitem] >> text=Breakout-Räume')
+        hp.fill('dialog input[name=nachricht]', 'Noch 5 Minuten!')
+        hp.click('dialog .breakout-nachricht button[type=submit]')
+        gp.wait_for_selector('.toast:has-text("Noch 5 Minuten!")', timeout=10000)
+        hp.click('dialog .breakout-knoepfe button:has-text("Alle Räume schließen")')
+        hp.click('dialog .btn.gefahr.voll')
+        gp.wait_for_selector('#m-banner:has-text("schließen in")', timeout=10000)
+        hp.click('dialog .blatt-kopf .icon-btn')
+        time.sleep(1)
+        gp.screenshot(path=OUT + '18f-gast-countdown.png')
+        hp.screenshot(path=OUT + '18g-host-countdown.png')
+        gp.wait_for_selector('#m-breakout', state='hidden', timeout=90000)
+        hp.wait_for_selector('#m-breakout', state='hidden', timeout=30000)
+        warten_bis(gp, '#buehne .kv', 2, 30)
+        warten_bis(hp, '#buehne .kv.mit-video', 2, 30)
+        print('Breakout geschlossen, beide wieder im Hauptraum')
+        time.sleep(1)
+        gp.screenshot(path=OUT + '18h-gast-zurueck.png')
         # Hell-Modus Screenshot
         hp.evaluate("window.slxtModus.setzen('hell')"); time.sleep(0.5)
         hp.screenshot(path=OUT + '17-hell.png')

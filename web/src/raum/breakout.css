@@ -1,0 +1,55 @@
+/* Agora – Breakout-Räume: Pille in der Kopfzeile, „Hilfe rufen“, Verwaltungsdialog mit Raumkarten (Ziehen oder Auswahl). */
+.m-pille.breakout-pille, .m-pille.breakout-hilfe { cursor: pointer; font: inherit; font-size: .8125rem; font-weight: 600; color: var(--m-text); min-height: 32px; }
+.m-pille.breakout-pille { background: color-mix(in srgb, var(--accent) 22%, var(--m-flaeche)); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.m-pille.breakout-pille:hover { background: color-mix(in srgb, var(--accent) 32%, var(--m-flaeche)); }
+.m-pille.breakout-pille .zeit { font-variant-numeric: tabular-nums; color: var(--m-sec); }
+.m-pille.breakout-pille.warn { border-color: color-mix(in srgb, var(--warn) 70%, transparent); }
+.m-pille.breakout-pille.warn .zeit { color: var(--warn); }
+.m-pille.breakout-hilfe { background: color-mix(in srgb, var(--warn) 16%, var(--m-flaeche)); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+.m-pille.breakout-hilfe:hover { background: color-mix(in srgb, var(--warn) 26%, var(--m-flaeche)); }
+.m-pille.breakout-hilfe svg { color: var(--warn); }
+@media (max-width: 560px) {
+  .m-pille.breakout-hilfe, .m-pille.breakout-pille { padding: 0 8px; }
+  .m-pille.breakout-pille span.lang { display: inline; }   /* „Breakout-Raum n“ bleibt lesbar, „Hilfe rufen“ wird nur Symbol */
+  .m-kopf:has(.breakout-pille:not([hidden])) .m-unter { display: none; }   /* Platz: Code/Dauer stehen in den Meeting-Infos */
+}
+
+/* Verwaltung */
+.breakout-dialog { gap: 16px; }
+.breakout-status { color: var(--sec); font-size: .9375rem; }
+.breakout-arten { display: grid; gap: 8px; }
+@media (min-width: 640px) { .breakout-arten { grid-template-columns: 1fr 1fr; } }
+.breakout-art { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; cursor: pointer; background: var(--tile); border: 1px solid var(--card-line); }
+.breakout-art:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--tile)); }
+.breakout-art:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.breakout-art input { margin: 3px 0 0; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.breakout-art .txt { display: grid; gap: 2px; }
+.breakout-art small { color: var(--sec); font-size: .8125rem; }
+.breakout-minuten input { max-width: 140px; }
+.breakout-dialog fieldset legend b { font-size: .9375rem; }
+
+.breakout-raster { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.breakout-karte { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; padding: 12px; border-radius: 18px; background: var(--tile); border: 1px solid var(--card-line);
+  min-height: 140px; transition: border-color .15s, background .15s; }
+.breakout-karte.ohne { border-style: dashed; }
+.breakout-karte.ziel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--tile)); }
+.breakout-karte-kopf { display: grid; gap: 2px; }
+.breakout-karte-kopf h4 { margin: 0; font: 700 1rem/1.25 var(--display); }
+.breakout-zahl { color: var(--sec); font-size: .75rem; white-space: nowrap; }
+.breakout-leute { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; align-content: start; }
+.breakout-leer { color: var(--sec); font-size: .8125rem; padding: 10px 4px; text-align: center; }
+.breakout-chip { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; align-items: center; padding: 6px 8px; border-radius: 12px;
+  background: var(--card-solid); border: 1px solid var(--card-line); cursor: grab; }
+.breakout-chip.zieht { opacity: .5; }
+.breakout-chip .mini-avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 700 .75rem/1 var(--display); background: #6d4aff; }
+.breakout-chip .wer { display: grid; min-width: 0; }
+.breakout-chip .wer b { font-weight: 600; font-size: .875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.breakout-chip .wer small { color: var(--sec); font-size: .75rem; }
+.breakout-chip .wer small.da::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--ok); vertical-align: 1px; }
+.breakout-chip select { grid-column: 1 / -1; min-height: 36px; padding: 0 32px 0 10px; border-radius: 10px; font-size: .8125rem; }
+.breakout-karte-fuss { display: flex; justify-content: flex-end; }
+.breakout-karte-fuss .btn { min-height: 40px; padding: 0 16px; font-size: .875rem; flex: none; }
+.breakout-nachricht .zeile { flex-wrap: nowrap; }
+.breakout-nachricht input { flex: 1; min-width: 0; }
+.breakout-nachricht .btn { flex: none; }
+.breakout-knoepfe .btn { flex: 1 1 180px; }

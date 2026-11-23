@@ -234,7 +234,7 @@ export class Buehne {
       grossKey = [this.angeheftet, this.kacheln.has(this.spotlightKey()) ? this.spotlightKey() : null,
         (fremdeBildschirme.at(-1) || bildschirme.at(-1))?.key,
         this.kacheln.has(this.sprecherKey) ? this.sprecherKey : null,
-        alle.find((k) => !k.p.isLocal && k.quelle === 'kamera')?.key, selbstKey].find(Boolean);
+        alle.find((k) => !k.p.isLocal && k.quelle === 'kamera')?.key, selbstKey].find((k) => k && this.kacheln.has(k)) || null;   // beim Raumwechsel gibt es kurz keine Kachel
     }
     let rest = sortiert.filter((k) => k.key !== grossKey);
     let schwebend = null;

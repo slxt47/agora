@@ -45,6 +45,7 @@ Prüfen: `curl -s http://127.0.0.1:8110/api/gesund`. `https://HOST/rtc/validate`
 - Warteraum-Anfragen: 30 min
 - Sicherheitsprotokoll ohne Inhalte: 30 Tage
 - Chat und Umfragen: Werden beim Beenden gelöscht, außer der Raum hat „Chat speichern“.
+- Breakout-Räume (Zuteilung, wer wo ist): werden beim Beenden des Meetings gelöscht.
 - Aufnahmen: 90 Tage
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 

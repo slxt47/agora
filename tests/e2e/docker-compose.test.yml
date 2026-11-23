@@ -1,28 +1,27 @@
 # Wegwerf-Testinstanz für E2E (Playwright): echte LiveKit + App im Testmodus (Mails im Speicher), nur 127.0.0.1.
 # Start: docker compose -f tests/e2e/docker-compose.test.yml up -d --build   ·   Ende: … down -v
-name: agora-test
 services:
   livekit-test:
     image: livekit/livekit-server:v1.13.11@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
     network_mode: host
     command: ["--config", "/etc/livekit.yaml"]
-    volumes: ["./livekit-test.yaml:/etc/livekit.yaml:ro"]
+    volumes: ["${LK_CONFIG:-./livekit-test.yaml}:/etc/livekit.yaml:ro"]
     user: "1000:1000"
     read_only: true
     cap_drop: [ALL]
   app-test:
     build: { context: ../.., target: laufzeit }
-    image: agora:test-e2e
+    image: agora:test-e2e-${APP_PORT:-8111}
     network_mode: host
-    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8111", "--workers", "1", "--no-access-log"]
+    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "${APP_PORT:-8111}", "--workers", "1", "--no-access-log"]
     environment:
       AGORA_TEST: "1"
       AGORA_GRENZEN_AUS: "1"
       AGORA_COOKIE: agora
       AGORA_COOKIE_SECURE: "0"
-      AGORA_SEITE: http://127.0.0.1:8111
-      AGORA_LIVEKIT_URL: ws://127.0.0.1:7980
-      LIVEKIT_API_HOST: http://127.0.0.1:7980
+      AGORA_SEITE: http://127.0.0.1:${APP_PORT:-8111}
+      AGORA_LIVEKIT_URL: ws://127.0.0.1:${LK_PORT:-7980}
+      LIVEKIT_API_HOST: http://127.0.0.1:${LK_PORT:-7980}
       LIVEKIT_API_KEY: testschluessel
       LIVEKIT_API_SECRET: testgeheimnis-testgeheimnis-testgeheimnis-123
     tmpfs: ["/daten:uid=1000,gid=1000", "/tmp"]

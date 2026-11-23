@@ -44,7 +44,7 @@ export class Statistik {
 
   /** Beim Server melden, dass gemessen wird (ohne Werte). */
   async anmelden() {
-    try { await this.m.api(`/api/raeume/${this.m.code}/statistik`, { methode: 'POST', json: {} }); } catch { /* egal */ }
+    try { this.token((await this.m.api(`/api/raeume/${this.m.code}/statistik`, { methode: 'POST', json: {} })).feedback); } catch { /* egal */ }
   }
 
   /** getStats() der PeerConnections (Senden + Empfangen; bei nur einer Verbindung eben die). */
@@ -77,8 +77,14 @@ export class Statistik {
 
   async melden(w) {
     const { bewertung: _b, ...werte } = w;
-    try { await this.m.api(`/api/raeume/${this.m.code}/statistik`, { methode: 'POST', json: werte }); } catch { /* nächstes Mal */ }
+    try { this.token((await this.m.api(`/api/raeume/${this.m.code}/statistik`, { methode: 'POST', json: werte })).feedback); } catch { /* nächstes Mal */ }
   }
+
+  /** Rückmelde-Token für den Ende-Bildschirm merken (gilt 24 h, auch nach dem Meeting). */
+  token(t_) { if (typeof t_ === 'string' && t_) this.feedbackToken = t_; }
+
+  /** Für den Ende-Bildschirm: {token, statistik} oder null. */
+  feedback() { return this.feedbackToken ? { token: this.feedbackToken, statistik: this.schnitt() } : null; }
 
   /** Schnitt über das ganze Meeting (für die Rückmeldung am Ende). */
   schnitt() { return schnitt(this.verlauf); }

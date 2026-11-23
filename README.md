@@ -32,6 +32,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
     Verbindungsweg (UDP/TCP/Relay) und Auflösung. Popover „Verbindung“ an der eigenen Kachel, Warnung mit Tipps bei
     dauerhaft schlechter Verbindung; Host und Co-Hosts sehen die Qualität aller in der Teilnehmerliste.
     Der Server speichert nur einen Schnitt je Meeting (ohne IPs, ohne Namen).
+  - Rückmeldung am Ende: „Wie war die Qualität?“ mit 1–5 Sternen, Problemen zum Ankreuzen und Text; im Konto sieht
+    der Besitzer je Raum und Meeting den Schnitt, die Verbindungswerte und die Hinweise (ohne Namen).
   - Video-Effekte in Lobby und Meeting: Hintergrund leicht oder stark unscharf, sechs eigene Hintergründe im slxt-Stil,
     eigenes Bild (bleibt im Browser, wird nie hochgeladen), „Aussehen verbessern“ (milder Helligkeits-/Kontrastfilter).
     Läuft mit `@livekit/track-processors` und MediaPipe komplett im Browser; WASM und Modell liegen unter `/vendor/`,

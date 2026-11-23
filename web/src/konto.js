@@ -12,6 +12,7 @@ import { kalenderDialog, kalenderAboEinrichten } from './kalender.js';
 import { vorlagenEinrichten, alsVorlage, passcodeZeigen } from './vorlagen.js';
 import { erinnerungEinrichten, einladenErinnerung } from './erinnerung.js';
 import { verlaufEinrichten } from './verlauf.js';
+import { qualitaetLaden, qualitaetMarke } from './qualitaet-konto.js';
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -44,7 +45,7 @@ addEventListener('hashchange', () => {
 
 // ---------------------------------------------------------------- Meetings
 async function meetingsLaden() {
-  const r = await api('/api/raeume');
+  const [r] = await Promise.all([api('/api/raeume'), qualitaetLaden()]);
   persoenlichZeigen(r.persoenlich);
   listeZeigen($('#liste-geplant'), r.geplant || [], false);
   listeZeigen($('#liste-vergangen'), r.vergangen || [], true);
@@ -68,6 +69,7 @@ function persoenlichZeigen(raum) {
     h('p', { class: 'sec klein' }, t('konto.persoenlichText')),
     h('div', { class: 'link-feld oben' }, raumLink(raum)),
     ...(merkmale(raum) ? [h('div', { class: 'oben' }, merkmale(raum))] : []),
+    ...(qualitaetMarke(raum, zone()) ? [h('div', { class: 'oben' }, qualitaetMarke(raum, zone()))] : []),
     h('div', { class: 'aktionen oben' },
       h('a', { class: 'btn primary', href: `/r/${raum.code}` }, t('konto.starten')),
       knopf(t('konto.linkKopieren'), { symbol: 'kopie', onclick: () => kopieren(raumLink(raum), t('konto.linkKopiert')) }),
@@ -125,6 +127,7 @@ function raumEintrag(raum, vergangen) {
         h('span', { class: 'info mono' }, raum.code))),
     g?.beschreibung ? h('p', { class: 'sec klein' }, g.beschreibung) : null,
     merkmale(raum),
+    qualitaetMarke(raum, zone()),
     aktionen);
 }
 

@@ -1,0 +1,9 @@
+/* Agora – Konto: Qualität vergangener Meetings (Sterne-Schnitt, Verbindungswerte je Meeting). */
+.qualitaet-marke { display: inline-flex; align-items: center; gap: 6px; }
+.qualitaet-marke .stern { color: #ffc94d; }
+.qualitaet-tabelle { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.qualitaet-tabelle th, .qualitaet-tabelle td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+.qualitaet-tabelle th { color: var(--sec); font-weight: 600; }
+.qualitaet-tabelle td.zahl { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.qualitaet-kommentare { margin: 4px 0 0; padding-left: 1.1em; color: var(--sec); }
+.qualitaet-scroll { overflow-x: auto; }

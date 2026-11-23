@@ -49,6 +49,7 @@ Prüfen: `curl -s http://127.0.0.1:8110/api/gesund`. `https://HOST/rtc/validate`
 - Chat und Umfragen: Werden beim Beenden gelöscht, außer der Raum hat „Chat speichern“.
 - Breakout-Räume (Zuteilung, wer wo ist): werden beim Beenden des Meetings gelöscht.
 - Verbindungsqualität: Werte je Teilnahme werden beim Beenden gelöscht; der Schnitt je Meeting (ohne IPs und Namen) bleibt, solange der Raum besteht.
+- Rückmeldungen nach dem Meeting (Sterne, Probleme, Text, eigener Verbindungsschnitt): solange der Raum besteht; die gespeicherte identity dient nur gegen doppelte Bewertungen und wird nie angezeigt.
 - Aufnahmen: 90 Tage
 - Dauer-Chat (persönlicher Raum, nur wenn der Besitzer ihn einschaltet): öffentliche Nachrichten bleiben, bis der Besitzer ihn leert oder ausschaltet (oder mit dem Konto), höchstens die neuesten 1000 Nachrichten.
 - Meeting-Verlauf (Titel, Code, Beginn, Ende, Spitzenzahl, Zahl der Beitritte – keine Namen, keine IPs): 90 Tage, einzeln löschbar, mit dem Konto weg. Wird der Raum gelöscht, bleibt der Eintrag ohne Chat-Verweis.

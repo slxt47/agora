@@ -334,5 +334,18 @@ export const de = {
   'stat.tipp.neu': 'Hilft nichts: Meeting verlassen und neu beitreten.',
   'stat.sparen': 'Datensparmodus einschalten',
   'stat.leuteLabel': 'Verbindung {wert}: {rtt} ms, {verlust} % Verlust, {weg}',
+  // Rückmeldung nach dem Meeting (web/src/raum/feedback.js) und Konto (web/src/qualitaet-konto.js)
+  'fb.titel': 'Wie war die Qualität?', 'fb.hinweis': 'Deine Bewertung hilft, Agora besser zu machen. Der Gastgeber sieht nur den Schnitt und Texte – ohne deinen Namen.',
+  'fb.sterneLabel': 'Bewertung von 1 bis 5 Sternen',
+  'fb.stern.1': '1 Stern – sehr schlecht', 'fb.stern.2': '2 Sterne – schlecht', 'fb.stern.3': '3 Sterne – geht so', 'fb.stern.4': '4 Sterne – gut', 'fb.stern.5': '5 Sterne – sehr gut',
+  'fb.probleme': 'Gab es Probleme? (optional)', 'fb.problem.ton': 'Ton abgehackt', 'fb.problem.echo': 'Echo oder Rauschen', 'fb.problem.video': 'Bild ruckelt oder unscharf',
+  'fb.problem.verbindung': 'Verbindung abgebrochen', 'fb.problem.bildschirm': 'Bildschirmfreigabe', 'fb.problem.bedienung': 'Bedienung unklar',
+  'fb.text': 'Möchtest du noch etwas sagen? (optional)', 'fb.textPlatzhalter': 'Was ist dir aufgefallen?', 'fb.senden': 'Bewertung senden',
+  'fb.danke': 'Danke für deine Rückmeldung!',
+  'qk.bewertungenN': '({n} Bewertungen)', 'qk.ohneBewertung': 'Noch keine Bewertung', 'qk.kurzVerbindung': '{rtt} ms, {verlust} % Verlust',
+  'qk.label': 'Durchschnitt {sterne} von 5 Sternen aus {n} Bewertungen', 'qk.details': 'Qualität', 'qk.titel': 'Qualität: {titel}',
+  'qk.hinweis': 'Schnitt je Meeting: Verbindungswerte aus den Browsern aller Teilnehmenden und ihre Bewertungen – ohne Namen.',
+  'qk.leer': 'Für diesen Raum gibt es noch keine Werte.', 'qk.wann': 'Meeting', 'qk.sterne': 'Bewertung', 'qk.verbindung': 'RTT · Verlust · Jitter',
+  'qk.schlecht': 'schlecht', 'qk.probleme': 'Probleme und Hinweise',
   // ==== Ende Block Verbindungsqualität ====
 };

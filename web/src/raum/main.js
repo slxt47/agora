@@ -4,6 +4,7 @@ import './raum.css';
 import { t } from '../i18n.js';
 import { CODE_MUSTER, codeAusText, laufzeitText } from '../helfer.js';
 import { Lobby } from './lobby.js';
+import { feedbackZeigen } from './feedback.js';
 
 const ANSICHTEN = ['laden', 'fehler', 'lobby', 'warten', 'ende'];
 function zeigen(name) { for (const a of ANSICHTEN) $(`#v-${a}`).hidden = a !== name; }
@@ -129,7 +130,7 @@ async function meetingStarten(zugang) {
 }
 
 /** Ende-Bildschirm. art: verlassen | beendet | beendetSelbst | entfernt | abgelehnt | doppelt | verbindung */
-function ende(art, aufnahmeSichern, laufenderUpload) {
+function ende(art, aufnahmeSichern, laufenderUpload, extra = {}) {
   lobby?.beenden(true);
   const texte = {
     verlassen: ['ende.verlassenTitel', 'ende.verlassenText'],
@@ -150,6 +151,7 @@ function ende(art, aufnahmeSichern, laufenderUpload) {
   const upload = $('#ende-upload');
   if (laufenderUpload) { upload.hidden = false; upload.append(laufenderUpload); }
   if (aufnahmeSichern) { upload.hidden = false; aufnahmeSichern(upload); }
+  if (art !== 'abgelehnt') feedbackZeigen(code, extra.feedback, upload);     // „Wie war die Qualität?“
   zeigen('ende');
   $('#ende-titel').setAttribute('tabindex', '-1');
   $('#ende-titel').focus();

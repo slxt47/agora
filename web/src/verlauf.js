@@ -5,6 +5,7 @@ import { t } from './i18n.js';
 import { icon } from './icons.js';
 import { zeitText, laufzeitText, uhrzeitText, linkTeile } from './helfer.js';
 import './planung.css';
+import { qualitaetBereit, qualitaetVerlaufMarke } from './qualitaet-konto.js';
 
 let zone = () => undefined;
 
@@ -17,7 +18,7 @@ export async function verlaufLaden() {
   const ul = $('#liste-verlauf');
   if (!ul) return;
   let meetings = [];
-  try { meetings = (await api('/api/verlauf')).meetings || []; } catch (e) { ul.replaceChildren(h('li', { class: 'leer' }, e.message)); return; }
+  try { [{ meetings = [] }] = await Promise.all([api('/api/verlauf'), qualitaetBereit()]); } catch (e) { ul.replaceChildren(h('li', { class: 'leer' }, e.message)); return; }
   ul.replaceChildren();
   if (!meetings.length) { ul.append(h('li', { class: 'leer' }, t('verlauf.leer'))); return; }
   for (const m of meetings) ul.append(eintrag(m));
@@ -35,7 +36,8 @@ function eintrag(m) {
         h('span', { class: 'info mono' }, m.code))),
     h('div', { class: 'zeile' },
       h('span', { class: 'marker', title: t('verlauf.spitzeLang') }, t('verlauf.spitze', { n: m.spitze })),
-      h('span', { class: 'marker' }, t('verlauf.beitritte', { n: m.teilnahmen }))),
+      h('span', { class: 'marker' }, t('verlauf.beitritte', { n: m.teilnahmen })),
+      qualitaetVerlaufMarke(m)),     // Sterne-Schnitt und Verbindung (qualitaet-konto.js)
     h('div', { class: 'aktionen' },
       m.chat ? knopf(t('verlauf.inhalt'), { klasse: 'btn klein', symbol: 'chat', onclick: () => inhaltDialog(m) }) : null,
       knopf(t('verlauf.entfernen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: () => entfernen(m) })));

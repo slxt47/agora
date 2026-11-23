@@ -194,6 +194,15 @@ Der Browser misst alle 10 s (`getStats` der LiveKit-PeerConnections) und meldet 
 Gespeichert wird je Meeting nur die Summe (Tabelle `qualitaet`, ohne IPs und Namen); die letzten Werte je Teilnahme
 (`qualitaet_person`) werden beim Meeting-Ende gelöscht.
 
+Die Antwort von POST `…/statistik` enthält zusätzlich `feedback` (Rückmelde-Token, HMAC über Raum, Sitzung, identity
+und Zeit, 24 h gültig – erneuert mit jeder Meldung). Damit geht die Rückmeldung auch nach dem Meeting-Ende (ohne X-Teilnahme):
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| POST `/api/raeume/{code}/feedback` | Token | `{token, sterne: 1–5, probleme?: ["ton"\|"echo"\|"video"\|"verbindung"\|"bildschirm"\|"bedienung"], text? (≤ 1000), statistik?: {proben, rtt, verlust, jitter, ein, aus, schlecht_anteil}}` | `{ok:true}`; eine Rückmeldung je Teilnahme (erneut senden ändert sie); 403 bei falschem/abgelaufenem Token; 20/10 min je IP |
+| GET `/api/qualitaet` | angemeldet | – | `{raeume:{code:{bewertungen, sterne\|null, meetings, rtt\|null, verlust\|null}}, meetings:{"code:sitzung":{bewertungen, sterne\|null, rtt\|null, verlust\|null}}}` – nur eigene Räume mit Werten; `meetings` passt über `code` + `sitzung` zu den Einträgen von GET `/api/verlauf` (Anzeige unter „Vergangene Meetings“) |
+| GET `/api/raeume/{code}/qualitaet` | Besitzer | – | `{meetings:[{sitzung, beginn, verbindung: schnitt\|null, feedback: null\|{anzahl, sterne, probleme:{art:n}, kommentare:[text]}}]}` (neueste 30, ohne Namen) |
+
 ## Aufzeichnung (lokal im Browser des Hosts, dann Upload in die Bibliothek)
 POST `/api/raeume/{code}/aufnahme` (X-Teilnahme, host/cohost) `{aktiv:bool}` → setzt Indikator für alle (Metadaten + Ereignis).
 POST `/api/aufnahmen` (angemeldet) roher Body `video/webm` oder `video/mp4`, Header `X-Raum: <code>`, `X-Titel: <urlencoded>`, optional `X-Dauer: <sekunden>` → `{aufnahme}`. 413/415/507 bei zu groß/falschem Typ/Speicher voll. Max 500 MB/Datei, 5 GB/Konto.

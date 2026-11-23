@@ -876,6 +876,6 @@ export class Meeting {
     ruhe(false);
     const laufenderUpload = document.querySelector('.upload-schwebend');
     laufenderUpload?.classList.remove('upload-schwebend');
-    this.onEnde(art, blob?.size ? (ziel) => this.aufnahmeSichern(blob, dauer, ziel) : null, laufenderUpload);
+    this.onEnde(art, blob?.size ? (ziel) => this.aufnahmeSichern(blob, dauer, ziel) : null, laufenderUpload, { feedback: this.statistik?.feedback() });
   }
 }

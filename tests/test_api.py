@@ -1048,9 +1048,9 @@ def statistik(c, code, z, **kw):
 
 def test_statistik_melden_bewerten_und_host_sicht():
     host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
-    assert statistik(g1, code, z1).json() == {'ok': True, 'bewertung': None}            # nur anmelden, keine Werte
+    assert statistik(g1, code, z1).json()['bewertung'] is None                         # nur anmelden, keine Werte
     r = statistik(g1, code, z1, rtt=40, verlust=0.5, jitter=8, ein=900, aus=1200, kandidat='udp', aufloesung='640x360', fps=24)
-    assert r.json() == {'ok': True, 'bewertung': 'gut'}
+    assert r.json()['ok'] is True and r.json()['bewertung'] == 'gut'
     assert statistik(g2, code, z2, rtt=250, verlust=1, jitter=10, kandidat='relay').json()['bewertung'] == 'mittel'
     assert statistik(g2, code, z2, rtt=90, verlust=8, jitter=10, kandidat='tcp').json()['bewertung'] == 'schlecht'
     # Prüfung der Werte
@@ -1085,3 +1085,54 @@ def test_statistik_begrenzt_und_beim_ende_geloescht():
     assert c.execute('SELECT COUNT(*) FROM qualitaet_person WHERE raum_id = ?', (rid,)).fetchone()[0] == 0
     assert c.execute('SELECT proben FROM qualitaet WHERE raum_id = ?', (rid,)).fetchone()[0] == 12   # Schnitt bleibt
     assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=1).status_code == 403                    # Meeting vorbei
+
+
+# ---------------------------------------------------------------- Rückmeldung nach dem Meeting
+def test_feedback_nach_dem_meeting_und_konto_schnitt():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    tok1 = statistik(g1, code, z1, rtt=40, verlust=1, jitter=5, kandidat='udp').json()['feedback']
+    tok2 = statistik(g2, code, z2).json()['feedback']
+    tokh = statistik(host, code, hz, rtt=20, verlust=0, jitter=2).json()['feedback']
+    steuern(host, code, hz, aktion='beenden')                       # Teilnahmen weg – Rückmeldung geht trotzdem
+    fb = lambda c, **kw: c.post(f'/api/raeume/{code}/feedback', json=kw)   # noqa: E731
+    assert fb(g1, token=tok1, sterne=4, probleme=['video', 'ton'], text='Bild ruckelte kurz',
+              statistik={'proben': 12, 'rtt': 40, 'verlust': 1.2, 'jitter': 5, 'ein': 800, 'aus': 900, 'schlecht_anteil': 0}).json() == {'ok': True}
+    assert fb(g2, token=tok2, sterne=2, probleme=['verbindung']).status_code == 200
+    assert fb(g2, token=tok2, sterne=3, probleme=['verbindung']).status_code == 200    # ändern statt doppelt zählen
+    assert fb(host, token=tokh, sterne=5).status_code == 200
+    # Prüfung
+    assert fb(g1, token=tok1, sterne=0).status_code == 400
+    assert fb(g1, token=tok1, sterne=6).status_code == 400
+    assert fb(g1, token=tok1, sterne=True).status_code == 400
+    assert fb(g1, token=tok1, sterne=3, probleme=['wetter']).status_code == 400
+    assert fb(g1, token=tok1, sterne=3, statistik={'rtt': -5}).status_code == 400
+    assert fb(g1, token=tok1, sterne=3, text='x' * 1001).status_code == 400
+    assert fb(g1, token=tok1[:-1] + ('0' if tok1[-1] != '0' else '1'), sterne=3).status_code == 403   # gefälscht
+    assert fb(g1, token='kaputt', sterne=3).status_code == 403
+    sitzung, ident, zeit, _sig = tok1.split('.')
+    from app.qualitaet import feedback_token
+    rid = db.verbindung().execute('SELECT id FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    alt = feedback_token(rid, int(sitzung), ident, int(zeit) - 25 * 3600)
+    assert fb(g1, token=alt, sterne=3).status_code == 403                             # abgelaufen
+    # anderer Raum: Token gilt nicht
+    _h2, code2, _hz2, _g = meeting(0)
+    assert g1.post(f'/api/raeume/{code2}/feedback', json={'token': tok1, 'sterne': 3}).status_code == 403
+    # Besitzer sieht Schnitt und Texte ohne Namen
+    u = host.get('/api/qualitaet').json()['raeume'][code]
+    assert u['bewertungen'] == 3 and u['sterne'] == 4.0 and u['meetings'] == 1 and u['rtt'] == 30 and u['verlust'] == 0.5
+    q = host.get(f'/api/raeume/{code}/qualitaet').json()['meetings']
+    assert len(q) == 1 and q[0]['verbindung']['proben'] == 2
+    f = q[0]['feedback']
+    assert f['anzahl'] == 3 and f['sterne'] == 4.0 and f['probleme']['verbindung'] == 1 and f['probleme']['video'] == 1
+    assert f['kommentare'] == ['Bild ruckelte kurz']
+    assert 'identity' not in str(q) and z1['identity'] not in str(q) and 'Gast' not in str(q)
+    assert g1.get(f'/api/raeume/{code}/qualitaet').status_code == 401
+    anderer, _e, _p = konto()
+    assert anderer.get(f'/api/raeume/{code}/qualitaet').status_code == 403
+    assert code not in anderer.get('/api/qualitaet').json()['raeume']
+    # je Meeting (für den Meeting-Verlauf): Schlüssel code:sitzung
+    sitzung = db.verbindung().execute('SELECT sitzung FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    jm = host.get('/api/qualitaet').json()['meetings'][f'{code}:{sitzung}']
+    assert jm == {'bewertungen': 3, 'sterne': 4.0, 'rtt': 30, 'verlust': 0.5}
+    v = [m for m in host.get('/api/verlauf').json()['meetings'] if m['code'] == code]
+    assert v and v[0]['sitzung'] == sitzung                            # passt zum Eintrag im Meeting-Verlauf

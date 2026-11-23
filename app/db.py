@@ -309,6 +309,20 @@ SCHEMA = [
       PRIMARY KEY (raum_id, identity)
     );
     """,
+    # Version 13: Rückmeldung nach dem Meeting (Sterne, Probleme, Text) – je Teilnahme einmal, mit eigenem Statistik-Schnitt
+    """
+    CREATE TABLE feedback (
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,          -- nur, damit jede Teilnahme einmal bewertet (wird nie angezeigt)
+      sterne INTEGER NOT NULL,         -- 1–5
+      probleme TEXT NOT NULL,          -- JSON-Liste (ton, echo, video, verbindung, bildschirm, bedienung)
+      text TEXT NOT NULL DEFAULT '',
+      statistik TEXT,                  -- JSON: Schnitt der eigenen Verbindungswerte oder NULL
+      zeit INTEGER NOT NULL,
+      PRIMARY KEY (raum_id, sitzung, identity)
+    );
+    """,
     # ==== Ende Block Verbindungsqualität ====
 ]
 

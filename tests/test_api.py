@@ -1136,3 +1136,84 @@ def test_feedback_nach_dem_meeting_und_konto_schnitt():
     assert jm == {'bewertungen': 3, 'sterne': 4.0, 'rtt': 30, 'verlust': 0.5}
     v = [m for m in host.get('/api/verlauf').json()['meetings'] if m['code'] == code]
     assert v and v[0]['sitzung'] == sitzung                            # passt zum Eintrag im Meeting-Verlauf
+
+
+# ---------------------------------------------------------------- Metriken und tiefe Gesundheitsprüfung
+def lokal(**kw):
+    return TestClient(main.app, client=('127.0.0.1', 40000), **kw)
+
+
+def metrik(text, name):
+    for z in text.splitlines():
+        if z.split(' ')[0] == name:
+            return float(z.rsplit(' ', 1)[1])
+    return None
+
+
+def test_metriken_nur_lokal_ohne_tunnel_oder_mit_token(monkeypatch):
+    from app import metriken
+    assert neu_client().get('/api/metriken').status_code == 404                           # von außen (Testclient-Host)
+    assert lokal().get('/api/metriken', headers={'CF-Connecting-IP': '1.2.3.4'}).status_code == 404   # über den Tunnel
+    assert lokal().get('/api/gesund?tief=1', headers={'CF-Connecting-IP': '1.2.3.4'}).status_code == 404
+    assert neu_client().get('/api/gesund').json() == {'ok': True}                         # einfache Prüfung bleibt offen
+    r = lokal().get('/api/metriken')
+    assert r.status_code == 200 and r.headers['content-type'].startswith('text/plain; version=0.0.4')
+    monkeypatch.setattr(metriken, 'TOKEN', 't' * 40)
+    assert neu_client().get('/api/metriken', headers={'Authorization': 'Bearer ' + 't' * 40}).status_code == 200
+    assert neu_client().get('/api/metriken', headers={'Authorization': 'Bearer falsch'}).status_code == 404
+    monkeypatch.setattr(metriken, 'TOKEN', '')
+    assert neu_client().get('/api/metriken', headers={'Authorization': 'Bearer '}).status_code == 404   # leeres Token zählt nie
+
+
+def test_metriken_zaehler_und_momentwerte():
+    vorher = lokal().get('/api/metriken').text
+    c, email, pw = konto()
+    neu_client().post('/api/konto/anmelden', json={'email': email, 'passwort': 'falsch-falsch-1'})
+    c.post('/api/konto/anmelden', json={'email': email, 'passwort': pw})
+    host, code, hz, [(g1, z1)] = meeting(1)
+    lk.FAKE_TEILNEHMER[code] = [{'identity': hz['identity'], 'name': 'H', 'tracks': []}, {'identity': z1['identity'], 'name': 'G', 'tracks': []}]
+    t = lokal().get('/api/metriken').text
+    diff = lambda n: metrik(t, n) - (metrik(vorher, n) or 0)   # noqa: E731
+    assert diff('agora_registrierungen_total') == 2
+    assert diff('agora_anmeldungen_total{ergebnis="ok"}') == 1
+    assert diff('agora_anmeldungen_total{ergebnis="fehlgeschlagen"}') == 1
+    assert diff('agora_mails_total{ergebnis="ok"}') == 2                  # zwei Bestätigungsmails
+    assert metrik(t, 'agora_meetings_aktiv') >= 1 and metrik(t, 'agora_teilnehmer_verbunden') == 2
+    assert metrik(t, 'agora_livekit_erreichbar') == 1 and metrik(t, 'agora_daten_frei_bytes') > 0
+    assert metrik(t, 'agora_konten{status="bestaetigt"}') >= 2 and metrik(t, 'agora_aufnahmen_bytes') is not None
+    assert '# TYPE agora_http_dauer_sekunden histogram' in t
+    assert metrik(t, 'agora_http_dauer_sekunden_count{gruppe="konto"}') >= 4
+    assert metrik(t, 'agora_http_dauer_sekunden_bucket{gruppe="konto",le="+Inf"}') == metrik(t, 'agora_http_dauer_sekunden_count{gruppe="konto"}')
+    assert code not in t and email not in t                                 # keine Codes/Adressen als Label
+
+
+def test_livekit_fehler_und_hintergrund_zaehlen(monkeypatch):
+    import asyncio
+    from app import metriken
+    monkeypatch.setattr(lk, 'FAKE', False)
+    monkeypatch.setattr(lk, 'API_HOST', 'http://127.0.0.1:9')           # nichts lauscht → Fehler
+    vorher = metrik(lokal().get('/api/metriken').text, 'agora_livekit_fehler_total{aufruf="metadaten"}') or 0
+    assert asyncio.run(lk.metadaten('abc-defg-hij', {})) is None
+    t = lokal().get('/api/metriken').text
+    assert metrik(t, 'agora_livekit_fehler_total{aufruf="metadaten"}') == vorher + 1
+    assert metrik(t, 'agora_livekit_erreichbar') == 0
+    g = lokal().get('/api/gesund?tief=1')
+    assert g.status_code == 503 and g.json()['pruefungen']['livekit']['ok'] is False
+    monkeypatch.setattr(lk, 'FAKE', True)
+    metriken.hintergrund_gelaufen()
+    assert metrik(lokal().get('/api/metriken').text, 'agora_hintergrund_letzter_lauf_zeitstempel_sekunden') > 1e9
+
+
+def test_gesund_tief(monkeypatch):
+    from app import metriken
+    g = lokal().get('/api/gesund?tief=1')
+    assert g.status_code == 200, g.text
+    p = g.json()['pruefungen']
+    assert set(p) == {'datenbank', 'livekit', 'platte', 'hintergrund'} and all(x['ok'] for x in p.values())
+    assert p['datenbank']['ms'] >= 0 and p['platte']['frei_bytes'] > 0
+    monkeypatch.setattr(metriken, 'PLATTE_MIN', 1e18)                     # „Platte voll“
+    assert lokal().get('/api/gesund?tief=1').status_code == 503
+    monkeypatch.setattr(metriken, 'PLATTE_MIN', 0)
+    monkeypatch.setitem(metriken.ZUSTAND, 'hintergrund', 1.0)             # Hintergrund hängt seit 1970
+    r = lokal().get('/api/gesund?tief=1')
+    assert r.status_code == 503 and r.json()['pruefungen']['hintergrund']['ok'] is False

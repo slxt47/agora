@@ -53,6 +53,14 @@ with sync_playwright() as p:
     try:
         hp.goto(B + '/')
         hp.screenshot(path=OUT + '01-start.png')
+        # Monitoring: /api/metriken und /api/gesund?tief=1 nur lokal – über den Tunnel (CF-Connecting-IP) gibt es sie nicht
+        for pfad in ('/api/metriken', '/api/gesund?tief=1'):
+            tunnel = hp.request.get(B + pfad, headers={'CF-Connecting-IP': '203.0.113.7'})
+            direkt = hp.request.get(B + pfad)
+            print(f'{pfad}: über Tunnel {tunnel.status}, lokal {direkt.status}')
+            if tunnel.status != 404: fehler.append(f'{pfad} über den Tunnel erreichbar ({tunnel.status})')
+            if direkt.status != 200: fehler.append(f'{pfad} lokal nicht erreichbar ({direkt.status})')
+        if 'agora_meetings_aktiv' not in hp.request.get(B + '/api/metriken').text(): fehler.append('Metriken unvollständig')
         # PWA: Service Worker meldet sich an und übernimmt die Seite
         sw = hp.evaluate("navigator.serviceWorker.ready.then(r => r.active && r.active.scriptURL)")
         hp.wait_for_function("!!navigator.serviceWorker.controller", timeout=10000)

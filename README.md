@@ -77,6 +77,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
 | `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges) |
 
+Für das Monitoring gibt es `/api/metriken` (Prometheus), `/api/gesund?tief=1` und `scripts/waechter.sh` (eine Zeile Status) – nur lokal, siehe [`docs/BETRIEB.md`](docs/BETRIEB.md).
+
 Die Webseite und die Signalisierung (`/rtc`) laufen über einen Cloudflare-Tunnel. Video und Ton gehen direkt an den Server, weil WebRTC über UDP nicht durch den Tunnel passt. Die Schnittstellen beschreibt [`docs/API.md`](docs/API.md), den Betrieb [`docs/BETRIEB.md`](docs/BETRIEB.md).
 
 ## Starten

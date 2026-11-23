@@ -236,6 +236,17 @@ beendete Meetings laut Protokoll + gerade laufende. Gesperrte Konten: Anmelden 4
 ## Sonstiges
 GET `/api/gesund` → `{ok:true}` · GET `/api/einstellungen` → `{livekit_url, max_teilnehmer, version}`.
 
+### Monitoring (nur von 127.0.0.1 ohne Cloudflare-Header oder mit `Authorization: Bearer <AGORA_METRIKEN_TOKEN>`, sonst 404)
+- GET `/api/gesund?tief=1` → 200/503 `{ok, version, pruefungen:{datenbank:{ok, ms}, livekit:{ok, ms, verbunden}, platte:{ok, frei_bytes, frei_prozent}, hintergrund:{ok, alter_s}}}`
+  (Datenbank: echter Schreibzugriff; Platte: mindestens `AGORA_PLATTE_MIN_GB` (2) und 5 % frei unter `daten/`; Hintergrund: letzter Lauf ≤ 180 s).
+- GET `/api/metriken` → Prometheus-Textformat 0.0.4. Momentwerte: `agora_meetings_aktiv`, `agora_teilnahmen_aktiv`, `agora_teilnehmer_verbunden`,
+  `agora_livekit_raeume`, `agora_warteraum`, `agora_livekit_erreichbar`, `agora_livekit_antwort_ms`, `agora_konten{status}`, `agora_aufnahmen`,
+  `agora_aufnahmen_bytes`, `agora_db_bytes`, `agora_daten_frei_bytes`, `agora_daten_gesamt_bytes`, `agora_hintergrund_letzter_lauf_zeitstempel_sekunden`,
+  `agora_start_zeitstempel_sekunden`, `agora_info{version}`. Zähler (seit Start): `agora_anmeldungen_total{ergebnis=ok|fehlgeschlagen|begrenzt}`,
+  `agora_registrierungen_total`, `agora_mails_total{ergebnis=ok|fehler}`, `agora_livekit_fehler_total{aufruf}`, `agora_hintergrund_fehler_total`,
+  `agora_http_anfragen_total{gruppe, status=2xx…}`. Histogramm `agora_http_dauer_sekunden{gruppe}` mit
+  `gruppe` ∈ konto, raeume, meeting, aufnahmen, freigaben, betrieb, api, statisch, seiten (nie Codes oder IDs als Label).
+
 ## Ergänzungen Backend (Stand Umsetzung)
 - `raum` hat zusätzlich `chat_speichern` (bool) und `beendet` (bool, Sofort-Meeting endgültig beendet). Alle Links (`raum.link`,
   Freigabe-`link`) sind absolut (`AGORA_SEITE` + Pfad). Zeiten immer ISO UTC `YYYY-MM-DDTHH:MM:SSZ`.

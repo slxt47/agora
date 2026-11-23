@@ -255,7 +255,7 @@ SCHEMA = [
     """,
     # ======== Ende Block „Zwei-Faktor-Anmeldung“ ========
     # ======== Block „Melden und Blockieren“ (beim Zusammenführen ggf. neu nummerieren) ========
-    # Version 5: Meldungen aus Meetings (an die Admins, 365 Tage nach Erledigung gelöscht) und blockierte Konten
+    # Version 10: Meldungen aus Meetings (an die Admins, 365 Tage nach Erledigung gelöscht) und blockierte Konten
     """
     CREATE TABLE meldungen (
       id INTEGER PRIMARY KEY,
@@ -279,7 +279,7 @@ SCHEMA = [
     """,
     # ======== Ende Block „Melden und Blockieren“ ========
     # ======== Block „Admin-Bereich“ (beim Zusammenführen ggf. neu nummerieren) ========
-    # Version 6: Konten sperren (gesperrt = keine Anmeldung, Sitzungen werden beim Sperren gelöscht)
+    # Version 11: Konten sperren (gesperrt = keine Anmeldung, Sitzungen werden beim Sperren gelöscht)
     """
     ALTER TABLE benutzer ADD COLUMN gesperrt INTEGER NOT NULL DEFAULT 0;
     """,

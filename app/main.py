@@ -27,6 +27,7 @@ from . import dauerchat     # Dauer-Chat im persönlichen Raum
 from . import zwei_faktor
 from . import melden
 from . import admin
+from . import sicherheit
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -104,6 +105,7 @@ app.include_router(dauerchat.router)
 app.include_router(zwei_faktor.router)
 app.include_router(melden.router)
 app.include_router(admin.router)
+app.include_router(sicherheit.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])

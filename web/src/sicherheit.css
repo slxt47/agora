@@ -9,3 +9,6 @@
   border-radius: var(--r-tile); background: var(--tile); border: 1px solid var(--card-line); font-size: 1rem; }
 @media (max-width: 420px) { .zf-codes { grid-template-columns: 1fr; } }
 .zf-warnung { color: var(--warn); font-weight: 600; }
+/* Sicherheitsereignisse im Konto */
+.sicherheit-liste .symbol { color: var(--ok); }
+.sicherheit-liste .sicherheit-warn .symbol { color: var(--warn); }

@@ -439,6 +439,7 @@ $('#f-pw').addEventListener('submit', (e) => {
   beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
     await api('/api/konto/passwort-aendern', { methode: 'POST', json: { alt: f.alt.value, neu: f.neu.value } });
     f.reset();
+    dispatchEvent(new Event('agora:sicherheit-neu'));      // Liste „Sicherheit“ (konto-sicherheit.js) neu laden
     toast(t('konto.passwortGeaendert'), 'ok');
   });
 });

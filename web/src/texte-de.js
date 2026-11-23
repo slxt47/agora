@@ -307,5 +307,15 @@ export const de = {
   'admin.abschliessen': 'Als erledigt markieren', 'admin.teilnehmerN': '{n} Teilnehmende', 'admin.aufnahmeLaeuft': 'Aufnahme läuft',
   'admin.meetingBeenden': 'Meeting beenden', 'admin.meetingBeendenText': '„{titel}“ wird für alle sofort beendet.', 'admin.keineMeetings': 'Gerade läuft kein Meeting.',
   'admin.keineEintraege': 'Keine Einträge.', 'admin.meldungenUnter': 'warten auf Bearbeitung', 'admin.link': 'Admin',
+  // ---- Sicherheitsereignisse (Konto → Profil → Sicherheit)
+  'sicherheit.leer': 'Keine Ereignisse in den letzten 30 Tagen.',
+  'sicherheit.art.anmeldung': 'Angemeldet', 'sicherheit.art.anmeldung_2fa': 'Angemeldet mit Zwei-Faktor-Code',
+  'sicherheit.art.anmeldung_code': 'Angemeldet mit Wiederherstellungscode', 'sicherheit.art.fehlversuch_passwort': 'Anmeldeversuch mit falschem Passwort',
+  'sicherheit.art.fehlversuch_code': 'Falscher Zwei-Faktor-Code', 'sicherheit.art.fehlversuch_gesperrt': 'Anmeldeversuch, Konto gesperrt',
+  'sicherheit.art.passwort_geaendert': 'Passwort geändert', 'sicherheit.art.passwort_zurueckgesetzt': 'Passwort per E-Mail-Link zurückgesetzt',
+  'sicherheit.art.email_bestaetigt': 'E-Mail-Adresse bestätigt', 'sicherheit.art.zwei_faktor_an': 'Zwei-Faktor-Anmeldung eingeschaltet',
+  'sicherheit.art.zwei_faktor_aus': 'Zwei-Faktor-Anmeldung ausgeschaltet', 'sicherheit.art.zwei_faktor_codes': 'Neue Wiederherstellungscodes erstellt',
+  'sicherheit.art.zwei_faktor_code_benutzt': 'Wiederherstellungscode benutzt', 'sicherheit.art.zwei_faktor_admin': 'Zwei-Faktor-Anmeldung vom Agora-Team zurückgesetzt',
+  'sicherheit.art.gesperrt': 'Konto vom Agora-Team gesperrt', 'sicherheit.art.entsperrt': 'Konto vom Agora-Team entsperrt',
   // ---- Ende Block „Sicherheit“
 };

@@ -353,6 +353,13 @@ with sync_playwright() as p:
         hp.click('#f-code button[type=submit]')
         hp.wait_for_selector('#angemeldet:not([hidden])')
         print('2FA: eingeschaltet, mit Code angemeldet')
+        # Sicherheit im Konto: eigene Ereignisse (2FA eingeschaltet, Anmeldung mit Code)
+        hp.goto(B + '/konto#profil')
+        hp.wait_for_selector('#liste-sicherheit li[data-art="anmeldung_2fa"]')
+        hp.wait_for_selector('#liste-sicherheit li[data-art="zwei_faktor_an"]', state='attached')
+        hp.locator('#liste-sicherheit').scroll_into_view_if_needed()
+        hp.screenshot(path=OUT + '20d-sicherheit.png')
+        print('Sicherheit:', hp.locator('#liste-sicherheit li').count(), 'Ereignisse')
         # Admin-Bereich (host@example.com steht in AGORA_ADMIN_MAILS): Link im Konto, Übersicht, Meldung erledigen,
         # Konten, Protokoll mit der Admin-Aktion; für andere 404
         if gast.request.get(B + '/admin').status != 404 or gast.request.get(B + '/api/admin/uebersicht').status != 404:

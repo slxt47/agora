@@ -4,7 +4,9 @@ import './sicherheit.css';
 import { $, h, api, ichLaden, toast, blatt, beschaeftigt, kopieren, knopf } from './common.js';
 import { t } from './i18n.js';
 import { qrSvg } from './qr.js';
-import { datumText } from './helfer.js';
+import { datumText, zeitText } from './helfer.js';
+import { icon } from './icons.js';
+import { sicherheitArt } from './sicherheit-arten.js';
 
 let ich = null;
 
@@ -34,7 +36,7 @@ async function zweiFaktorZeigen() {
 const statusFeld = () => h('div', { class: 'status', role: 'status', hidden: true });
 
 function einschaltenDialog() {
-  const { inhalt, schliessen } = blatt(t('zweifaktor.einrichtenTitel'), { onclose: zweiFaktorZeigen });
+  const { inhalt, schliessen } = blatt(t('zweifaktor.einrichtenTitel'), { onclose: () => { zweiFaktorZeigen(); ereignisseZeigen(); } });
   const st = statusFeld();
   // Schritt 1: Passwort bestätigen
   const f = h('form', { class: 'formular' },
@@ -102,7 +104,7 @@ function codesZeigen(inhalt, codes, schliessen, titel) {
 
 /** Ausschalten oder neue Codes: Passwort + aktueller Code (oder ein Wiederherstellungscode). */
 function passwortUndCode(art) {
-  const { inhalt, schliessen } = blatt(art === 'aus' ? t('zweifaktor.ausschaltenTitel') : t('zweifaktor.neueCodesTitel'), { onclose: zweiFaktorZeigen });
+  const { inhalt, schliessen } = blatt(art === 'aus' ? t('zweifaktor.ausschaltenTitel') : t('zweifaktor.neueCodesTitel'), { onclose: () => { zweiFaktorZeigen(); ereignisseZeigen(); } });
   const st = statusFeld();
   const f = h('form', { class: 'formular' },
     h('p', { class: 'sec' }, art === 'aus' ? t('zweifaktor.ausschaltenText') : t('zweifaktor.neueCodesText')),
@@ -127,6 +129,25 @@ function passwortUndCode(art) {
     }, st);
   });
 }
+
+// ---------------------------------------------------------------- Sicherheitsereignisse (eigenes Protokoll)
+async function ereignisseZeigen() {
+  const ul = $('#liste-sicherheit');
+  if (!ul) return;
+  try {
+    const { ereignisse } = await api('/api/konto/sicherheit');
+    ul.replaceChildren();
+    if (!ereignisse.length) { ul.append(h('li', { class: 'leer' }, t('sicherheit.leer'))); return; }
+    for (const e of ereignisse) {
+      const a = sicherheitArt(e.art);
+      ul.append(h('li', { class: `sicherheit-${a.ton}`, dataset: { art: e.art } }, h('div', { class: 'kopf' },
+        h('div', { class: 'symbol', html: icon(a.symbol) }),
+        h('div', { class: 'text' }, h('span', { class: 'name' }, t(`sicherheit.art.${e.art}`)),
+          h('span', { class: 'info' }, zeitText(e.zeit, ich?.zeitzone))))));
+    }
+  } catch (e) { ul.replaceChildren(h('li', { class: 'leer' }, e.message)); }
+}
+addEventListener('agora:sicherheit-neu', ereignisseZeigen);
 
 // ---------------------------------------------------------------- Blockierte Konten
 async function blockiertZeigen() {
@@ -155,5 +176,6 @@ async function blockiertZeigen() {
   if (!ich) return;               // konto.js leitet zur Anmeldung weiter
   zweiFaktorZeigen();
   blockiertZeigen();
+  ereignisseZeigen();
   if (ich.admin) $('.bar .rechts')?.prepend(h('a', { class: 'pille-link', href: '/admin', id: 'admin-link' }, t('admin.link')));
 })();

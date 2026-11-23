@@ -36,6 +36,12 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 `ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor, admin}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool).
 Grenzen: Anmelden 10/10 min je IP+Mail, Registrieren 5/h je IP, Mails 3/h je Adresse.
 
+### Sicherheitsereignisse (angemeldet)
+GET `/api/konto/sicherheit` → `{ereignisse:[{zeit, art, ereignis}], tage: 30}` – nur eigene, neueste zuerst, höchstens 100.
+`art`: `anmeldung` · `anmeldung_2fa` · `anmeldung_code` · `fehlversuch_passwort` · `fehlversuch_code` · `fehlversuch_gesperrt` ·
+`passwort_geaendert` · `passwort_zurueckgesetzt` · `email_bestaetigt` · `zwei_faktor_an` · `zwei_faktor_aus` · `zwei_faktor_codes` ·
+`zwei_faktor_code_benutzt` · `zwei_faktor_admin` · `gesperrt` · `entsperrt` (Quelle: Protokoll, 30 Tage; `ereignis` = Rohtext).
+
 ### Zwei-Faktor-Anmeldung (TOTP, angemeldet)
 | Methode + Pfad | Body | Antwort |
 |---|---|---|

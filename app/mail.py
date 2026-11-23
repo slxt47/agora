@@ -164,3 +164,24 @@ def einladung_mail(an, von_name, titel, link, details, ics_daten=None, passcode=
     senden(an, f'Einladung: {titel}', text,
            html_mail('Einladung zum Meeting', saetze, knopf=('Meeting beitreten', link), details=zeilen,
                      hinweis=hinweis, vorschau=f'{von_name} lädt dich ein', links=links), anhaenge)
+
+
+# ---------------------------------------------------------------- Erinnerungen (erinnerungen.py)
+def erinnerung_mail(an, name, titel, link, wann, minuten, ist_host, kalender=None, von_name=''):
+    """Erinnerung vor einem Termin – an den Besitzer (ist_host) oder an Eingeladene (ohne Namen, ohne Passcode)."""
+    if ist_host:
+        saetze = [f'Hallo {name},', f'dein Meeting „{titel}“ beginnt in {minuten} Minuten.']
+        knopf = ('Meeting starten', link)
+        hinweis = 'Du bekommst diese Erinnerung, weil du sie in deinem Agora-Profil eingeschaltet hast.'
+    else:
+        saetze = [f'„{titel}“' + (f' von {von_name}' if von_name else '') + f' beginnt in {minuten} Minuten.']
+        knopf = ('Meeting beitreten', link)
+        hinweis = ('Du bekommst diese einmalige Erinnerung, weil du zu diesem Meeting eingeladen wurdest. Den Passcode (falls nötig) '
+                   'findest du in der Einladung. Deine Adresse wird nach dem Termin gelöscht.')
+    zeilen = [('Wann', wann), ('Link', link)]
+    links = [(n, kalender[k]) for k, n in KALENDER_NAMEN if kalender and kalender.get(k)] if ist_host else []
+    text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in zeilen) + f'\n\n{hinweis}\n'
+    senden(an, f'Erinnerung: {titel} beginnt in {minuten} Minuten', text,
+           html_mail('Gleich geht’s los', saetze, knopf=knopf, details=zeilen, hinweis=hinweis,
+                     vorschau=f'„{titel}“ beginnt in {minuten} Minuten', links=links))
+

@@ -15,6 +15,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Vorlagen: Titel, Dauer, Passcode an/aus, Warteraum, Chat speichern, Beschreibung, Standard-Rechte und „alle stumm beim Beitritt“
     speichern und daraus sofort starten oder planen
   - Einladung per E-Mail mit `.ics`
+  - Erinnerungs-Mails (opt-in): für eigene Termine 10/15/30/60 min vorher, für Eingeladene nur mit Haken „Erinnerung schicken“
   - Kalender ohne OAuth: „Zu Google Kalender“, „Zu Outlook/Office 365“, „Zu Outlook.com“ (mit Join-Link, Google auch mit Wiederholung) und `.ics`;
     privates Kalender-Abo (iCal-Feed mit geheimem Link, neu erzeugbar) für Apple, Google und Outlook
 - **Audio und Video:**

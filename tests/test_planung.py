@@ -197,3 +197,96 @@ def test_meeting_aus_vorlage_rechte_und_stumm_beitritt():
     r3 = raum(c)
     zugang(c, r3['code'])
     assert zugang(neu_client(), r3['code'], name='X')['stumm_beitritt'] is False
+
+
+# ---------------------------------------------------------------- Erinnerungen (Uhr wird an pruefen(t) übergeben)
+def betreffe(email):
+    return [m[1] for m in mails_an(email)]
+
+
+def test_erinnerung_konto_einstellung_und_idempotenz():
+    from app import erinnerungen
+    c, email, _p = konto(name='Erin')
+    assert c.get('/api/konto/erinnerung').json() == {'minuten': 0}
+    for falsch in (5, '15', True, None):
+        assert c.put('/api/konto/erinnerung', json={'minuten': falsch}).status_code == 400
+    assert c.put('/api/konto/erinnerung', json={'minuten': 15}).json() == {'minuten': 15}
+    assert c.get('/api/konto/export').json()['erinnerung_minuten'] == 15
+    jetzt_ = int(datetime.now(timezone.utc).timestamp())
+    start = (jetzt_ // 60 + 120) * 60                                       # in 2 Stunden, volle Minute
+    iso = datetime.fromtimestamp(start, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    r = raum(c, titel='Täglich kurz', geplant={'start': iso, 'dauer_min': 30, 'wiederholung': 'taeglich'})
+    mail.POSTEINGANG_TEST.clear()
+    assert erinnerungen.pruefen(start - 16 * 60) == 0                       # noch zu früh
+    assert erinnerungen.pruefen(start - 15 * 60) == 1
+    an, betreff, text, html_, _a = mails_an(email)[-1]
+    assert betreff == 'Erinnerung: Täglich kurz beginnt in 15 Minuten' and r['link'] in text and 'Meeting starten' in html_
+    # Gleiche Minute, nächste Minute und „Neustart“ (neue Verbindung) → nichts doppelt
+    assert erinnerungen.pruefen(start - 15 * 60) == 0 and erinnerungen.pruefen(start - 14 * 60) == 0
+    db.verbindung().close()
+    db._lokal.c = None
+    assert erinnerungen.pruefen(start - 5 * 60) == 0
+    assert erinnerungen.pruefen(start + 60) == 0                             # nie nach Beginn
+    assert len(mails_an(email)) == 1
+    # Nächstes Vorkommen (morgen) → wieder genau eine
+    assert erinnerungen.pruefen(start + 86400 - 10 * 60) == 1 and erinnerungen.pruefen(start + 86400 - 9 * 60) == 0
+    # Ausschalten → keine mehr; Meeting kurzfristig angelegt (innerhalb des Fensters) → keine
+    c.put('/api/konto/erinnerung', json={'minuten': 0})
+    assert erinnerungen.pruefen(start + 2 * 86400 - 10 * 60) == 0
+    c.put('/api/konto/erinnerung', json={'minuten': 60})
+    bald = (jetzt_ // 60 + 30) * 60
+    raum(c, titel='Kurzfristig', geplant={'start': datetime.fromtimestamp(bald, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')})
+    assert erinnerungen.pruefen(bald - 20 * 60) == 0
+    # Fehlversand → Schlüssel wird freigegeben, nächster Versuch klappt
+    r2 = raum(c, titel='Später', geplant={'start': datetime.fromtimestamp(start + 3 * 3600, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')})
+    alt = mail.senden
+    try:
+        def kaputt(*a, **k):
+            raise OSError('smtp weg')
+        mail.senden = kaputt
+        assert erinnerungen.pruefen(start + 3 * 3600 - 60 * 60) == 0
+    finally:
+        mail.senden = alt
+    assert erinnerungen.pruefen(start + 3 * 3600 - 59 * 60) == 1
+    assert 'Erinnerung: Später beginnt in 60 Minuten' in betreffe(email)
+    assert r2['code']
+
+
+def test_erinnerung_eingeladene_nur_mit_haken_und_danach_geloescht():
+    from app import erinnerungen
+    c, _email, _p = konto(name='Gastgeberin')
+    jetzt_ = int(datetime.now(timezone.utc).timestamp())
+    start = (jetzt_ // 60 + 180) * 60
+    iso = datetime.fromtimestamp(start, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    r = raum(c, titel='Beirat', passcode='pc123456', geplant={'start': iso, 'dauer_min': 60, 'wiederholung': 'woechentlich'})
+    code = r['code']
+    zaehlen = lambda: db.verbindung().execute(  # noqa: E731
+        'SELECT COUNT(*) FROM erinnerung_gaeste g JOIN raeume r ON r.id = g.raum_id WHERE r.code = ?', (code,)).fetchone()[0]
+    # Ohne Haken wird nichts gespeichert
+    assert c.post(f'/api/raeume/{code}/einladen', json={'emails': ['ohne@example.org']}).json() == {'ok': True, 'gesendet': 1}
+    assert zaehlen() == 0
+    assert c.post(f'/api/raeume/{code}/einladen', json={'emails': ['x@example.org'], 'erinnerung': True, 'erinnerung_min': 7}).status_code == 400
+    res = c.post(f'/api/raeume/{code}/einladen', json={'emails': ['eva@example.org', 'tom@example.org'], 'erinnerung': True,
+                                                       'erinnerung_min': 30}).json()
+    assert res == {'ok': True, 'gesendet': 2, 'erinnerung': 2} and zaehlen() == 2
+    mail.POSTEINGANG_TEST.clear()
+    assert erinnerungen.pruefen(start - 31 * 60) == 0
+    assert erinnerungen.pruefen(start - 30 * 60) == 2 and erinnerungen.pruefen(start - 29 * 60) == 0
+    an, betreff, text, _h, _a = mails_an('eva@example.org')[-1]
+    assert betreff == 'Erinnerung: Beirat beginnt in 30 Minuten' and 'Gastgeberin' in text and 'pc123456' not in text
+    assert 'gelöscht' in text
+    assert betreffe('ohne@example.org') == []
+    assert zaehlen() == 2                                         # bleibt bis zum Ende des Termins
+    erinnerungen.pruefen(start + 30 * 60)
+    assert zaehlen() == 2
+    erinnerungen.pruefen(start + 60 * 60)                          # Termin vorbei → Adressen weg
+    assert zaehlen() == 0
+    assert erinnerungen.pruefen(start + 7 * 86400 - 30 * 60) == 0  # nächste Woche: keine Erinnerung mehr
+    # Raum gelöscht → Adressen weg (CASCADE)
+    c.post(f'/api/raeume/{code}/einladen', json={'emails': ['ida@example.org'], 'erinnerung': True})
+    assert zaehlen() == 1
+    c.request('DELETE', f'/api/raeume/{code}')
+    assert db.verbindung().execute("SELECT COUNT(*) FROM erinnerung_gaeste WHERE email = 'ida@example.org'").fetchone()[0] == 0
+    # Sofort-Meeting: Haken wird ignoriert (kein Termin)
+    s = raum(c)
+    assert c.post(f'/api/raeume/{s["code"]}/einladen', json={'emails': ['s@example.org'], 'erinnerung': True}).json() == {'ok': True, 'gesendet': 1}

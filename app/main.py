@@ -21,6 +21,7 @@ from . import umfragen
 from . import breakout
 from . import kalender      # Kalender-Abo (iCal-Feed)
 from . import vorlagen      # Meeting-Vorlagen
+from . import erinnerungen  # Erinnerungs-Mails
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -92,6 +93,7 @@ app.include_router(umfragen.router)
 app.include_router(breakout.router)
 app.include_router(kalender.router)
 app.include_router(vorlagen.router)
+app.include_router(erinnerungen.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])
@@ -139,6 +141,7 @@ def hintergrund():
         try:
             asyncio.run(raeume.leere_pruefen())
             asyncio.run(breakout.faellige_pruefen())     # Timer/Countdown, falls die geplante Aufgabe verloren ging
+            erinnerungen.pruefen()                        # Erinnerungs-Mails (idempotent je Termin)
             if time.time() - letztes_aufraeumen > 300:
                 aufraeumen()
                 letztes_aufraeumen = time.time()

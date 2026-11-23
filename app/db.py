@@ -192,6 +192,25 @@ SCHEMA = [
     ALTER TABLE raeume ADD COLUMN rechte_standard TEXT;                        -- JSON; beim Meeting-Ende rechte := rechte_standard
     ALTER TABLE raeume ADD COLUMN stumm_beitritt INTEGER NOT NULL DEFAULT 0;   -- alle außer Host treten stumm bei
     """,
+    # ==== Version 6 (Erinnerungen) – eigener Block, beim Zusammenführen ggf. umnummerieren ====
+    """
+    CREATE TABLE erinnerung_konto (    -- opt-in im Profil: Erinnerung vor eigenen geplanten Meetings
+      benutzer_id INTEGER PRIMARY KEY REFERENCES benutzer(id) ON DELETE CASCADE,
+      minuten INTEGER NOT NULL         -- 10 | 15 | 30 | 60
+    );
+    CREATE TABLE erinnerung_gaeste (   -- nur wenn der Host „Erinnerung schicken“ ankreuzt; nach dem Termin gelöscht
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      email TEXT NOT NULL COLLATE NOCASE,
+      minuten INTEGER NOT NULL,
+      termin INTEGER,                  -- Vorkommen, zu dem eingeladen wurde (bei Wiederholung maßgeblich)
+      erstellt INTEGER NOT NULL,
+      PRIMARY KEY (raum_id, email)
+    );
+    CREATE TABLE erinnerungen_gesendet (   -- Hash(Raum, Termin, Empfänger) → höchstens eine Mail je Termin; 2 Tage
+      schluessel TEXT PRIMARY KEY,
+      zeit INTEGER NOT NULL
+    );
+    """,
 ]
 
 

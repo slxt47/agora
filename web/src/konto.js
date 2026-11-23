@@ -10,6 +10,7 @@ import {
 } from './helfer.js';
 import { kalenderDialog, kalenderAboEinrichten } from './kalender.js';
 import { vorlagenEinrichten, alsVorlage, passcodeZeigen } from './vorlagen.js';
+import { erinnerungEinrichten, einladenErinnerung } from './erinnerung.js';
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -243,9 +244,11 @@ function einladenDialog(raum) {
   const { inhalt, schliessen } = blatt(t('konto.einladenTitel'));
   const statusEl = h('div', { class: 'status', role: 'status', hidden: true });
   const feld = h('textarea', { name: 'emails', rows: '4', placeholder: 'anna@beispiel.at, ben@beispiel.de', autocapitalize: 'none', spellcheck: 'false' });
+  const erinnerung = einladenErinnerung(raum);
   const f = h('form', { class: 'formular' },
     h('p', { class: 'sec klein' }, t('konto.einladenText', { titel: raum.titel || raum.code })),
     h('label', { class: 'feld' }, h('span', {}, t('konto.feldEmails')), feld, h('small', {}, t('konto.emailsHinweis'))),
+    erinnerung.feld,
     h('div', { class: 'link-feld' }, raumLink(raum)),
     statusEl,
     h('div', { class: 'knoepfe' },
@@ -260,7 +263,7 @@ function einladenDialog(raum) {
     if (!gueltig.length) { status(statusEl, t('konto.emailsLeer'), 'err'); return; }
     if (zuViele) { status(statusEl, t('konto.emailsZuViele'), 'err'); return; }
     beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
-      const r = await api(`/api/raeume/${raum.code}/einladen`, { methode: 'POST', json: { emails: gueltig } });
+      const r = await api(`/api/raeume/${raum.code}/einladen`, { methode: 'POST', json: { emails: gueltig, ...erinnerung.werte() } });
       schliessen();
       toast(t('konto.einladungenGesendet', { n: r.gesendet ?? gueltig.length }), 'ok');
     }, statusEl);
@@ -471,6 +474,7 @@ $('#planen-knopf').addEventListener('click', () => planenDialog());
   kopfZeigen();
   kalenderAboEinrichten();
   vorlagenEinrichten({ planen: (vorlage) => planenDialog(null, { vorlage }) });
+  erinnerungEinrichten();
   const ziel = location.hash.slice(1);
   reiter(ziel === 'planen' ? 'meetings' : ziel);
   try { await meetingsLaden(); } catch (e) { toast(e.message, 'err'); }

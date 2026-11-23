@@ -412,16 +412,25 @@ async def einladen(code: str, req: Request):
     if passcode is not None:        # optional: Passcode in die Mail schreiben – nur wenn er stimmt
         if not isinstance(passcode, str) or not r['passcode_hash'] or not await run_in_threadpool(pw_ok, r['passcode_hash'], passcode):
             fehler(400, 'Der Passcode stimmt nicht.')
+    erinnerung = d.get('erinnerung') is True and r['art'] == 'geplant'      # Adressen nur dann speichern (erinnerungen.py)
+    if erinnerung:
+        from .erinnerungen import minuten_lesen
+        erinnerung_min = minuten_lesen(d.get('erinnerung_min', 15), False)
     grenze.pruefen(f'einladen:{b["id"]}', 100, 86400)
     ics_daten = ics_text(r) if r['art'] == 'geplant' else None
     details = termin_details(r, b)
     gesendet = 0
+    verschickt = []
     for a in adressen:
         if grenze.ok('mail:' + a.lower(), 3, 3600):
+            verschickt.append(a)
             mail.im_hintergrund(mail.einladung_mail, a, b['name'], r['titel'], link(code), details, ics_daten, passcode,
                                 kalender_links(r))
             gesendet += 1
     db.protokollieren(f'Einladungen verschickt ({gesendet})', b['id'], code)
+    if erinnerung:
+        from .erinnerungen import vormerken
+        return {'ok': True, 'gesendet': gesendet, 'erinnerung': vormerken(r, verschickt, erinnerung_min)}
     return {'ok': True, 'gesendet': gesendet}
 
 

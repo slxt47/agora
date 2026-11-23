@@ -237,4 +237,8 @@ export const de = {
   'vorlage.planenTitel': 'Planen mit „{name}“', 'vorlage.passcodeTitel': 'Passcode für dieses Meeting',
   'vorlage.passcodeText': 'Agora hat einen Passcode erzeugt. Er wird nur jetzt angezeigt – kopiere den Link mit Passcode oder notiere ihn.',
   'vorlage.stummBeitritt': 'Du bist stumm beigetreten. Der Host hat das für dieses Meeting so eingestellt.',
+  'erinnerung.text': 'Bekomme vor jedem Termin deiner geplanten Meetings eine E-Mail – auch bei jeder Wiederholung.',
+  'erinnerung.feld': 'Erinnerung per Mail', 'erinnerung.aus': 'Aus', 'erinnerung.vorher': '{n} Minuten vorher',
+  'erinnerung.an': 'Erinnerung {n} Minuten vorher ist an.', 'erinnerung.ausOk': 'Erinnerungen sind aus.',
+  'erinnerung.schicken': 'Erinnerung schicken', 'erinnerung.schickenHinweis': 'Die Eingeladenen bekommen vor dem nächsten Termin eine Mail. Dafür speichert Agora die Adressen bis nach dem Termin.',
 };

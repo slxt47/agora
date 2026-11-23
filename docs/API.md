@@ -215,3 +215,16 @@ gelten nur für dieses Meeting). `zugang.stumm_beitritt` (bool, nie für den Hos
 behandelt das wie „vom Host stummgeschaltet“ (bei Recht `selbst_unmute` aus also erst nach Freigabe entstummbar). Durchgesetzt
 wird das im Client (Hinweis im Zugang); der Server schaltet nicht selbst stumm.
 
+## Erinnerungen (opt-in)
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `/api/konto/erinnerung` | – | `{minuten}` (0 = aus) |
+| PUT `/api/konto/erinnerung` | `{minuten: 0\|10\|15\|30\|60}` | `{minuten}` |
+
+POST `/api/raeume/{code}/einladen` nimmt zusätzlich `erinnerung: true` und `erinnerung_min: 10|15|30|60` (Standard 15) – nur bei
+geplanten Meetings; Antwort dann `{ok, gesendet, erinnerung: n}` (n = vorgemerkte Adressen, nur tatsächlich angeschriebene).
+Ohne Haken werden keine Adressen gespeichert. Der Hintergrund schickt jede Minute fällige Mails (Fenster `[Termin − minuten, Termin)`),
+höchstens eine je Termin und Empfänger (Schlüssel in der Datenbank, übersteht Neustarts). Kein Versand nach Beginn und nicht, wenn
+Meeting bzw. Einladung erst innerhalb des Fensters entstanden sind. Besitzer: vor jedem Vorkommen; Eingeladene: nur vor dem nächsten
+Termin (bei Wiederholung das Vorkommen zur Zeit der Einladung). Erinnerungsmails enthalten nie einen Passcode.
+

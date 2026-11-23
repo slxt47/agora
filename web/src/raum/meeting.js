@@ -95,11 +95,15 @@ export class Meeting {
     try {
       if (this.medien.audioTrack) {
         await lp.publishTrack(this.medien.audioTrack, { source: Track.Source.Microphone });
-        if (!this.medien.micAn) await lp.setMicrophoneEnabled(false);
+        if (!this.medien.micAn || this.zugang.stumm_beitritt) await lp.setMicrophoneEnabled(false);
       }
       if (this.medien.videoTrack && this.medien.camAn) await lp.publishTrack(this.medien.videoTrack, { source: Track.Source.Camera });
       else this.medien.videoTrack?.stop();
     } catch (e) { toast(t('meeting.veroeffentlichenFehler', { text: e.message }), 'err'); }
+    if (this.zugang.stumm_beitritt) {          // Vorlage „alle stumm beim Beitritt“: wie vom Host stummgeschaltet
+      this.vomHostStumm = true;
+      if (this.medien.micAn) toast(t('vorlage.stummBeitritt'), '', { dauer: 6000 });
+    }
 
     this.chat.empfaengerAktualisieren();
     this.chat.rechteAktualisieren();

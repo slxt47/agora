@@ -9,6 +9,7 @@ import {
   passcodeVorschlag, emailsAusText, linkTeile,
 } from './helfer.js';
 import { kalenderDialog, kalenderAboEinrichten } from './kalender.js';
+import { vorlagenEinrichten, alsVorlage, passcodeZeigen } from './vorlagen.js';
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -102,6 +103,7 @@ function raumEintrag(raum, vergangen) {
         ? knopf(t('kal.knopf'), { klasse: 'btn klein', symbol: 'kalender', 'data-kalender': raum.code, onclick: () => kalenderDialog(raum) })
         : null,
       knopf(t('konto.bearbeiten'), { klasse: 'btn klein', symbol: 'stift', onclick: () => planenDialog(raum) }),
+      knopf(t('vorlage.alsVorlage'), { klasse: 'btn klein', symbol: 'stern', onclick: () => alsVorlage(raum) }),
     );
   } else {
     aktionen.append(knopf(t('konto.chatverlauf'), { klasse: 'btn klein', symbol: 'chat', onclick: () => verlaufDialog(raum) }));
@@ -145,13 +147,16 @@ function naechsteHalbeStunde() {
   return d.toISOString();
 }
 
-function planenDialog(raum = null, { persoenlich = false } = {}) {
+function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {}) {
   if (location.hash === '#planen') history.replaceState(null, '', '#meetings');
-  const g = raum?.geplant;
+  const ve = vorlage?.einstellungen;          // Planen aus Vorlage: Felder vorbelegen, Rechte/Stumm setzt der Server
+  if (ve) raum = null;
+  const g = raum?.geplant || (ve ? { dauer_min: ve.dauer_min, beschreibung: ve.beschreibung } : null);
   const z = g?.zeitzone || browserZone;
   const start = utcZuLokal(raum?.naechster_termin || g?.start || naechsteHalbeStunde(), z);
   const bis = g?.bis ? utcZuLokal(g.bis, z).datum : '';
-  const titel = persoenlich ? t('konto.persoenlichEinstellungen') : raum ? t('konto.bearbeitenTitel') : t('konto.planenTitel');
+  const titel = persoenlich ? t('konto.persoenlichEinstellungen') : raum ? t('konto.bearbeitenTitel')
+    : ve ? t('vorlage.planenTitel', { name: vorlage.name }) : t('konto.planenTitel');
   const { inhalt, schliessen } = blatt(titel);
   const dauer = g?.dauer_min || 60;
   const dauerWerte = [15, 30, 45, 60, 90, 120, 180, 240, 480];
@@ -159,7 +164,7 @@ function planenDialog(raum = null, { persoenlich = false } = {}) {
   const statusEl = h('div', { class: 'status', role: 'status', hidden: true });
   const f = h('form', { class: 'formular', novalidate: true },
     persoenlich ? null : h('label', { class: 'feld' }, h('span', {}, t('konto.feldTitel')),
-      h('input', { name: 'titel', required: true, maxlength: '120', value: raum?.titel || '', placeholder: t('konto.titelBeispiel') })),
+      h('input', { name: 'titel', required: true, maxlength: '120', value: raum?.titel || ve?.titel || '', placeholder: t('konto.titelBeispiel') })),
     persoenlich ? null : h('div', { class: 'zwei' },
       h('label', { class: 'feld' }, h('span', {}, t('konto.feldDatum')), h('input', { name: 'datum', type: 'date', required: true, value: start.datum })),
       h('label', { class: 'feld' }, h('span', {}, t('konto.feldUhrzeit')), h('input', { name: 'zeit', type: 'time', required: true, step: '300', value: start.zeit }))),
@@ -182,8 +187,8 @@ function planenDialog(raum = null, { persoenlich = false } = {}) {
         knopf(t('konto.passcodeErzeugen'), { klasse: 'btn klein', onclick: () => { f.passcode.value = passcodeVorschlag(); } })),
       h('small', {}, t('konto.passcodeHinweis'))),
     raum?.passcode_noetig ? schalter('passcode_weg', t('konto.passcodeEntfernen'), '', false) : null,
-    schalter('warteraum', t('konto.feldWarteraum'), t('konto.warteraumHinweis'), raum ? !!raum.warteraum : false),
-    schalter('chat_speichern', t('konto.feldChatSpeichern'), t('konto.chatSpeichernHinweis'), !!raum?.chat_speichern),
+    schalter('warteraum', t('konto.feldWarteraum'), t('konto.warteraumHinweis'), raum ? !!raum.warteraum : !!ve?.warteraum),
+    schalter('chat_speichern', t('konto.feldChatSpeichern'), t('konto.chatSpeichernHinweis'), raum ? !!raum.chat_speichern : !!ve?.chat_speichern),
     statusEl,
     h('div', { class: 'knoepfe' },
       h('button', { type: 'button', class: 'btn', onclick: () => schliessen() }, t('allg.abbrechen')),
@@ -193,6 +198,7 @@ function planenDialog(raum = null, { persoenlich = false } = {}) {
   const bisFeld = f.querySelector('[data-bis]');
   const wdh = () => { if (bisFeld) bisFeld.hidden = f.wiederholung.value === 'keine'; };
   f.wiederholung?.addEventListener('change', wdh); wdh();
+  if (ve?.passcode) f.passcode.value = passcodeVorschlag();
   (f.titel || f.passcode).focus();
 
   f.addEventListener('submit', (e) => {
@@ -217,8 +223,9 @@ function planenDialog(raum = null, { persoenlich = false } = {}) {
     beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
       const r = raum
         ? await api(`/api/raeume/${raum.code}`, { methode: 'PATCH', json: body })
-        : await api('/api/raeume', { methode: 'POST', json: body });
+        : await api(ve ? `/api/vorlagen/${vorlage.id}/raum` : '/api/raeume', { methode: 'POST', json: body });
       schliessen();
+      if (ve && r.passcode) passcodeZeigen(r.raum, r.passcode);
       toast(raum ? t('konto.gespeichert') : t('konto.geplant'), 'ok', raum ? {} : { aktion: { text: t('konto.einladen'), fn: () => einladenDialog(r.raum) } });
       await meetingsLaden();
     }, statusEl);
@@ -463,6 +470,7 @@ $('#planen-knopf').addEventListener('click', () => planenDialog());
   if (!ich) { location.replace(`/?weiter=${encodeURIComponent('/konto' + location.hash)}`); return; }
   kopfZeigen();
   kalenderAboEinrichten();
+  vorlagenEinrichten({ planen: (vorlage) => planenDialog(null, { vorlage }) });
   const ziel = location.hash.slice(1);
   reiter(ziel === 'planen' ? 'meetings' : ziel);
   try { await meetingsLaden(); } catch (e) { toast(e.message, 'err'); }

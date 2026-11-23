@@ -78,6 +78,22 @@ with sync_playwright() as p:
         if feed.status != 200 or 'SUMMARY:Wochenbesprechung' not in feed.text(): fehler.append(f'Kalender-Abo liefert nichts ({feed.status})')
         hp.screenshot(path=OUT + '04c-kalender-abo.png')
         hp.click('#tab-meetings')
+        # Vorlage anlegen und daraus planen
+        hp.click('#vorlage-neu')
+        hp.wait_for_selector('dialog [name=name]')
+        hp.fill('dialog [name=name]', 'Sprechstunde')
+        hp.fill('dialog [name=titel]', 'Offene Sprechstunde')
+        hp.click('dialog label.schalter:has([name=stumm_beitritt])')
+        hp.click('dialog label.schalter:has([name=recht_bildschirm])')
+        hp.screenshot(path=OUT + '04d-vorlage.png')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('#liste-vorlagen li[data-vorlage]')
+        hp.click('#liste-vorlagen li[data-vorlage] .aktionen button:has-text("Meeting planen")')
+        hp.wait_for_selector('dialog [name=titel]')
+        if hp.input_value('dialog [name=titel]') != 'Offene Sprechstunde': fehler.append('Vorlage füllt den Titel nicht vor')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('#liste-geplant li .name:has-text("Offene Sprechstunde")')
+        hp.screenshot(path=OUT + '04e-aus-vorlage.png', full_page=True)
         # Sofort-Meeting mit Warteraum
         r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Testmeeting', warteraum:true})})).json())""")
         code = r['raum']['code']

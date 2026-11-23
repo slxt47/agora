@@ -12,6 +12,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Warteraum mit Zulassen und Ablehnen, Meeting sperren
   - Planen mit Zeitzone, auch täglich oder wöchentlich wiederkehrend
   - persönlicher Dauer-Raum
+  - Vorlagen: Titel, Dauer, Passcode an/aus, Warteraum, Chat speichern, Beschreibung, Standard-Rechte und „alle stumm beim Beitritt“
+    speichern und daraus sofort starten oder planen
   - Einladung per E-Mail mit `.ics`
   - Kalender ohne OAuth: „Zu Google Kalender“, „Zu Outlook/Office 365“, „Zu Outlook.com“ (mit Join-Link, Google auch mit Wiederholung) und `.ics`;
     privates Kalender-Abo (iCal-Feed mit geheimem Link, neu erzeugbar) für Apple, Google und Outlook

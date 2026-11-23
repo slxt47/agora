@@ -23,6 +23,7 @@ def zustellbar(e):
     return bool(MAIL_RE.match(e)) and (TEST or not RESERVIERT_RE.search(e))   # Tests nutzen example.org
 FARBE_RE = re.compile(r'^#[0-9a-f]{6}$')
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
+EXPORT = []                   # f(benutzer) → dict, wird in den Datenexport übernommen
 BESTAETIGEN_S = 48 * 3600
 PASSWORT_S = 3600
 
@@ -273,6 +274,8 @@ def export(req: Request):
         'protokoll': [{'zeit': iso(p['zeit']), 'raum': p['raum_code'], 'ereignis': p['ereignis']} for p in c.execute(
             'SELECT * FROM protokoll WHERE benutzer_id = ? ORDER BY zeit', (b['id'],)).fetchall()],
     }
+    for f in EXPORT:          # Ergänzungen anderer Module (Vorlagen, Erinnerungen, Verlauf …)
+        daten |= f(b)
     return Response(json.dumps(daten, ensure_ascii=False, indent=2), media_type='application/json',
                     headers={'Content-Disposition': 'attachment; filename="agora-export.json"'})
 

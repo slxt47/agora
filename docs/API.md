@@ -197,3 +197,21 @@ Kalender-Abo (privater iCal-Feed, abonnierbar in Apple/Google/Outlook):
 `abo` = `{aktiv, url|null, webcal|null, erstellt|null, abgerufen|null}`. Das Token wird per HMAC aus `AGORA_GEHEIM` und einem
 zufälligen Salz abgeleitet und nur als Hash gespeichert (ändert sich `AGORA_GEHEIM`, ändern sich alle Abo-Links).
 
+## Meeting-Vorlagen (angemeldet)
+`vorlage` = `{id, name, einstellungen, erstellt, geaendert}`, `einstellungen` = `{titel, dauer_min (5–1440), passcode (bool: jedes
+Meeting bekommt einen zufälligen Passcode), warteraum, chat_speichern, beschreibung (≤ 2000), rechte:{chat, bildschirm, selbst_unmute,
+umbenennen, mehrfach_freigabe}, stumm_beitritt}` (fehlende Felder = Standard). Höchstens 20 Vorlagen je Konto (409).
+
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `/api/vorlagen` | – | `{vorlagen:[vorlage]}` |
+| POST `/api/vorlagen` | `{name (≤ 80), einstellungen}` oder `{name, aus_raum: code}` (eigener Raum; Passcode nur als an/aus) | `{vorlage}` |
+| PUT `/api/vorlagen/{id}` | `{name?, einstellungen?}` | `{vorlage}` |
+| DELETE `/api/vorlagen/{id}` | – | `{ok:true}` |
+| POST `/api/vorlagen/{id}/raum` | wie POST `/api/raeume` (`titel?, passcode?, warteraum?, chat_speichern?, geplant?`) – überschreibt die Vorlage; `geplant.dauer_min`/`beschreibung` kommen sonst aus der Vorlage | `{raum, passcode}` – `passcode` = vom Server erzeugter (nur hier einmal sichtbar) bzw. mitgeschickter Passcode, sonst `null` |
+
+Ein Raum aus einer Vorlage startet mit deren Rechten und setzt sie nach jedem Meeting-Ende darauf zurück (Änderungen im Meeting
+gelten nur für dieses Meeting). `zugang.stumm_beitritt` (bool, nie für den Host): Der Client tritt mit stummem Mikrofon bei und
+behandelt das wie „vom Host stummgeschaltet“ (bei Recht `selbst_unmute` aus also erst nach Freigabe entstummbar). Durchgesetzt
+wird das im Client (Hinweis im Zugang); der Server schaltet nicht selbst stumm.
+

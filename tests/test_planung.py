@@ -122,3 +122,78 @@ def test_ics_bleibt_gueltig():
                         'Europe/Vienna', 'woechentlich', 1910000000, 1890000000)
     bloecke_ok(text)
     assert 'RRULE:FREQ=WEEKLY;UNTIL=' in text and 'METHOD:PUBLISH' in text
+
+
+# ---------------------------------------------------------------- Vorlagen
+def test_vorlagen_anlegen_pruefen_aendern_loeschen():
+    c, _e, _p = konto()
+    assert c.get('/api/vorlagen').json() == {'vorlagen': []}
+    v = c.post('/api/vorlagen', json={'name': 'Kurz-Standup', 'einstellungen': {
+        'titel': 'Standup', 'dauer_min': 15, 'passcode': True, 'warteraum': True, 'beschreibung': 'Was gestern, was heute?',
+        'rechte': {'bildschirm': False, 'selbst_unmute': False}, 'stumm_beitritt': True}}).json()['vorlage']
+    e = v['einstellungen']
+    assert v['name'] == 'Kurz-Standup' and e['dauer_min'] == 15 and e['passcode'] and e['warteraum'] and not e['chat_speichern']
+    assert e['rechte'] == {'chat': True, 'bildschirm': False, 'selbst_unmute': False, 'umbenennen': True, 'mehrfach_freigabe': False}
+    for falsch in ({'dauer_min': 2}, {'rechte': {'gibts': True}}, {'rechte': {'chat': 'ja'}}, {'warteraum': 1}, []):
+        assert c.post('/api/vorlagen', json={'name': 'X', 'einstellungen': falsch}).status_code == 400, falsch
+    assert c.post('/api/vorlagen', json={'name': ' ', 'einstellungen': {}}).status_code == 400
+    neu = c.put(f'/api/vorlagen/{v["id"]}', json={'name': 'Standup', 'einstellungen': {'dauer_min': 20}}).json()['vorlage']
+    assert neu['name'] == 'Standup' and neu['einstellungen']['dauer_min'] == 20 and neu['einstellungen']['passcode'] is False
+    andere, _e2, _p2 = konto()
+    assert andere.put(f'/api/vorlagen/{v["id"]}', json={'name': 'Fremd'}).status_code == 404
+    assert andere.request('DELETE', f'/api/vorlagen/{v["id"]}').status_code == 404
+    assert andere.post(f'/api/vorlagen/{v["id"]}/raum', json={}).status_code == 404
+    assert neu_client().get('/api/vorlagen').status_code == 401
+    # Aus bestehendem Raum übernehmen (Passcode nur an/aus), fremder Raum verboten
+    r = raum(c, titel='Planung', passcode='abcd1234', chat_speichern=True, geplant={'start': '2030-01-01T10:00:00Z', 'dauer_min': 90})
+    aus = c.post('/api/vorlagen', json={'name': 'Wie Planung', 'aus_raum': r['code']}).json()['vorlage']['einstellungen']
+    assert aus['titel'] == 'Planung' and aus['dauer_min'] == 90 and aus['passcode'] is True and aus['chat_speichern'] is True
+    assert 'abcd1234' not in str(aus)
+    assert andere.post('/api/vorlagen', json={'name': 'Klau', 'aus_raum': r['code']}).status_code == 403
+    # Export enthält die Vorlagen; Grenze 20
+    assert {x['name'] for x in c.get('/api/konto/export').json()['vorlagen']} == {'Standup', 'Wie Planung'}
+    for i in range(18):
+        c.post('/api/vorlagen', json={'name': f'V{i}', 'einstellungen': {}})
+    assert c.post('/api/vorlagen', json={'name': 'Zu viel', 'einstellungen': {}}).status_code == 409
+    assert c.request('DELETE', f'/api/vorlagen/{v["id"]}').json() == {'ok': True}
+    assert len(c.get('/api/vorlagen').json()['vorlagen']) == 19
+
+
+def test_meeting_aus_vorlage_rechte_und_stumm_beitritt():
+    c, _e, _p = konto(name='Vorlagen Host')
+    v = c.post('/api/vorlagen', json={'name': 'Vortrag', 'einstellungen': {
+        'titel': 'Vortrag', 'dauer_min': 45, 'passcode': True, 'warteraum': False, 'chat_speichern': True, 'beschreibung': 'Folien',
+        'rechte': {'bildschirm': False, 'chat': False, 'selbst_unmute': False}, 'stumm_beitritt': True}}).json()['vorlage']
+    # Sofort-Meeting: Passcode wird erzeugt und einmal zurückgegeben
+    a = c.post(f'/api/vorlagen/{v["id"]}/raum', json={}).json()
+    r, pc = a['raum'], a['passcode']
+    assert r['titel'] == 'Vortrag' and r['passcode_noetig'] and r['chat_speichern'] and r['geplant'] is None and len(pc) == 8
+    code = r['code']
+    hz = zugang(c, code)
+    assert hz['stumm_beitritt'] is False                            # Host nicht
+    g = neu_client()
+    assert beitreten(g, code, name='Gast').status_code == 403      # Passcode nötig
+    gz = zugang(g, code, name='Gast', passcode=pc)
+    assert gz['stumm_beitritt'] is True
+    zu = g.get(f'/api/raeume/{code}/zustand', headers=T(gz)).json()
+    assert zu['rechte']['bildschirm'] is False and zu['rechte']['chat'] is False and zu['rechte']['selbst_unmute'] is False
+    import jwt
+    quellen = jwt.decode(gz['token'], options={'verify_signature': False})['video']['canPublishSources']
+    assert 'screen_share' not in quellen and 'microphone' in quellen
+    # Host ändert Rechte im Meeting → nach dem Ende wieder Vorgaben der Vorlage
+    steuern(c, code, hz, aktion='rechte', chat=True, bildschirm=True)
+    assert g.get(f'/api/raeume/{code}/zustand', headers=T(gz)).json()['rechte']['chat'] is True
+    steuern(c, code, hz, aktion='beenden')
+    hz2 = zugang(c, code)
+    assert c.get(f'/api/raeume/{code}/zustand', headers=T(hz2)).json()['rechte']['chat'] is False
+    # Geplant aus Vorlage: Dauer/Beschreibung aus der Vorlage, Body überschreibt Titel und Passcode
+    b = c.post(f'/api/vorlagen/{v["id"]}/raum', json={'titel': 'Vortrag Mai', 'passcode': 'eigen123',
+                                                      'geplant': {'start': '2030-05-01T08:00:00Z'}}).json()
+    g2 = b['raum']['geplant']
+    assert b['raum']['titel'] == 'Vortrag Mai' and g2['dauer_min'] == 45 and g2['beschreibung'] == 'Folien' and b['passcode'] == 'eigen123'
+    assert b['raum']['kalender'] is not None
+    assert c.post(f'/api/vorlagen/{v["id"]}/raum', json={'geplant': {'start': 'morgen'}}).status_code == 400
+    # Ohne Vorlage: kein stumm_beitritt
+    r3 = raum(c)
+    zugang(c, r3['code'])
+    assert zugang(neu_client(), r3['code'], name='X')['stumm_beitritt'] is False

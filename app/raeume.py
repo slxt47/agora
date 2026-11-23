@@ -270,7 +270,8 @@ async def zugang_erstellen(r, name, benutzer_id, ip):
     c.execute('UPDATE raeume SET letzte_aktivitaet = ? WHERE id = ?', (jetzt(), r['id']))
     await lk.raum_anlegen(r['code'], meta(r), MAX_TEILNEHMER)
     return {'token': lk.token(r['code'], identity, name, rolle, farbe, rechte(r)), 'url': lk_url(), 'identity': identity,
-            'name': name, 'rolle': rolle, 'teilnahme': geheim}
+            'name': name, 'rolle': rolle, 'teilnahme': geheim,
+            'stumm_beitritt': bool(r['stumm_beitritt']) and rolle != 'host'}      # Vorlage: stumm beitreten (Client-Hinweis)
 
 
 def lk_url():

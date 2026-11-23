@@ -178,6 +178,20 @@ SCHEMA = [
       abgerufen INTEGER                -- letzter Abruf (Anzeige im Profil), keine IP
     );
     """,
+    # ==== Version 5 (Meeting-Vorlagen) – eigener Block, beim Zusammenführen ggf. umnummerieren ====
+    """
+    CREATE TABLE vorlagen (
+      id INTEGER PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      einstellungen TEXT NOT NULL,     -- JSON: titel, dauer_min, passcode (an/aus), warteraum, chat_speichern, beschreibung, rechte, stumm_beitritt
+      erstellt INTEGER NOT NULL,
+      geaendert INTEGER NOT NULL
+    );
+    CREATE INDEX vorlagen_benutzer ON vorlagen(benutzer_id);
+    ALTER TABLE raeume ADD COLUMN rechte_standard TEXT;                        -- JSON; beim Meeting-Ende rechte := rechte_standard
+    ALTER TABLE raeume ADD COLUMN stumm_beitritt INTEGER NOT NULL DEFAULT 0;   -- alle außer Host treten stumm bei
+    """,
 ]
 
 

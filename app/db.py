@@ -121,6 +121,31 @@ SCHEMA = [
       zeit INTEGER NOT NULL, benutzer_id INTEGER, raum_code TEXT, ereignis TEXT NOT NULL
     );
     """,
+    # Version 2: Umfragen (je Meeting; mit dem Meeting gelöscht, außer der Raum hat chat_speichern)
+    """
+    CREATE TABLE umfragen (
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      frage TEXT NOT NULL,
+      optionen TEXT NOT NULL,          -- JSON-Liste der Antworttexte (2–10)
+      mehrfach INTEGER NOT NULL DEFAULT 0,
+      anonym INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'entwurf',   -- entwurf | laeuft | beendet
+      geteilt INTEGER NOT NULL DEFAULT 0,       -- Ergebnis für alle sichtbar
+      von TEXT NOT NULL, von_name TEXT NOT NULL,
+      erstellt INTEGER NOT NULL, gestartet INTEGER, beendet INTEGER
+    );
+    CREATE INDEX umfragen_raum ON umfragen(raum_id, sitzung);
+    CREATE TABLE stimmen (             -- genau eine Stimme je Teilnahme (identity)
+      umfrage_id INTEGER NOT NULL REFERENCES umfragen(id) ON DELETE CASCADE,
+      identity TEXT NOT NULL,
+      name TEXT NOT NULL,
+      auswahl TEXT NOT NULL,           -- JSON-Liste der gewählten Indizes
+      zeit INTEGER NOT NULL,
+      PRIMARY KEY (umfrage_id, identity)
+    );
+    """,
 ]
 
 

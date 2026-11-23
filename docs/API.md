@@ -89,6 +89,28 @@ GET `/api/raeume/{code}/chat` → `{nachrichten:[nachricht]}` (nur die für mich
 `nachricht` = `{id, von, von_name, an, an_name, text, zeit (ISO)}`. 403 wenn Recht `chat` aus und Rolle nicht host/cohost.
 Chat wird beim Beenden gelöscht, außer Besitzer hat `chat_speichern` (Raum-Einstellung) an → dann im Konto unter dem Raum abrufbar: GET `/api/raeume/{code}/verlauf` (Besitzer) → `{nachrichten:[nachricht + sitzung]}` (öffentliche + eigene private Nachrichten).
 
+## Umfragen (X-Teilnahme)
+`umfrage` = `{id, frage, optionen:[text], mehrfach, anonym, status: "entwurf"|"laeuft"|"beendet", geteilt, von_name, erstellt, gestartet, beendet,
+ergebnis: null | {stimmen (Zahl der Abstimmenden), zaehler:[n je Antwort], namen?:[[name] je Antwort]}, meine_auswahl?: null | [index]}`.
+`ergebnis` bekommen Host/Co-Host immer (live), alle anderen erst, wenn `geteilt`. `namen` nur für Host/Co-Host und nur bei `anonym:false`
+– geteilte Ergebnisse zeigen nie Namen. `meine_auswahl` steht in Antworten an die Person selbst (nicht in Ereignissen an alle).
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| GET `/api/raeume/{code}/umfragen` | alle | – | `{umfragen:[umfrage]}` (Entwürfe nur für Host/Co-Host) |
+| POST `/api/raeume/{code}/umfragen` | host/cohost | `{frage (≤ 300), optionen:[2–10 Texte ≤ 200, verschieden], mehrfach?: false, anonym?: true}` | `{umfrage}` (Entwurf) |
+| POST `/api/raeume/{code}/umfragen/{id}/starten` | host/cohost | – | `{umfrage}`; 409 wenn nicht Entwurf |
+| POST `/api/raeume/{code}/umfragen/{id}/abstimmen` | alle | `{auswahl:[index]}` (Einfachwahl genau 1) | `{umfrage}`; 409 `Du hast schon abgestimmt.` bzw. wenn nicht laufend |
+| POST `/api/raeume/{code}/umfragen/{id}/beenden` | host/cohost | – | `{umfrage}`; 409 wenn nicht laufend |
+| POST `/api/raeume/{code}/umfragen/{id}/teilen` | host/cohost | – | `{umfrage}` – Ergebnis für alle; beendet eine laufende Umfrage |
+| DELETE `/api/raeume/{code}/umfragen/{id}` | host/cohost | – | `{ok:true}` |
+| GET `/api/raeume/{code}/umfragen/verlauf` | Besitzer (Cookie) | – | `{umfragen:[umfrage + sitzung]}` – nur bei `chat_speichern` |
+
+Eine Stimme je Teilnahme (identity), serverseitig über den Primärschlüssel erzwungen. Höchstens 50 Umfragen je Meeting.
+Umfragen werden mit dem Meeting gelöscht, außer der Raum hat `chat_speichern`.
+Ereignis (Topic `agora`): `{typ:"umfrage", aktion, umfrage}` – `aktion` `gestartet`/`beendet`/`geteilt` an alle (ohne Live-Ergebnis) und
+zusätzlich mit Ergebnis an Host/Co-Hosts; `angelegt` und `stimme` nur an Host/Co-Hosts; `geloescht` an alle (`umfrage` = `{id}`).
+
 ## Aufzeichnung (lokal im Browser des Hosts, dann Upload in die Bibliothek)
 POST `/api/raeume/{code}/aufnahme` (X-Teilnahme, host/cohost) `{aktiv:bool}` → setzt Indikator für alle (Metadaten + Ereignis).
 POST `/api/aufnahmen` (angemeldet) roher Body `video/webm` oder `video/mp4`, Header `X-Raum: <code>`, `X-Titel: <urlencoded>`, optional `X-Dauer: <sekunden>` → `{aufnahme}`. 413/415/507 bei zu groß/falschem Typ/Speicher voll. Max 500 MB/Datei, 5 GB/Konto.

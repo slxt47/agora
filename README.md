@@ -24,6 +24,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Hell und Dunkel, Tastenkürzel, für Handy, Tablet und Desktop
 - **Bildschirmfreigabe:** Bildschirm, Fenster oder Tab, mit Systemton, wo der Browser es kann. Standardmäßig nur eine Person gleichzeitig.
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
+- **Umfragen:** Host und Co-Hosts stellen Fragen mit 2–10 Antworten (Einfach- oder Mehrfachwahl, anonym oder namentlich), sehen das Ergebnis live und teilen es mit allen. Eine Stimme je Person, vom Server geprüft.
 - **Host-Kontrollen:**
   - Rollen Host, Co-Host, Teilnehmer und Gast
   - einzelne oder alle stummschalten, um Kamera bitten oder Kamera aus
@@ -57,7 +58,7 @@ docker compose up -d --build
 ## Tests
 
 ```sh
-docker build --target test -t agora:test . && docker run --rm agora:test        # 30 API-Tests
+docker build --target test -t agora:test . && docker run --rm agora:test        # API-Tests
 docker run --rm -v "$PWD/web:/web" -w /web node:22.23.5-alpine sh -c "npm ci --ignore-scripts && npm test"
 sh tests/e2e/lauf.sh       # Browser-E2E: echte LiveKit, zwei Browser mit Kamera-Attrappe
 ```

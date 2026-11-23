@@ -151,4 +151,22 @@ export const de = {
   'ende.doppeltTitel': 'In einem anderen Fenster beigetreten', 'ende.doppeltText': 'Du bist mit derselben Sitzung woanders beigetreten.',
   'ende.verbindungTitel': 'Verbindung verloren', 'ende.verbindungText': 'Die Verbindung ließ sich nicht wiederherstellen.',
   'ende.erneut': 'Erneut beitreten', 'ende.neuVerbinden': 'Neu verbinden', 'ende.zumKonto': 'Zum Konto',
+
+  // ---- Umfragen (web/src/raum/umfragen.js)
+  'umfrage.tab': 'Umfragen', 'umfrage.neu': 'Neue Umfrage', 'umfrage.leer': 'Noch keine Umfragen.', 'umfrage.leerMod': 'Noch keine Umfragen. Leg eine an – du startest sie, wenn es passt.',
+  'umfrage.frage': 'Frage', 'umfrage.fragePlatzhalter': 'z. B. Welcher Termin passt euch?', 'umfrage.antworten': 'Antworten', 'umfrage.antwortN': 'Antwort {n}',
+  'umfrage.antwortWeg': 'Antwort {n} entfernen', 'umfrage.antwortDazu': 'Antwort hinzufügen', 'umfrage.mehrfach': 'Mehrfachauswahl', 'umfrage.mehrfachHinweis': 'Teilnehmende dürfen mehrere Antworten wählen.',
+  'umfrage.anonym': 'Anonym', 'umfrage.anonymHinweis': 'Aus: Host und Co-Hosts sehen, wer was gewählt hat. Geteilte Ergebnisse zeigen nie Namen.',
+  'umfrage.entwurf': 'Als Entwurf speichern', 'umfrage.speichernStarten': 'Speichern und starten', 'umfrage.frageFehlt': 'Bitte eine Frage eingeben.',
+  'umfrage.zuWenig': 'Bitte mindestens zwei Antworten eingeben.', 'umfrage.zuViele': 'Höchstens zehn Antworten.', 'umfrage.doppelt': 'Jede Antwort darf nur einmal vorkommen.',
+  'umfrage.status.entwurf': 'Entwurf', 'umfrage.status.laeuft': 'Läuft', 'umfrage.status.beendet': 'Beendet', 'umfrage.geteilt': 'Ergebnis geteilt',
+  'umfrage.einfachKurz': 'Eine Antwort', 'umfrage.mehrfachKurz': 'Mehrere Antworten', 'umfrage.anonymKurz': 'anonym', 'umfrage.namentlichKurz': 'namentlich',
+  'umfrage.abstimmen': 'Abstimmen', 'umfrage.waehlen': 'Bitte eine Antwort wählen.', 'umfrage.abgestimmt': 'Danke, deine Stimme ist gezählt.',
+  'umfrage.deineWahl': 'deine Wahl', 'umfrage.wartenErgebnis': 'Du hast abgestimmt. Das Ergebnis siehst du, wenn der Host es teilt.',
+  'umfrage.vorbeiOhne': 'Die Umfrage ist beendet.', 'umfrage.stimmenN': '{n} Stimme(n)', 'umfrage.abgestimmtN': '{n} haben abgestimmt',
+  'umfrage.zeileLabel': '{text}: {n} Stimme(n), {p} %', 'umfrage.wer': 'Wer hat was gewählt?', 'umfrage.niemand': 'niemand',
+  'umfrage.starten': 'Starten', 'umfrage.beenden': 'Beenden', 'umfrage.teilen': 'Ergebnis teilen', 'umfrage.loeschen': 'Löschen',
+  'umfrage.loeschenTitel': 'Umfrage löschen?', 'umfrage.loeschenText': '„{frage}“ und alle Stimmen werden gelöscht.',
+  'umfrage.neuToast': 'Neue Umfrage: {frage}', 'umfrage.ergebnisToast': 'Ergebnis geteilt: {frage}', 'umfrage.ansehen': 'Ansehen',
+  'umfrage.offenN': '{n} offene Umfrage(n)', 'umfrage.ergebnis': 'Ergebnis', 'umfrage.selbst': 'Selbst abstimmen', 'umfrage.liste': 'Umfragen im Meeting',
 };

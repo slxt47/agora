@@ -1,0 +1,63 @@
+/* Agora – Umfragen in der Seitenleiste: Karten je Umfrage, Abstimmen, Ergebnisbalken im slxt-Verlauf. */
+.leiste-kopf .umschalter button { font-size: .8125rem; padding: 0 4px; }
+
+.umfragen-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.umfrage { display: grid; gap: 12px; padding: 14px; border-radius: 16px; background: var(--m-flaeche-2); border: 1px solid var(--m-linie); }
+.umfrage.laeuft { border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent) inset; }
+.umfrage-kopf { display: grid; gap: 6px; }
+.umfrage-kopf h3 { margin: 0; font: 700 1rem/1.3 var(--display); word-break: break-word; }
+.umfrage-kopf .zeile { gap: 6px; }
+.umfrage-art { color: var(--m-sec); font-size: .75rem; }
+.umfrage-hinweis { color: var(--m-sec); font-size: .875rem; }
+
+/* Abstimmen */
+.umfrage-form { display: grid; gap: 10px; }
+.umfrage-form fieldset { display: grid; gap: 6px; }
+.umfrage-option { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-radius: 12px; cursor: pointer;
+  background: var(--m-flaeche); border: 1px solid var(--m-linie); font-size: .9375rem; transition: border-color .15s, background .15s; }
+.umfrage-option:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.umfrage-option:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--m-flaeche)); }
+.umfrage-option:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.umfrage-option input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--accent); }
+.umfrage-option span { min-width: 0; word-break: break-word; }
+.umfrage-fehler { color: var(--err); font-size: .875rem; }
+.umfrage .knoepfe .btn, .umfrage-aktionen .btn { flex: 0 1 auto; min-height: 40px; padding: 0 16px; font-size: .875rem; }
+
+/* Ergebnis */
+.umfrage-ergebnis { display: grid; gap: 8px; }
+.umfrage-summe { color: var(--m-sec); font-size: .8125rem; }
+.umfrage-ergebnis ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.umfrage-ergebnis li { display: grid; gap: 4px; }
+.umfrage-zeile { display: flex; justify-content: space-between; gap: 10px; font-size: .9375rem; }
+.umfrage-text { min-width: 0; word-break: break-word; }
+.umfrage-mein { color: var(--accent); font-weight: 600; font-size: .8125rem; }
+.umfrage-zahl { flex: none; color: var(--m-sec); font-variant-numeric: tabular-nums; font-size: .875rem; }
+.umfrage-ergebnis li.vorne .umfrage-text, .umfrage-ergebnis li.vorne .umfrage-zahl { color: var(--m-text); font-weight: 700; }
+.umfrage-balken { height: 10px; border-radius: 99px; background: color-mix(in srgb, var(--m-text) 10%, transparent); overflow: hidden; }
+.umfrage-balken i { display: block; height: 100%; border-radius: inherit; background: var(--grad); opacity: .55;
+  transform-origin: left center; transform: scaleX(var(--anteil, 0)); transition: transform .5s var(--ease-out); }
+.umfrage-ergebnis li.vorne .umfrage-balken i { opacity: 1; }
+.umfrage-namen { color: var(--m-sec); font-size: .75rem; }
+.umfrage-eigene { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .9375rem; }
+.umfrage-eigene li { display: flex; gap: 8px; align-items: center; }
+.umfrage-eigene svg { width: 18px; height: 18px; color: var(--ok); }
+
+.umfrage-aktionen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 10px; border-top: 1px solid var(--m-linie); }
+.umfrage-aktionen .icon-btn { margin-left: auto; color: var(--m-sec); }
+.umfrage-aktionen .icon-btn:hover { color: var(--aus); }
+
+/* Moderation: Antworten im Entwurf, selbst abstimmen */
+.umfrage-vorschau { margin: 0; padding-left: 22px; display: grid; gap: 4px; color: var(--m-sec); font-size: .9375rem; }
+.umfrage-selbst summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-size: .875rem; font-weight: 600; color: var(--accent); }
+.umfrage-selbst[open] summary { margin-bottom: 6px; }
+
+/* Dialog „Neue Umfrage“ */
+.umfrage-legende { font-weight: 600; font-size: .9375rem; }
+.umfrage-antworten { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 8px; }
+.umfrage-antworten li { display: flex; gap: 6px; align-items: center; }
+.umfrage-antworten input { flex: 1; min-width: 0; min-height: 48px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--card-line);
+  background: var(--tile); color: var(--text); font: inherit; }
+.umfrage-antworten input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.umfrage-antworten .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) { .umfrage-balken i { transition: none; } }

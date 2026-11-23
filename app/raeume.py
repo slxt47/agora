@@ -28,6 +28,7 @@ LEER_S = 600                  # Meeting endet nach 10 min ohne Teilnehmer
 ANFRAGE_S = 1800              # Warteraum-Anfragen verfallen nach 30 min
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
 RANG = {'host': 3, 'cohost': 2, 'teilnehmer': 1, 'gast': 1}
+BEIM_ENDE = []                # Module (Umfragen, Breakout) hängen sich hier ein: f(raum) räumt beim Meeting-Ende auf
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -201,6 +202,8 @@ async def meeting_beenden(r, grund='host'):
     c.execute('DELETE FROM sperren WHERE raum_id = ?', (r['id'],))
     if not r['chat_speichern']:
         c.execute('DELETE FROM nachrichten WHERE raum_id = ?', (r['id'],))
+    for f in BEIM_ENDE:
+        f(r)
     c.execute('UPDATE raeume SET aktiv = 0, leer_seit = NULL, gesperrt = 0, aufnahme_von = NULL, beendet = ?, letzte_aktivitaet = ? '
               'WHERE id = ?', (1 if r['art'] == 'sofort' else 0, jetzt(), r['id']))
     db.protokollieren(f'Meeting beendet ({grund})', None, r['code'])

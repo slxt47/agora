@@ -14,6 +14,7 @@ import { Chat, Leute, EMOJIS } from './panels.js';
 import { menue, menueSchliessen } from './menue.js';
 import { Rekorder, aufnahmeAblegen, kannAufnehmen } from './aufnahme.js';
 import { geraeteMerken, geraeteFehler, VIDEO_AUFLOESUNG } from './lobby.js';
+import { Umfragen } from './umfragen.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -76,6 +77,7 @@ export class Meeting {
     this.ereignisse();
     this.chat = new Chat(this);
     this.leute = new Leute(this);
+    this.umfragen = new Umfragen(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.startZeit = Date.now();
@@ -97,6 +99,7 @@ export class Meeting {
     this.chat.empfaengerAktualisieren();
     this.chat.rechteAktualisieren();
     this.chat.laden();
+    this.umfragen.laden();
     this.buehne.sync();
     this.steuerAktualisieren();
     if (!this.room.canPlaybackAudio) this.bannerSetzen('audio', 'warn', t('meeting.tonBlockiert'), { text: t('meeting.tonEinschalten'), fn: () => this.room.startAudio().then(() => this.bannerSetzen('audio')) });
@@ -224,6 +227,7 @@ export class Meeting {
           this.rolle = d.rolle;
           if (war !== d.rolle) toast(t(`meeting.rolleNeu.${d.rolle}`), 'ok');
           if (this.istMod()) this.leute.warteraumLaden();
+          if (war !== d.rolle) this.umfragen.rolleGeaendert();
           this.chat.rechteAktualisieren();
           this.steuerAktualisieren();
         }
@@ -240,6 +244,7 @@ export class Meeting {
       case 'beendet': this.grund = 'beendet'; this.room.disconnect(); break;
       case 'entfernt': this.grund = 'entfernt'; break;
       case 'aufnahme': this.aufnahmeSetzen(d.aktiv ? { von_name: d.von_name } : null); break;
+      case 'umfrage': this.umfragen.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
         lp.setMicrophoneEnabled(false).catch(() => {});
@@ -308,6 +313,7 @@ export class Meeting {
     $('#leiste-zu').addEventListener('click', () => this.leisteSchliessen());
     $('#tab-chat').addEventListener('click', () => this.leisteOeffnen('chat'));
     $('#tab-leute').addEventListener('click', () => this.leisteOeffnen('leute'));
+    $('#tab-umfragen').addEventListener('click', () => this.leisteOeffnen('umfragen'));
 
     $('#s-mic').addEventListener('click', () => this.micUmschalten());
     $('#s-cam').addEventListener('click', () => this.kameraUmschalten());
@@ -604,18 +610,19 @@ export class Meeting {
   }
 
   // ---------------------------------------------------------------- Seitenleiste
-  leisteOeffnen(welche) {
+  leisteOeffnen(welche, fokus = true) {
     this.leisteOffen = welche;
     $('#seitenleiste').hidden = false;
-    $('#panel-chat').hidden = welche !== 'chat';
-    $('#panel-leute').hidden = welche !== 'leute';
-    $('#tab-chat').setAttribute('aria-selected', String(welche === 'chat'));
-    $('#tab-leute').setAttribute('aria-selected', String(welche === 'leute'));
+    for (const p of ['chat', 'leute', 'umfragen']) {
+      $(`#panel-${p}`).hidden = welche !== p;
+      $(`#tab-${p}`).setAttribute('aria-selected', String(welche === p));
+    }
     this.chat.zeigen(welche === 'chat');
     this.leute.zeigen(welche === 'leute');
+    this.umfragen.zeigen(welche === 'umfragen');
     this.steuerAktualisieren();
-    if (welche === 'chat') this.chat.feld.focus({ preventScroll: true });
-    else $('#tab-leute').focus({ preventScroll: true });
+    if (!fokus) { /* automatisch geöffnet (z. B. neue Umfrage) – Fokus bleibt, wo er ist */ } else if (welche === 'chat') this.chat.feld.focus({ preventScroll: true });
+    else $(`#tab-${welche}`).focus({ preventScroll: true });
     this.buehne.planen();
   }
 
@@ -624,6 +631,7 @@ export class Meeting {
     $('#seitenleiste').hidden = true;
     this.chat.zeigen(false);
     this.leute.zeigen(false);
+    this.umfragen.zeigen(false);
     this.steuerAktualisieren();
     this.buehne.planen();
   }
@@ -636,6 +644,7 @@ export class Meeting {
     menue(anker, [
       { text: this.hand ? t('steuer.handSenken') : t('steuer.handHeben'), symbol: 'hand', aktion: () => this.handUmschalten() },
       { text: t('steuer.reaktion'), symbol: 'smiley', aktion: () => this.reaktionWahl(anker) },
+      { text: t('umfrage.tab'), symbol: 'umfrage', aktion: () => this.leisteOeffnen('umfragen') },
       '-',
       this.istMod() ? { text: this.rekorder?.laeuft ? t('aufnahme.stoppen') : t('aufnahme.starten'), symbol: this.rekorder?.laeuft ? 'stopp' : 'aufnahme',
         deaktiviert: !aufnahmeMoeglich || (!!this.aufnahmeInfo && !this.rekorder?.laeuft), aktion: () => this.aufnahmeUmschalten() } : null,

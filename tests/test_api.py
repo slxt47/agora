@@ -724,3 +724,124 @@ def test_reservierte_mail_domains_erkannt():
         assert RESERVIERT_RE.search(e), e
     for e in ('a@slxt.org', 'a@gmail.com', 'a@example-firma.at', 'a@testfirma.de'):
         assert not RESERVIERT_RE.search(e), e
+
+
+# ---------------------------------------------------------------- Umfragen
+def umfrage_neu(c, code, z, **kw):
+    body = {'frage': 'Pizza oder Pasta?', 'optionen': ['Pizza', 'Pasta', 'Beides']} | kw
+    return c.post(f'/api/raeume/{code}/umfragen', json=body, headers=T(z))
+
+
+def test_umfrage_anlegen_rechte_und_pruefung():
+    host, code, hz, [(g1, z1)] = meeting(1)
+    assert umfrage_neu(g1, code, z1).status_code == 403
+    assert umfrage_neu(host, code, hz, optionen=['nur eine']).status_code == 400
+    assert umfrage_neu(host, code, hz, optionen=[str(i) for i in range(11)]).status_code == 400
+    assert umfrage_neu(host, code, hz, optionen=['A', '']).status_code == 400
+    assert umfrage_neu(host, code, hz, optionen=['A', 'a']).status_code == 400
+    assert umfrage_neu(host, code, hz, frage='').status_code == 400
+    assert umfrage_neu(host, code, hz, mehrfach='ja').status_code == 400
+    assert umfrage_neu(host, code, hz, optionen='A,B').status_code == 400
+    r = umfrage_neu(host, code, hz, anonym=False)
+    assert r.status_code == 200, r.text
+    u = r.json()['umfrage']
+    assert u['status'] == 'entwurf' and u['optionen'] == ['Pizza', 'Pasta', 'Beides'] and not u['mehrfach'] and not u['anonym']
+    assert u['ergebnis'] == {'stimmen': 0, 'zaehler': [0, 0, 0], 'namen': [[], [], []]} and u['von_name'] == 'Ada'
+    # Entwurf sieht nur die Moderation; Ereignis „angelegt“ nur an Host/Co-Hosts
+    assert ereignisse('umfrage')[-1]['an'] == [hz['identity']]
+    assert g1.get(f'/api/raeume/{code}/umfragen', headers=T(z1)).json() == {'umfragen': []}
+    assert len(host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json()['umfragen']) == 1
+    assert g1.post(f'/api/raeume/{code}/umfragen/{u["id"]}/abstimmen', json={'auswahl': [0]}, headers=T(z1)).status_code == 409
+    assert g1.post(f'/api/raeume/{code}/umfragen/{u["id"]}/starten', headers=T(z1)).status_code == 403
+    assert host.post(f'/api/raeume/{code}/umfragen/9999/starten', headers=T(hz)).status_code == 404
+
+
+def test_umfrage_abstimmen_live_beenden_teilen():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    u = umfrage_neu(host, code, hz, anonym=False).json()['umfrage']
+    url = f'/api/raeume/{code}/umfragen/{u["id"]}'
+    r = host.post(url + '/starten', headers=T(hz)).json()['umfrage']
+    assert r['status'] == 'laeuft' and r['gestartet'].endswith('Z')
+    alle = [e for e in ereignisse('umfrage') if e['an'] is None][-1]['daten']
+    assert alle['aktion'] == 'gestartet' and alle['umfrage']['ergebnis'] is None and alle['umfrage']['frage'] == 'Pizza oder Pasta?'
+    assert host.post(url + '/starten', headers=T(hz)).status_code == 409
+    # Gast sieht die laufende Umfrage, ohne Ergebnis
+    sicht = g1.get(f'/api/raeume/{code}/umfragen', headers=T(z1)).json()['umfragen'][0]
+    assert sicht['status'] == 'laeuft' and sicht['ergebnis'] is None and sicht['meine_auswahl'] is None
+    # Abstimmen: Prüfungen, genau einmal je Teilnahme
+    for falsch in ([], [3], [-1], [0, 1], ['0'], [True], 0, [0, 0]):
+        assert g1.post(url + '/abstimmen', json={'auswahl': falsch}, headers=T(z1)).status_code == 400, falsch
+    r = g1.post(url + '/abstimmen', json={'auswahl': [1]}, headers=T(z1))
+    assert r.status_code == 200 and r.json()['umfrage']['meine_auswahl'] == [1] and r.json()['umfrage']['ergebnis'] is None
+    assert g1.post(url + '/abstimmen', json={'auswahl': [0]}, headers=T(z1)).json()['fehler'] == 'Du hast schon abgestimmt.'
+    assert g1.post(url + '/abstimmen', json={'auswahl': [0]}, headers={'X-Teilnahme': 'falsch'}).status_code == 403
+    # Live-Ergebnis nur an Host/Co-Host (mit Namen, weil namentlich)
+    live = ereignisse('umfrage')[-1]
+    assert live['an'] == [hz['identity']] and live['daten']['aktion'] == 'stimme'
+    assert live['daten']['umfrage']['ergebnis'] == {'stimmen': 1, 'zaehler': [0, 1, 0], 'namen': [[], ['Gast 1'], []]}
+    g2.post(url + '/abstimmen', json={'auswahl': [1]}, headers=T(z2))
+    host.post(url + '/abstimmen', json={'auswahl': [0]}, headers=T(hz))
+    erg = host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json()['umfragen'][0]
+    assert erg['ergebnis']['zaehler'] == [1, 2, 0] and erg['meine_auswahl'] == [0]
+    # Beenden: Gäste sehen noch kein Ergebnis; danach keine Stimmen mehr
+    assert g1.post(url + '/beenden', headers=T(z1)).status_code == 403
+    assert host.post(url + '/beenden', headers=T(hz)).json()['umfrage']['status'] == 'beendet'
+    assert host.post(url + '/beenden', headers=T(hz)).status_code == 409
+    g3 = neu_client()
+    z3 = zugang(g3, code, name='Spät')
+    assert g3.post(url + '/abstimmen', json={'auswahl': [2]}, headers=T(z3)).status_code == 409
+    sicht = g2.get(f'/api/raeume/{code}/umfragen', headers=T(z2)).json()['umfragen'][0]
+    assert sicht['status'] == 'beendet' and sicht['ergebnis'] is None and sicht['meine_auswahl'] == [1]
+    # Teilen: alle sehen Zahlen, aber keine Namen
+    assert host.post(url + '/teilen', headers=T(hz)).status_code == 200
+    geteilt = [e for e in ereignisse('umfrage') if e['an'] is None][-1]['daten']
+    assert geteilt['aktion'] == 'geteilt' and geteilt['umfrage']['ergebnis'] == {'stimmen': 3, 'zaehler': [1, 2, 0]}
+    sicht = g3.get(f'/api/raeume/{code}/umfragen', headers=T(z3)).json()['umfragen'][0]
+    assert sicht['geteilt'] and sicht['ergebnis'] == {'stimmen': 3, 'zaehler': [1, 2, 0]}
+
+
+def test_umfrage_mehrfach_anonym_cohost_loeschen():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    steuern(host, code, hz, aktion='rolle', ziel=z1['identity'], rolle='cohost')
+    u = umfrage_neu(g1, code, z1, frage='Welche Tage?', optionen=['Mo', 'Di', 'Mi'], mehrfach=True).json()['umfrage']
+    assert u['anonym'] and u['mehrfach']
+    url = f'/api/raeume/{code}/umfragen/{u["id"]}'
+    g1.post(url + '/starten', headers=T(z1))
+    assert g2.post(url + '/abstimmen', json={'auswahl': [0, 2]}, headers=T(z2)).status_code == 200
+    erg = host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json()['umfragen'][0]['ergebnis']
+    assert erg == {'stimmen': 1, 'zaehler': [1, 0, 1]}                    # anonym → keine Namen, auch nicht für den Host
+    assert sorted(ereignisse('umfrage')[-1]['an']) == sorted([hz['identity'], z1['identity']])
+    # Teilen beendet eine laufende Umfrage gleich mit
+    assert host.post(url + '/teilen', headers=T(hz)).json()['umfrage']['status'] == 'beendet'
+    assert g2.delete(url, headers=T(z2)).status_code == 403
+    assert host.delete(url, headers=T(hz)).json() == {'ok': True}
+    assert ereignisse('umfrage')[-1]['daten'] == {'typ': 'umfrage', 'aktion': 'geloescht', 'umfrage': {'id': u['id']}}
+    assert host.get(f'/api/raeume/{code}/umfragen', headers=T(hz)).json() == {'umfragen': []}
+
+
+def test_umfragen_mit_meeting_geloescht_ausser_chat_speichern():
+    host, code, hz, _ = meeting(0)
+    u = umfrage_neu(host, code, hz).json()['umfrage']
+    host.post(f'/api/raeume/{code}/umfragen/{u["id"]}/starten', headers=T(hz))
+    steuern(host, code, hz, aktion='beenden')
+    assert db.verbindung().execute('SELECT COUNT(*) FROM umfragen u JOIN raeume r ON r.id = u.raum_id WHERE r.code = ?',
+                                   (code,)).fetchone()[0] == 0
+    # mit chat_speichern: bleibt, Besitzer sieht sie im Verlauf
+    r = raum(host, chat_speichern=True)
+    hz2 = zugang(host, r['code'])
+    u = umfrage_neu(host, r['code'], hz2).json()['umfrage']
+    host.post(f'/api/raeume/{r["code"]}/umfragen/{u["id"]}/starten', headers=T(hz2))
+    host.post(f'/api/raeume/{r["code"]}/umfragen/{u["id"]}/abstimmen', json={'auswahl': [2]}, headers=T(hz2))
+    umfrage_neu(host, r['code'], hz2, frage='Nur Entwurf')
+    steuern(host, r['code'], hz2, aktion='beenden')
+    v = host.get(f'/api/raeume/{r["code"]}/umfragen/verlauf').json()['umfragen']
+    assert [x['frage'] for x in v] == ['Pizza oder Pasta?'] and v[0]['ergebnis']['zaehler'] == [0, 0, 1] and v[0]['sitzung'] == 1
+    andere, _e, _p = konto()
+    assert andere.get(f'/api/raeume/{r["code"]}/umfragen/verlauf').status_code == 403
+    # Neues Meeting im selben Raum sieht die alten Umfragen nicht
+    hz3 = zugang(host, r['code'])
+    assert host.get(f'/api/raeume/{r["code"]}/umfragen', headers=T(hz3)).json() == {'umfragen': []}
+
+
+def test_schema_version_aktuell():
+    assert db.verbindung().execute('SELECT v FROM schema_version').fetchone()[0] == len(db.SCHEMA)

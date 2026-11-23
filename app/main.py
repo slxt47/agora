@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.staticfiles import StaticFiles
 
 from . import aufnahmen, db, konto, mail, meeting, raeume
+from . import umfragen
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -82,6 +83,7 @@ app.include_router(konto.router)
 app.include_router(raeume.router)
 app.include_router(meeting.router)
 app.include_router(aufnahmen.router)
+app.include_router(umfragen.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])

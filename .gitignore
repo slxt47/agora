@@ -9,3 +9,4 @@ __pycache__/
 .pytest_cache/
 livekit.env
 tests/e2e/bilder/
+.claude/

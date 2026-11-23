@@ -318,4 +318,21 @@ export const de = {
   'sicherheit.art.zwei_faktor_code_benutzt': 'Wiederherstellungscode benutzt', 'sicherheit.art.zwei_faktor_admin': 'Zwei-Faktor-Anmeldung vom Agora-Team zurückgesetzt',
   'sicherheit.art.gesperrt': 'Konto vom Agora-Team gesperrt', 'sicherheit.art.entsperrt': 'Konto vom Agora-Team entsperrt',
   // ---- Ende Block „Sicherheit“
+  // ==== Block Verbindungsqualität (web/src/raum/statistik.js) ====
+  'stat.titel': 'Verbindung', 'stat.misst': 'Wird gemessen … die ersten Werte kommen in wenigen Sekunden.',
+  'stat.bewertung.gut': 'Gut', 'stat.bewertung.mittel': 'Mittel', 'stat.bewertung.schlecht': 'Schlecht',
+  'stat.weg': 'Verbindungsweg', 'stat.kandidat.udp': 'UDP, direkt', 'stat.kandidat.tcp': 'TCP (Rückfall)', 'stat.kandidat.relay': 'Über Relay (TURN)',
+  'stat.kandidat.unbekannt': 'unbekannt', 'stat.rtt': 'Laufzeit (RTT)', 'stat.rttHinweis': 'Hin und zurück zum Server',
+  'stat.verlust': 'Paketverlust', 'stat.jitter': 'Jitter', 'stat.aus': 'Senden', 'stat.ein': 'Empfangen', 'stat.video': 'Dein Video', 'stat.keinVideo': 'Kamera aus',
+  'stat.fuss': 'Gemessen alle 10 Sekunden in deinem Browser.',
+  'stat.warnung': 'Deine Verbindung ist seit einer Weile schlecht – Bild und Ton können stocken.', 'stat.tippsKnopf': 'Tipps',
+  'stat.tippsTitel': 'Verbindung verbessern', 'stat.tippsText': 'Das hilft meistens:',
+  'stat.tipp.wlan': 'Näher an den WLAN-Router gehen oder ein Netzwerkkabel nutzen.',
+  'stat.tipp.andere': 'Downloads, Streams und Cloud-Sync auf diesem Gerät und im selben Netz pausieren.',
+  'stat.tipp.kamera': 'Kamera ausschalten oder den Datensparmodus nutzen – der Ton bleibt.',
+  'stat.tipp.teilen': 'Bildschirmfreigabe beenden, wenn sie gerade nicht gebraucht wird.',
+  'stat.tipp.neu': 'Hilft nichts: Meeting verlassen und neu beitreten.',
+  'stat.sparen': 'Datensparmodus einschalten',
+  'stat.leuteLabel': 'Verbindung {wert}: {rtt} ms, {verlust} % Verlust, {weg}',
+  // ==== Ende Block Verbindungsqualität ====
 };

@@ -216,6 +216,7 @@ export class Leute {
     return h('li', {},
       av,
       h('span', { class: 'wer' }, h('b', {}, m.name(p)), unter ? h('small', {}, unter) : null),
+      m.statistik?.marke(p),
       h('span', { class: 'zustand', role: 'img', 'aria-label': zustand },
         hand ? h('span', { class: 'hand', 'aria-hidden': 'true' }, '✋') : null,
         h('span', { class: mic ? '' : 'aus', html: icon(mic ? 'mic' : 'micAus') }),

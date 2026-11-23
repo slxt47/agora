@@ -179,6 +179,21 @@ Solange Räume offen sind, gehen alle Server-Ereignisse, Chat und Raum-Metadaten
 Stummschalten, Entfernen, Rollen/Umbenennen wirken in dem Raum, in dem die Person gerade ist. „Leer“ und „voll“ zählen alle Räume.
 Client: Ein Raumwechsel löst im Dokument `agora:raumwechsel` (`detail.room`) aus – z. B. für Video-Effekte, die den neuen Raum brauchen.
 
+## Verbindungsqualität (X-Teilnahme)
+Der Browser misst alle 10 s (`getStats` der LiveKit-PeerConnections) und meldet etwa alle 30 s eine Zusammenfassung.
+`werte` = `{rtt (ms 0–60000), verlust (% 0–100), jitter (ms 0–10000), ein?, aus? (kbit/s), kandidat?: "udp"|"tcp"|"relay", aufloesung?: "640x360", fps?}`
+– `rtt`, `verlust`, `jitter` nur zusammen. Bewertung (Server und Browser gleich): `schlecht` ab 5 % Verlust, 400 ms RTT oder 50 ms Jitter,
+`mittel` ab 2 % / 200 ms / 30 ms, sonst `gut`.
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| POST `/api/raeume/{code}/statistik` | alle | `werte` oder `{}` (nur anmelden) | `{ok:true, bewertung: null\|"gut"\|"mittel"\|"schlecht"}`; 12/min je Teilnahme |
+| GET `/api/raeume/{code}/statistik` | host/cohost | – | `{teilnehmer:{identity: werte + {bewertung, alter_s}}, meeting: schnitt\|null}` (nur Werte der letzten 90 s) |
+
+`schnitt` = `{proben, teilnehmer, rtt, verlust, jitter, ein, aus, rtt_max, verlust_max, schlecht_anteil, mittel_anteil, kandidaten:{udp, tcp, relay} (in %)}`.
+Gespeichert wird je Meeting nur die Summe (Tabelle `qualitaet`, ohne IPs und Namen); die letzten Werte je Teilnahme
+(`qualitaet_person`) werden beim Meeting-Ende gelöscht.
+
 ## Aufzeichnung (lokal im Browser des Hosts, dann Upload in die Bibliothek)
 POST `/api/raeume/{code}/aufnahme` (X-Teilnahme, host/cohost) `{aktiv:bool}` → setzt Indikator für alle (Metadaten + Ereignis).
 POST `/api/aufnahmen` (angemeldet) roher Body `video/webm` oder `video/mp4`, Header `X-Raum: <code>`, `X-Titel: <urlencoded>`, optional `X-Dauer: <sekunden>` → `{aufnahme}`. 413/415/507 bei zu groß/falschem Typ/Speicher voll. Max 500 MB/Datei, 5 GB/Konto.

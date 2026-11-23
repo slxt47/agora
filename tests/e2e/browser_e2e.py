@@ -169,6 +169,15 @@ with sync_playwright() as p:
         n_host = hp.locator('#buehne .kv').count(); n_gast = gp.locator('#buehne .kv').count()
         mitvideo = hp.locator('#buehne .kv.mit-video').count()
         print('Kacheln host/gast:', n_host, n_gast, 'mit Video (host):', mitvideo)
+        # Verbindungsqualität: Popover „Verbindung“ an der eigenen Kachel mit echten getStats-Werten
+        hp.click('#buehne .kv.spiegeln .kv-menue')
+        hp.click('.menue [role=menuitem] >> text=Verbindung')
+        hp.wait_for_selector('.menue .stat-popover .stat-liste', timeout=20000)
+        werte = hp.inner_text('.menue .stat-popover').replace('\n', ' | ')
+        print('Verbindung (Host):', werte)
+        if 'ms' not in werte or 'kbit/s' not in werte: fehler.append(f'Verbindungs-Popover ohne Werte: {werte}')
+        hp.screenshot(path=OUT + '12b-verbindung.png')
+        hp.keyboard.press('Escape')
         # Sprecheransicht + Mehr-Menü
         hp.keyboard.press('Escape'); hp.keyboard.press('g'); time.sleep(1)
         hp.screenshot(path=OUT + '13-sprecher.png')
@@ -204,6 +213,9 @@ with sync_playwright() as p:
             fehler.append(f"WASM-Header: {wasm.headers.get('content-type')} / {wasm.headers.get('cache-control')}")
         # Host: Gast stummschalten über Teilnehmerliste
         hp.click('#s-leute'); time.sleep(0.5)
+        # Host sieht die Verbindungsqualität je Person (Punkt aus den Server-Zusammenfassungen)
+        hp.wait_for_selector('#panel-leute .leute-liste li:nth-child(2) .stat-punkt', timeout=25000)
+        print('Qualität Gast (Host-Sicht):', hp.get_attribute('#panel-leute .leute-liste li:nth-child(2) .stat-punkt', 'aria-label'))
         hp.click('#panel-leute .leute-liste li:nth-child(2) .icon-btn')
         hp.screenshot(path=OUT + '15-aktionen.png')
         hp.click('.menue [role=menuitem] >> text=Stummschalten')

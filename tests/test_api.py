@@ -1039,3 +1039,49 @@ def test_breakout_mit_meeting_beendet():
     assert db.verbindung().execute('SELECT COUNT(*) FROM breakout b JOIN raeume r ON r.id = b.raum_id WHERE r.code = ?', (code,)).fetchone()[0] == 0
     hz2 = zugang(host, code)
     assert bo(host, code, hz2, '', 'get').json() == {'breakout': None}
+
+
+# ---------------------------------------------------------------- Verbindungsqualität (Statistik)
+def statistik(c, code, z, **kw):
+    return c.post(f'/api/raeume/{code}/statistik', json=kw, headers=T(z))
+
+
+def test_statistik_melden_bewerten_und_host_sicht():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    assert statistik(g1, code, z1).json() == {'ok': True, 'bewertung': None}            # nur anmelden, keine Werte
+    r = statistik(g1, code, z1, rtt=40, verlust=0.5, jitter=8, ein=900, aus=1200, kandidat='udp', aufloesung='640x360', fps=24)
+    assert r.json() == {'ok': True, 'bewertung': 'gut'}
+    assert statistik(g2, code, z2, rtt=250, verlust=1, jitter=10, kandidat='relay').json()['bewertung'] == 'mittel'
+    assert statistik(g2, code, z2, rtt=90, verlust=8, jitter=10, kandidat='tcp').json()['bewertung'] == 'schlecht'
+    # Prüfung der Werte
+    assert statistik(g1, code, z1, rtt=-1, verlust=0, jitter=0).status_code == 400
+    assert statistik(g1, code, z1, rtt=10, verlust=101, jitter=0).status_code == 400
+    assert statistik(g1, code, z1, rtt=10).status_code == 400                         # unvollständig
+    assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=0, kandidat='quic').status_code == 400
+    assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=0, aufloesung='<b>').status_code == 400
+    assert statistik(g1, code, z1, rtt=True, verlust=0, jitter=0).status_code == 400
+    assert g1.post(f'/api/raeume/{code}/statistik', json={}).status_code == 403          # ohne Teilnahme
+    # Nur Host/Co-Host sehen die Werte je Person
+    assert g1.get(f'/api/raeume/{code}/statistik', headers=T(z1)).status_code == 403
+    s = host.get(f'/api/raeume/{code}/statistik', headers=T(hz)).json()
+    assert set(s['teilnehmer']) == {z1['identity'], z2['identity']}
+    assert s['teilnehmer'][z2['identity']]['bewertung'] == 'schlecht' and s['teilnehmer'][z2['identity']]['kandidat'] == 'tcp'
+    assert s['teilnehmer'][z1['identity']]['aufloesung'] == '640x360'
+    m = s['meeting']
+    assert m['proben'] == 3 and m['teilnehmer'] == 2 and m['rtt'] == round((40 + 250 + 90) / 3) and m['verlust_max'] == 8
+    assert m['schlecht_anteil'] == 33 and m['kandidaten'] == {'udp': 33, 'tcp': 33, 'relay': 33}
+    # Keine IPs, keine Namen in der Tabelle
+    spalten = [x[1] for x in db.verbindung().execute('PRAGMA table_info(qualitaet)')]
+    assert not {'ip', 'name'} & set(spalten)
+
+
+def test_statistik_begrenzt_und_beim_ende_geloescht():
+    host, code, hz, [(g1, z1)] = meeting(1)
+    codes = [statistik(g1, code, z1, rtt=10, verlust=0, jitter=1).status_code for _ in range(13)]
+    assert codes[:12] == [200] * 12 and codes[12] == 429
+    steuern(host, code, hz, aktion='beenden')
+    c = db.verbindung()
+    rid = c.execute('SELECT id FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    assert c.execute('SELECT COUNT(*) FROM qualitaet_person WHERE raum_id = ?', (rid,)).fetchone()[0] == 0
+    assert c.execute('SELECT proben FROM qualitaet WHERE raum_id = ?', (rid,)).fetchone()[0] == 12   # Schnitt bleibt
+    assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=1).status_code == 403                    # Meeting vorbei

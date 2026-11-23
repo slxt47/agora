@@ -284,6 +284,32 @@ SCHEMA = [
     ALTER TABLE benutzer ADD COLUMN gesperrt INTEGER NOT NULL DEFAULT 0;
     """,
     # ======== Ende Block „Admin-Bereich“ ========
+    # ==== Block Verbindungsqualität (app/qualitaet.py) – eigene Version, bei Bedarf neu nummerieren ====
+    # Version 12: Verbindungsqualität je Meeting (aggregiert, ohne IPs) + letzte Werte je Teilnahme für den Host
+    """
+    CREATE TABLE qualitaet (           -- Summen über alle Zusammenfassungen eines Meetings (raum_id + sitzung)
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      proben INTEGER NOT NULL DEFAULT 0,        -- Zahl der Zusammenfassungen
+      teilnehmer INTEGER NOT NULL DEFAULT 0,    -- verschiedene Teilnahmen, die gemeldet haben
+      rtt_summe REAL NOT NULL DEFAULT 0, verlust_summe REAL NOT NULL DEFAULT 0, jitter_summe REAL NOT NULL DEFAULT 0,
+      ein_summe REAL NOT NULL DEFAULT 0, aus_summe REAL NOT NULL DEFAULT 0,      -- kbit/s
+      rtt_max REAL NOT NULL DEFAULT 0, verlust_max REAL NOT NULL DEFAULT 0,
+      schlecht INTEGER NOT NULL DEFAULT 0, mittel INTEGER NOT NULL DEFAULT 0,   -- Proben mit dieser Bewertung
+      udp INTEGER NOT NULL DEFAULT 0, tcp INTEGER NOT NULL DEFAULT 0, relay INTEGER NOT NULL DEFAULT 0,
+      beginn INTEGER NOT NULL, aktualisiert INTEGER NOT NULL,
+      PRIMARY KEY (raum_id, sitzung)
+    );
+    CREATE TABLE qualitaet_person (    -- letzte Werte je Teilnahme (Host-Ansicht); wird beim Meeting-Ende gelöscht
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      zeit INTEGER NOT NULL,
+      werte TEXT NOT NULL,             -- JSON {rtt, verlust, jitter, ein, aus, kandidat, aufloesung, fps, bewertung}
+      PRIMARY KEY (raum_id, identity)
+    );
+    """,
+    # ==== Ende Block Verbindungsqualität ====
 ]
 
 

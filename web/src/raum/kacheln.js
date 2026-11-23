@@ -94,6 +94,7 @@ class Kachel {
     if (this.gebunden && document.pictureInPictureEnabled && !(this.p.isLocal && this.quelle === 'kamera')) {
       eintraege.push({ text: t('kachel.bildImBild'), symbol: 'bildImBild', aktion: () => m.bildImBild(this.video) });
     }
+    if (this.p.isLocal && this.quelle === 'kamera') eintraege.push({ text: t('stat.titel'), symbol: 'welle', aktion: () => m.statistik?.zeigen(this.menueKnopf) });
     if (this.el.requestFullscreen) eintraege.push({ text: t('kachel.vollbild'), symbol: 'vollbild', aktion: () => this.el.requestFullscreen().catch(() => {}) });
     if (this.quelle === 'kamera') {
       const weitere = m.aktionenFuer(this.p);

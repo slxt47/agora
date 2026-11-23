@@ -20,6 +20,7 @@ import { Umfragen } from './umfragen.js';
 import { Breakout } from './breakout.js';
 import { dauerChatEinrichten, dauerChatGeleert } from './dauerchat.js';
 import { Melden } from './melden.js';
+import { Statistik } from './statistik.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -86,8 +87,10 @@ export class Meeting {
     this.umfragen = new Umfragen(this);
     this.breakout = new Breakout(this);
     this.melden = new Melden(this);
+    this.statistik = new Statistik(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
+    this.statistik.starten();
     this.startZeit = Date.now();
     this.uhr = setInterval(() => this.zeitAnzeigen(), 1000);
     this.metadatenLesen(this.room.metadata);
@@ -849,6 +852,7 @@ export class Meeting {
     this.beendet = true;
     clearInterval(this.uhr);
     clearInterval(this.pegelTimer);
+    this.statistik?.stoppen();
     menueSchliessen();
     let blob = null, dauer = 0;
     if (this.rekorder?.laeuft) {

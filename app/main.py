@@ -25,6 +25,7 @@ from . import erinnerungen  # Erinnerungs-Mails
 from . import verlauf       # Meeting-Verlauf
 from . import dauerchat     # Dauer-Chat im persönlichen Raum
 from . import zwei_faktor
+from . import melden
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -100,6 +101,7 @@ app.include_router(erinnerungen.router)
 app.include_router(verlauf.router)
 app.include_router(dauerchat.router)
 app.include_router(zwei_faktor.router)
+app.include_router(melden.router)
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])
@@ -136,6 +138,7 @@ def aufraeumen():
     raeume.aufraeumen(t)
     verlauf.aufraeumen(t)
     dauerchat.aufraeumen()
+    melden.aufraeumen(t)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

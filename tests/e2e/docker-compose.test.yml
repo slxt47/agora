@@ -17,6 +17,7 @@ services:
     environment:
       AGORA_TEST: "1"
       AGORA_GRENZEN_AUS: "1"
+      AGORA_ADMIN_MAILS: host@example.com
       AGORA_COOKIE: agora
       AGORA_COOKIE_SECURE: "0"
       AGORA_SEITE: http://127.0.0.1:${APP_PORT:-8111}

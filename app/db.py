@@ -254,6 +254,30 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Zwei-Faktor-Anmeldung“ ========
+    # ======== Block „Melden und Blockieren“ (beim Zusammenführen ggf. neu nummerieren) ========
+    # Version 5: Meldungen aus Meetings (an die Admins, 365 Tage nach Erledigung gelöscht) und blockierte Konten
+    """
+    CREATE TABLE meldungen (
+      id INTEGER PRIMARY KEY,
+      zeit INTEGER NOT NULL,
+      raum_code TEXT NOT NULL, raum_titel TEXT NOT NULL DEFAULT '', sitzung INTEGER NOT NULL,
+      von_name TEXT NOT NULL, von_identity TEXT NOT NULL, von_benutzer INTEGER,      -- ohne Fremdschlüssel: Meldung bleibt,
+      ziel_name TEXT NOT NULL, ziel_identity TEXT NOT NULL, ziel_benutzer INTEGER,   -- auch wenn ein Konto gelöscht wird
+      grund TEXT NOT NULL,             -- belaestigung | hass | unangemessen | stoerung | spam | sonstiges
+      text TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'offen',     -- offen | erledigt
+      notiz TEXT, bearbeitet_von INTEGER, bearbeitet INTEGER
+    );
+    CREATE INDEX meldungen_status ON meldungen(status, zeit);
+    CREATE TABLE blockiert (
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,    -- wer blockiert
+      blockiert_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,   -- wen
+      name TEXT NOT NULL,              -- Anzeigename beim Blockieren
+      zeit INTEGER NOT NULL,
+      PRIMARY KEY (benutzer_id, blockiert_id)
+    );
+    """,
+    # ======== Ende Block „Melden und Blockieren“ ========
 ]
 
 

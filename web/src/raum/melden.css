@@ -1,0 +1,7 @@
+/* Melden-Dialog im Meeting: Gründe als große Auswahlfelder (≥ 44 px), slxt-Design */
+.melden-gruende { display: grid; gap: 6px; }
+.melden-gruende label { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: 14px;
+  background: var(--tile); border: 1px solid var(--card-line); cursor: pointer; }
+.melden-gruende label:hover { background: var(--tile-hover); }
+.melden-gruende label:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.melden-gruende input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }

@@ -16,6 +16,7 @@ from .raeume import (RANG, meeting_beenden, meta, nachricht_json, neu_laden, rau
 
 router = APIRouter()
 NUR_HOST = {'rolle', 'host_uebertragen', 'beenden'}
+CHAT_PRUEFEN = []             # Module (Blockieren) hängen sich hier ein: f(absender, empfaenger) wirft 403 zum Ablehnen
 
 
 def teilnahme(req: Request, code):
@@ -226,6 +227,8 @@ async def chat_senden(code: str, req: Request):
     z = ziel_laden(r, d['an']) if d.get('an') else None
     if z and z['identity'] == t['identity']:
         fehler(400, 'Das geht nicht bei dir selbst.')
+    for f in CHAT_PRUEFEN:
+        f(t, z)
     c = db.verbindung()
     nid = c.execute('INSERT INTO nachrichten (raum_id, sitzung, von, von_name, von_benutzer, an, an_name, an_benutzer, text, zeit, dauer) '
                     'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',

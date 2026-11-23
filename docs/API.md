@@ -104,6 +104,20 @@ GET `/api/raeume/{code}/chat` → `{nachrichten:[nachricht]}` (nur die für mich
 `nachricht` = `{id, von, von_name, an, an_name, text, zeit (ISO)}`. 403 wenn Recht `chat` aus und Rolle nicht host/cohost.
 Chat wird beim Beenden gelöscht, außer Besitzer hat `chat_speichern` (Raum-Einstellung) an → dann im Konto unter dem Raum abrufbar: GET `/api/raeume/{code}/verlauf` (Besitzer) → `{nachrichten:[nachricht + sitzung]}` (öffentliche + eigene private Nachrichten).
 
+## Melden und Blockieren
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| POST `/api/raeume/{code}/melden` | X-Teilnahme (auch Gäste) | `{ziel (identity), grund, text? (≤ 1000)}` | `{ok:true}`; 409 schon gemeldet (je Person/Ziel/Meeting), 5/10 min |
+| POST `/api/raeume/{code}/blockieren` | X-Teilnahme + Cookie desselben Kontos | `{ziel}` (nur Personen mit Konto) | `{ok:true, name}` |
+| GET `/api/konto/blockiert` | angemeldet | – | `{blockiert:[{id, name, seit}]}` |
+| DELETE `/api/konto/blockiert/{id}` | angemeldet | – | `{ok:true}` |
+
+`grund`: `belaestigung` · `hass` · `unangemessen` · `stoerung` · `spam` · `sonstiges`. Eine Meldung geht per Mail an alle bestätigten
+Konten aus `AGORA_ADMIN_MAILS`; Host/Co-Hosts (außer Meldender und Gemeldeter) bekommen das Ereignis
+`{typ:"meldung", ziel, ziel_name, grund}` (Topic `agora`, ohne meldende Person).
+Blockiert A das Konto B: B bekommt beim Beitreten zu Räumen von A 403 `Du kannst diesem Meeting nicht beitreten.`, private
+Chat-Nachrichten von B an A 403 `Diese Person möchte keine privaten Nachrichten von dir.`
+
 ## Umfragen (X-Teilnahme)
 `umfrage` = `{id, frage, optionen:[text], mehrfach, anonym, status: "entwurf"|"laeuft"|"beendet", geteilt, von_name, erstellt, gestartet, beendet,
 ergebnis: null | {stimmen (Zahl der Abstimmenden), zaehler:[n je Antwort], namen?:[[name] je Antwort]}, meine_auswahl?: null | [index]}`.

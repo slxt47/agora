@@ -271,5 +271,20 @@ export const de = {
   'zweifaktor.anmeldenText': 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
   'zweifaktor.anmeldenWiederherstellung': 'Gib einen deiner Wiederherstellungscodes ein (z. B. abcde-fghjk). Jeder gilt nur einmal.',
   'zweifaktor.wenigeCodes': 'Nur noch {n} Wiederherstellungscode(s) übrig – erstelle im Konto neue.',
+  // ---- Melden und Blockieren (web/src/raum/melden.js, konto-sicherheit.js)
+  'melden.melden': 'Melden', 'melden.blockieren': 'Blockieren', 'melden.titel': '{name} melden',
+  'melden.text': 'Die Meldung geht an das Agora-Team. Der Host sieht nur, dass jemand gemeldet wurde – nicht von wem.',
+  'melden.grund': 'Grund', 'melden.details': 'Was ist passiert? (optional)', 'melden.detailsPlatzhalter': 'Kurz beschreiben, hilft beim Prüfen.',
+  'melden.senden': 'Meldung senden', 'melden.danke': 'Danke – die Meldung ist angekommen.',
+  'melden.schonGemeldet': 'Du hast {name} in diesem Meeting schon gemeldet.',
+  'melden.auchBlockieren': '{name} auch blockieren? Dann kann diese Person deine Meetings nicht mehr betreten und dir nicht privat schreiben.',
+  'melden.blockierenTitel': '{name} blockieren?', 'melden.blockierenText': 'Das Konto kann deine Meetings dann nicht mehr betreten und dir im Chat nicht mehr privat schreiben. Aufheben kannst du das im Konto unter Profil.',
+  'melden.blockiert': '{name} ist blockiert.',
+  'melden.hostHinweis': '{name} wurde gemeldet ({grund}). Das Agora-Team ist informiert.',
+  'melden.grund.belaestigung': 'Belästigung oder Mobbing', 'melden.grund.hass': 'Hassrede oder Diskriminierung',
+  'melden.grund.unangemessen': 'Unangemessene oder sexuelle Inhalte', 'melden.grund.stoerung': 'Stört das Meeting',
+  'melden.grund.spam': 'Spam oder Werbung', 'melden.grund.sonstiges': 'Sonstiges',
+  'blockiert.leer': 'Du hast niemanden blockiert.', 'blockiert.seit': 'blockiert seit {datum}', 'blockiert.aufheben': 'Aufheben',
+  'blockiert.aufgehoben': 'Blockierung aufgehoben.', 'blockiert.erklaerung': 'Blockierte Konten können deine Meetings nicht betreten und dir im Chat nicht privat schreiben. Blockieren geht im Meeting über das Menü einer Person.',
   // ---- Ende Block „Sicherheit“
 };

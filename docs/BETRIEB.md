@@ -24,6 +24,7 @@ Gibt es beim Hoster eine eigene Firewall, müssen die Ports dort auch frei sein.
 ## Geheimnisse (nicht im Repo, 0600)
 
 - `app.env`: `SMTP_*`, `AGORA_GEHEIM` (fest lassen: daraus werden die Schlüssel für TOTP-Geheimnisse und Wiederherstellungscodes abgeleitet – ändert er sich, kommen Konten mit Zwei-Faktor-Anmeldung nicht mehr herein, bis 2FA für sie zurückgesetzt wird: `UPDATE benutzer SET totp_an = 0, totp_geheim = NULL WHERE id = …`), `AGORA_SEITE`, `AGORA_LIVEKIT_URL` (`wss://HOST`), `LIVEKIT_API_HOST` (`http://127.0.0.1:7880`), `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+- `app.env` optional: `AGORA_ADMIN_MAILS` – Komma-Liste der E-Mail-Adressen der Admins (nur bestätigte Konten zählen). Sie bekommen Meldungen per Mail. Ohne die Variable gibt es keine Admins.
 - `livekit.env`: `LIVEKIT_KEYS=<key>: <secret>` und `NODE_IP=<öffentliche IP>`
 - `.env`: nur `TUNNEL_TOKEN` (von `scripts/cloudflare-einrichten.py`)
 
@@ -53,6 +54,7 @@ Prüfen: `curl -s http://127.0.0.1:8110/api/gesund`. `https://HOST/rtc/validate`
 - Erinnerungen: Einstellung im Profil, bis man sie ausschaltet (oder mit dem Konto). Adressen von Eingeladenen nur, wenn der Host „Erinnerung schicken“ ankreuzt – gelöscht nach dem Ende des Termins, zu dem eingeladen wurde (spätestens mit dem Meeting, Sicherheitsnetz 400 Tage). Versand-Merker (nur Hash aus Raum, Termin, Empfänger): 2 Tage.
 - Meeting-Vorlagen: bis der Besitzer sie löscht (oder mit dem Konto); enthalten keine Passcodes, nur „Passcode an/aus“. Im Datenexport enthalten.
 - Kalender-Abo: Nur wer es im Profil einschaltet. Gespeichert werden Salz, Hash des Links, Zeitpunkt des Einschaltens und des letzten Abrufs (keine IP). Weg beim Ausschalten, bei „Neuer Link“ (ersetzt) und mit dem Konto.
+- Meldungen: 365 Tage nach „erledigt“; blockierte Konten bis zum Aufheben oder Löschen eines der Konten
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 
 ## Updates

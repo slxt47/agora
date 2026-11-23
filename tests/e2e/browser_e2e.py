@@ -209,6 +209,21 @@ with sync_playwright() as p:
         hp.click('.menue [role=menuitem] >> text=Stummschalten')
         time.sleep(2)
         gp.screenshot(path=OUT + '16-gast-stumm.png')
+        # Melden: Gast meldet den Host über die Teilnehmerliste → gespeichert, Mail an Admin, Hinweis (hier niemand sonst)
+        gp.click('#s-leute'); time.sleep(0.5)
+        gp.click('#panel-leute .leute-liste li:nth-child(2) .icon-btn')
+        gp.click('.menue [role=menuitem] >> text=Melden')
+        gp.wait_for_selector('dialog .melden-gruende')
+        gp.click('dialog .melden-gruende label:has([value=stoerung])')
+        gp.fill('dialog [name=text]', 'E2E-Test: stört')
+        gp.screenshot(path=OUT + '16b-gast-melden.png')
+        gp.click('dialog button[type=submit]')
+        gp.wait_for_selector('.toast:has-text("Meldung ist angekommen")', timeout=10000)
+        mails = hp.request.get(B + '/api/test/posteingang').json()['mails']
+        if not any(m['an'] == 'host@example.com' and 'Meldung' in m['betreff'] and 'E2E-Test' in m['text'] for m in mails):
+            fehler.append('Meldung: keine Mail an den Admin')
+        gp.click('#leiste-zu')
+        print('Meldung abgegeben, Mail an Admin')
         # Umfrage: Host legt an und startet, Gast stimmt ab, Host sieht live und teilt das Ergebnis
         hp.click('#tab-umfragen')
         hp.click('#panel-umfragen .leute-fuss .btn.primary')

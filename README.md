@@ -44,6 +44,9 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Umfragen:** Host und Co-Hosts stellen Fragen mit 2–10 Antworten (Einfach- oder Mehrfachwahl, anonym oder namentlich), sehen das Ergebnis live und teilen es mit allen. Eine Stimme je Person, vom Server geprüft.
 - **Breakout-Räume:** 2–50 Räume, Zuteilung von Hand (ziehen oder auswählen) oder automatisch gleichmäßig, optionaler Timer. Alle wechseln automatisch, können „Hilfe rufen“ und (wenn erlaubt) selbst zurück. Der Host besucht jeden Raum, schickt Nachrichten an alle Räume und schließt sie mit 60-Sekunden-Countdown.
+- **Melden und Blockieren:** Jede Person im Meeting kann eine andere melden (Grund + optionaler Text); die Meldung geht an die
+  Admins (`AGORA_ADMIN_MAILS`), der Host sieht einen Hinweis (ohne den Namen der meldenden Person). Angemeldete blockieren
+  Konten: Blockierte betreten ihre Meetings nicht mehr und können ihnen nicht privat schreiben (Verwalten im Profil).
 - **Host-Kontrollen:**
   - Rollen Host, Co-Host, Teilnehmer und Gast
   - einzelne oder alle stummschalten, um Kamera bitten oder Kamera aus

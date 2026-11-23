@@ -19,6 +19,7 @@ import { mobilEinrichten } from './mobil.js';
 import { Umfragen } from './umfragen.js';
 import { Breakout } from './breakout.js';
 import { dauerChatEinrichten, dauerChatGeleert } from './dauerchat.js';
+import { Melden } from './melden.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -84,6 +85,7 @@ export class Meeting {
     this.leute = new Leute(this);
     this.umfragen = new Umfragen(this);
     this.breakout = new Breakout(this);
+    this.melden = new Melden(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.startZeit = Date.now();
@@ -260,6 +262,7 @@ export class Meeting {
       case 'chat_geleert': dauerChatGeleert(this); break;
       case 'umfrage': this.umfragen.ereignis(d); break;
       case 'breakout': case 'breakout_hilfe': case 'breakout_nachricht': this.breakout.ereignis(d); break;
+      case 'meldung': this.melden?.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
         lp.setMicrophoneEnabled(false).catch(() => {});
@@ -590,7 +593,8 @@ export class Meeting {
       e.push({ text: this.hand ? t('steuer.handSenken') : t('steuer.handHeben'), symbol: 'hand', aktion: () => this.handUmschalten() });
       return e;
     }
-    if (!this.darfModerieren(p)) return e;
+    const melden = this.melden?.eintraege(p) || [];      // Melden/Blockieren für alle anderen
+    if (!this.darfModerieren(p)) return [...e, ...melden];
     const name = this.name(p);
     if (p.isMicrophoneEnabled) e.push({ text: t('mod.stumm'), symbol: 'micAus', aktion: () => this.steuern('stumm', { ziel: p.identity }, t('mod.stummOk', { name })) });
     if (p.isCameraEnabled) e.push({ text: t('mod.kameraAus'), symbol: 'kameraAus', aktion: () => this.steuern('kamera_aus', { ziel: p.identity }) });
@@ -606,7 +610,7 @@ export class Meeting {
     e.push('-', { text: t('mod.entfernen'), symbol: 'tuer', gefahr: true, aktion: async () => {
       if (await bestaetigen(t('mod.entfernenTitel', { name }), t('mod.entfernenText'), { ja: t('mod.entfernen'), gefahr: true })) this.steuern('entfernen', { ziel: p.identity }, t('mod.entferntOk', { name }));
     } });
-    return e;
+    return melden.length ? [...e, '-', ...melden] : e;
   }
 
   umbenennenDialog(p) {

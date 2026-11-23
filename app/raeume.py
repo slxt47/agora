@@ -32,6 +32,7 @@ BEIM_ENDE = []                # Module (Umfragen, Breakout) hängen sich hier ei
 BEIM_START = []               # f(raum) nach dem Start eines neuen Meetings (Verlauf)
 BEIM_BEITRITT = []            # f(raum) bei jedem ausgegebenen Zugang (Verlauf)
 BEI_ZAEHLUNG = []             # f(raum, anzahl) – minütliche Zahl der Verbundenen aller Räume des Meetings (Verlauf)
+BEITRITT_PRUEFEN = []         # Module (Blockieren) hängen sich hier ein: f(raum, benutzer|None) wirft 403 zum Ablehnen
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -478,6 +479,8 @@ async def beitreten(code: str, req: Request):
         fehler(400, 'Bitte einen Namen eingeben.')
     besitzer = bool(b) and b['id'] == r['besitzer_id']
     if not besitzer:
+        for f in BEITRITT_PRUEFEN:
+            f(r, b)
         if r['beendet']:
             fehler(403, 'Meeting ist beendet')
         if r['passcode_hash']:

@@ -4,6 +4,7 @@ import './sicherheit.css';
 import { $, h, api, ichLaden, toast, blatt, beschaeftigt, kopieren, knopf } from './common.js';
 import { t } from './i18n.js';
 import { qrSvg } from './qr.js';
+import { datumText } from './helfer.js';
 
 let ich = null;
 
@@ -127,9 +128,31 @@ function passwortUndCode(art) {
   });
 }
 
+// ---------------------------------------------------------------- Blockierte Konten
+async function blockiertZeigen() {
+  const ul = $('#liste-blockiert');
+  if (!ul) return;
+  try {
+    const { blockiert } = await api('/api/konto/blockiert');
+    ul.replaceChildren();
+    if (!blockiert.length) { ul.append(h('li', { class: 'leer' }, t('blockiert.leer'))); return; }
+    for (const b of blockiert) {
+      ul.append(h('li', {}, h('div', { class: 'kopf' },
+        h('div', { class: 'text' }, h('span', { class: 'name' }, b.name),
+          h('span', { class: 'info' }, t('blockiert.seit', { datum: datumText(b.seit, ich?.zeitzone) })))),
+      h('div', { class: 'aktionen' }, knopf(t('blockiert.aufheben'), { klasse: 'btn klein', onclick: (e) => beschaeftigt(e.currentTarget, async () => {
+        await api(`/api/konto/blockiert/${b.id}`, { methode: 'DELETE' });
+        toast(t('blockiert.aufgehoben'), 'ok');
+        blockiertZeigen();
+      }) }))));
+    }
+  } catch (e) { ul.replaceChildren(h('li', { class: 'leer' }, e.message)); }
+}
+
 // ---------------------------------------------------------------- Start
 (async () => {
   ich = await ichLaden();
   if (!ich) return;               // konto.js leitet zur Anmeldung weiter
   zweiFaktorZeigen();
+  blockiertZeigen();
 })();

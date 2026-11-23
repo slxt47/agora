@@ -81,6 +81,11 @@ def _client():
                           timeout=aiohttp.ClientTimeout(total=5), failover=False)
 
 
+def _fehler_zaehlen(aufruf):
+    from .metriken import zaehlen      # spät importiert (metriken importiert dieses Modul)
+    zaehlen('agora_livekit_fehler_total', aufruf=aufruf)
+
+
 async def _aufruf(_name, _art, **kw):
     """Einen RoomService-Aufruf ausführen; bei Fehler None."""
     if FAKE:
@@ -90,6 +95,7 @@ async def _aufruf(_name, _art, **kw):
         async with _client() as lk:
             return await _art(lk, **kw)
     except Exception as e:   # noqa: BLE001
+        _fehler_zaehlen(_name)
         print(f'livekit-fehler {_name}: {type(e).__name__}: {str(e)[:200]}', flush=True)
         return None
 
@@ -144,9 +150,11 @@ async def teilnehmer(code):
                         raise
         return alle
     except api.TwirpError as e:
+        _fehler_zaehlen('teilnehmer')
         print(f'livekit-fehler teilnehmer: {e}', flush=True)
         return None
     except Exception as e:   # noqa: BLE001
+        _fehler_zaehlen('teilnehmer')
         print(f'livekit-fehler teilnehmer: {type(e).__name__}', flush=True)
         return None
 

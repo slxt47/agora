@@ -109,10 +109,14 @@ def senden(an, betreff, text, html_text=None, anhaenge=()):
 
 def im_hintergrund(funktion, *args):
     """Mail in eigenem Thread schicken; Fehler nur protokollieren (nie Links/Token ins Log)."""
+    from .metriken import zaehlen      # spät importiert: metriken braucht db/livekit, mail soll schlank bleiben
+
     def lauf():
         try:
             funktion(*args)
+            zaehlen('agora_mails_total', ergebnis='ok')
         except Exception as e:   # noqa: BLE001
+            zaehlen('agora_mails_total', ergebnis='fehler')
             print(f'mail-fehler {type(e).__name__}', flush=True)
     if TEST:
         lauf()                   # im Test sofort, damit die Mail gleich im Posteingang liegt

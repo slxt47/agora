@@ -1,0 +1,5 @@
+# Playwright + iproute2 (tc/netem) für den Netzsimulations-Test. Läuft in einem eigenen Docker-Netz mit NET_ADMIN –
+# tc wirkt nur auf eth0 DIESES Containers, nie auf den Host.
+FROM mcr.microsoft.com/playwright/python:v1.64.1-noble
+RUN apt-get update && apt-get install -y --no-install-recommends iproute2 && rm -rf /var/lib/apt/lists/* \
+ && pip install --break-system-packages --no-cache-dir playwright==1.64.1

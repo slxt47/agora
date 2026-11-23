@@ -28,6 +28,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Vorschau vor dem Beitritt mit Geräteauswahl, Pegelanzeige und Lautsprechertest
   - Gerätewechsel im laufenden Meeting
   - Verbindungsqualität, Datensparmodus
+  - Verbindungsstatistik: Der Browser misst alle 10 s (WebRTC `getStats`) Laufzeit, Paketverlust, Jitter, Bitraten,
+    Verbindungsweg (UDP/TCP/Relay) und Auflösung. Popover „Verbindung“ an der eigenen Kachel, Warnung mit Tipps bei
+    dauerhaft schlechter Verbindung; Host und Co-Hosts sehen die Qualität aller in der Teilnehmerliste.
+    Der Server speichert nur einen Schnitt je Meeting (ohne IPs, ohne Namen).
+  - Rückmeldung am Ende: „Wie war die Qualität?“ mit 1–5 Sternen, Problemen zum Ankreuzen und Text; im Konto sieht
+    der Besitzer je Raum und Meeting den Schnitt, die Verbindungswerte und die Hinweise (ohne Namen).
   - Video-Effekte in Lobby und Meeting: Hintergrund leicht oder stark unscharf, sechs eigene Hintergründe im slxt-Stil,
     eigenes Bild (bleibt im Browser, wird nie hochgeladen), „Aussehen verbessern“ (milder Helligkeits-/Kontrastfilter).
     Läuft mit `@livekit/track-processors` und MediaPipe komplett im Browser; WASM und Modell liegen unter `/vendor/`,
@@ -71,6 +77,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
 | `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges) |
 
+Für das Monitoring gibt es `/api/metriken` (Prometheus), `/api/gesund?tief=1` und `scripts/waechter.sh` (eine Zeile Status) – nur lokal, siehe [`docs/BETRIEB.md`](docs/BETRIEB.md).
+
 Die Webseite und die Signalisierung (`/rtc`) laufen über einen Cloudflare-Tunnel. Video und Ton gehen direkt an den Server, weil WebRTC über UDP nicht durch den Tunnel passt. Die Schnittstellen beschreibt [`docs/API.md`](docs/API.md), den Betrieb [`docs/BETRIEB.md`](docs/BETRIEB.md).
 
 ## Starten
@@ -88,6 +96,7 @@ docker compose up -d --build
 docker build --target test -t agora:test . && docker run --rm agora:test        # 41+ API-Tests
 docker run --rm -v "$PWD/web:/web" -w /web node:22.23.5-alpine sh -c "npm ci --ignore-scripts && npm test"
 sh tests/e2e/lauf.sh       # Browser-E2E: echte LiveKit, zwei Browser mit Kamera-Attrappe
+sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```
 
 ## Lizenz

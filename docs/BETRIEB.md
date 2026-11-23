@@ -37,6 +37,24 @@ docker compose up -d --force-recreate livekit  # nach Änderungen an livekit.yam
 
 Prüfen: `curl -s http://127.0.0.1:8110/api/gesund`. `https://HOST/rtc/validate` muss 401 liefern; das zeigt, dass LiveKit über den Tunnel antwortet.
 
+## Überwachung
+
+`sh scripts/waechter.sh` prüft `/api/gesund?tief=1` und `/api/metriken` und schreibt eine Zeile, z. B.
+`agora OK – 1 Meetings, 3 verbunden, LiveKit 4 ms, DB 2 ms, Platte 61 GB frei (54 %), Hintergrund vor 23 s, Mails 5 ok/0 Fehler, LiveKit-Fehler 0`.
+Exit 0 = OK, 1 = Warnung (seit dem letzten Lauf: Mail-Fehler, > 5 LiveKit-Fehler, > 50 fehlgeschlagene Anmeldungen,
+Hintergrund-Fehler), 2 = Fehler (App weg, Datenbank schreibt nicht, LiveKit antwortet nicht, Platte unter 2 GB oder 5 %,
+Hintergrund länger als 3 min still). Der letzte Zählerstand liegt in `~/.cache/agora-waechter.stand`. Braucht curl, jq, awk.
+
+Beide Endpunkte antworten nur auf 127.0.0.1 ohne `CF-Connecting-IP` (der Tunnel setzt ihn immer) – über
+`https://HOST` gibt es 404. Für einen Abruf von woanders `AGORA_METRIKEN_TOKEN` in `app.env` setzen und
+`Authorization: Bearer …` schicken. Prometheus kann `http://127.0.0.1:8110/api/metriken` direkt abfragen.
+
+## Kapazität
+
+Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/lasttest.sh`, nur gegen Wegwerf-Instanzen).
+Kurz: CPU reicht für 2–3 Meetings mit je 25 Personen; LiveKit brauchte bei 50 + 50 bis zu 838 MiB – für Meetings über
+~35 Personen `mem_limit` von `livekit` auf 2g erhöhen. Der erste echte Engpass ist die Bandbreite (~5 Mbit/s je Person in der Galerie).
+
 ## Aufbewahrung
 
 - Nicht bestätigte Konten: 48 h
@@ -48,6 +66,8 @@ Prüfen: `curl -s http://127.0.0.1:8110/api/gesund`. `https://HOST/rtc/validate`
 - Sicherheitsprotokoll ohne Inhalte: 30 Tage (Admin-Aktionen „Admin: …“: 365 Tage)
 - Chat und Umfragen: Werden beim Beenden gelöscht, außer der Raum hat „Chat speichern“.
 - Breakout-Räume (Zuteilung, wer wo ist): werden beim Beenden des Meetings gelöscht.
+- Verbindungsqualität: Werte je Teilnahme werden beim Beenden gelöscht; der Schnitt je Meeting (ohne IPs und Namen) bleibt, solange der Raum besteht.
+- Rückmeldungen nach dem Meeting (Sterne, Probleme, Text, eigener Verbindungsschnitt): solange der Raum besteht; die gespeicherte identity dient nur gegen doppelte Bewertungen und wird nie angezeigt.
 - Aufnahmen: 90 Tage
 - Dauer-Chat (persönlicher Raum, nur wenn der Besitzer ihn einschaltet): öffentliche Nachrichten bleiben, bis der Besitzer ihn leert oder ausschaltet (oder mit dem Konto), höchstens die neuesten 1000 Nachrichten.
 - Meeting-Verlauf (Titel, Code, Beginn, Ende, Spitzenzahl, Zahl der Beitritte – keine Namen, keine IPs): 90 Tage, einzeln löschbar, mit dem Konto weg. Wird der Raum gelöscht, bleibt der Eintrag ohne Chat-Verweis.

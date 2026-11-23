@@ -1,0 +1,23 @@
+/* Agora – Rückmeldung am Ende eines Meetings: Sterne, Problem-Chips, Text. */
+.feedback { padding: 16px; border-radius: var(--r-tile); background: var(--tile); border: 1px solid var(--card-line); }
+.feedback h2 { margin: 0; font: 700 1.125rem/1.3 var(--display); }
+.feedback-sterne { display: flex; gap: 4px; }
+.feedback-stern { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; cursor: pointer;
+  font-size: 2rem; line-height: 1; color: color-mix(in srgb, var(--text) 25%, transparent); transition: color .15s, transform .15s var(--spring); }
+.feedback-stern input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.feedback-stern:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* gewählter Stern und alle davor leuchten (Reihenfolge 1 … 5) */
+.feedback-sterne:has(.feedback-stern:nth-child(1) input:checked) .feedback-stern:nth-child(-n+1),
+.feedback-sterne:has(.feedback-stern:nth-child(2) input:checked) .feedback-stern:nth-child(-n+2),
+.feedback-sterne:has(.feedback-stern:nth-child(3) input:checked) .feedback-stern:nth-child(-n+3),
+.feedback-sterne:has(.feedback-stern:nth-child(4) input:checked) .feedback-stern:nth-child(-n+4),
+.feedback-sterne:has(.feedback-stern:nth-child(5) input:checked) .feedback-stern:nth-child(-n+5) { color: #ffc94d; }
+@media (hover: hover) { .feedback-stern:hover { transform: scale(1.12); } }
+.feedback-probleme { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; }
+.feedback-probleme legend { margin-bottom: 8px; font-weight: 600; font-size: .9375rem; }
+.feedback-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: var(--r-pill); cursor: pointer;
+  background: var(--tile); border: 1px solid var(--card-line); font-size: .875rem; }
+.feedback-chip:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.feedback-chip input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.feedback-danke { margin: 0; font-weight: 600; color: var(--ok); }
+

@@ -1,0 +1,24 @@
+/* Agora – Verbindungsqualität: Popover „Verbindung“ an der eigenen Kachel, Punkt je Person in der Teilnehmerliste. */
+.stat-popover { display: grid; gap: 10px; padding: 10px 12px; width: min(320px, calc(100vw - 32px)); }
+.stat-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stat-kopf b { font: 700 1rem/1.2 var(--display); }
+.stat-bewertung { padding: 2px 10px; border-radius: var(--r-pill); font-size: .75rem; font-weight: 700; }
+.stat-bewertung.gut { background: color-mix(in srgb, var(--ok) 22%, transparent); color: var(--ok); }
+.stat-bewertung.mittel { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+.stat-bewertung.schlecht { background: color-mix(in srgb, var(--err) 22%, transparent); color: var(--err); }
+.stat-liste { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: .875rem; }
+.stat-liste dt { color: var(--m-sec, var(--sec)); }
+.stat-liste dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.stat-popover .btn.klein { justify-self: start; }
+.stat-tipps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; color: var(--sec); }
+
+/* Teilnehmerliste (Host/Co-Host) */
+.stat-punkt { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 2px; flex: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent); }
+.stat-punkt.gut { background: var(--ok); color: var(--ok); }
+.stat-punkt.mittel { background: var(--warn); color: var(--warn); }
+.stat-punkt.schlecht { background: var(--err); color: var(--err); }
+@media (prefers-reduced-motion: no-preference) {
+  .stat-punkt.schlecht { animation: stat-puls 1.6s ease-in-out infinite; }
+  @keyframes stat-puls { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--err) 10%, transparent); } }
+}

@@ -179,6 +179,30 @@ Solange Räume offen sind, gehen alle Server-Ereignisse, Chat und Raum-Metadaten
 Stummschalten, Entfernen, Rollen/Umbenennen wirken in dem Raum, in dem die Person gerade ist. „Leer“ und „voll“ zählen alle Räume.
 Client: Ein Raumwechsel löst im Dokument `agora:raumwechsel` (`detail.room`) aus – z. B. für Video-Effekte, die den neuen Raum brauchen.
 
+## Verbindungsqualität (X-Teilnahme)
+Der Browser misst alle 10 s (`getStats` der LiveKit-PeerConnections) und meldet etwa alle 30 s eine Zusammenfassung.
+`werte` = `{rtt (ms 0–60000), verlust (% 0–100), jitter (ms 0–10000), ein?, aus? (kbit/s), kandidat?: "udp"|"tcp"|"relay", aufloesung?: "640x360", fps?}`
+– `rtt`, `verlust`, `jitter` nur zusammen. Bewertung (Server und Browser gleich): `schlecht` ab 5 % Verlust, 400 ms RTT oder 50 ms Jitter,
+`mittel` ab 2 % / 200 ms / 30 ms, sonst `gut`.
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| POST `/api/raeume/{code}/statistik` | alle | `werte` oder `{}` (nur anmelden) | `{ok:true, bewertung: null\|"gut"\|"mittel"\|"schlecht"}`; 12/min je Teilnahme |
+| GET `/api/raeume/{code}/statistik` | host/cohost | – | `{teilnehmer:{identity: werte + {bewertung, alter_s}}, meeting: schnitt\|null}` (nur Werte der letzten 90 s) |
+
+`schnitt` = `{proben, teilnehmer, rtt, verlust, jitter, ein, aus, rtt_max, verlust_max, schlecht_anteil, mittel_anteil, kandidaten:{udp, tcp, relay} (in %)}`.
+Gespeichert wird je Meeting nur die Summe (Tabelle `qualitaet`, ohne IPs und Namen); die letzten Werte je Teilnahme
+(`qualitaet_person`) werden beim Meeting-Ende gelöscht.
+
+Die Antwort von POST `…/statistik` enthält zusätzlich `feedback` (Rückmelde-Token, HMAC über Raum, Sitzung, identity
+und Zeit, 24 h gültig – erneuert mit jeder Meldung). Damit geht die Rückmeldung auch nach dem Meeting-Ende (ohne X-Teilnahme):
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| POST `/api/raeume/{code}/feedback` | Token | `{token, sterne: 1–5, probleme?: ["ton"\|"echo"\|"video"\|"verbindung"\|"bildschirm"\|"bedienung"], text? (≤ 1000), statistik?: {proben, rtt, verlust, jitter, ein, aus, schlecht_anteil}}` | `{ok:true}`; eine Rückmeldung je Teilnahme (erneut senden ändert sie); 403 bei falschem/abgelaufenem Token; 20/10 min je IP |
+| GET `/api/qualitaet` | angemeldet | – | `{raeume:{code:{bewertungen, sterne\|null, meetings, rtt\|null, verlust\|null}}, meetings:{"code:sitzung":{bewertungen, sterne\|null, rtt\|null, verlust\|null}}}` – nur eigene Räume mit Werten; `meetings` passt über `code` + `sitzung` zu den Einträgen von GET `/api/verlauf` (Anzeige unter „Vergangene Meetings“) |
+| GET `/api/raeume/{code}/qualitaet` | Besitzer | – | `{meetings:[{sitzung, beginn, verbindung: schnitt\|null, feedback: null\|{anzahl, sterne, probleme:{art:n}, kommentare:[text]}}]}` (neueste 30, ohne Namen) |
+
 ## Aufzeichnung (lokal im Browser des Hosts, dann Upload in die Bibliothek)
 POST `/api/raeume/{code}/aufnahme` (X-Teilnahme, host/cohost) `{aktiv:bool}` → setzt Indikator für alle (Metadaten + Ereignis).
 POST `/api/aufnahmen` (angemeldet) roher Body `video/webm` oder `video/mp4`, Header `X-Raum: <code>`, `X-Titel: <urlencoded>`, optional `X-Dauer: <sekunden>` → `{aufnahme}`. 413/415/507 bei zu groß/falschem Typ/Speicher voll. Max 500 MB/Datei, 5 GB/Konto.
@@ -211,6 +235,17 @@ beendete Meetings laut Protokoll + gerade laufende. Gesperrte Konten: Anmelden 4
 
 ## Sonstiges
 GET `/api/gesund` → `{ok:true}` · GET `/api/einstellungen` → `{livekit_url, max_teilnehmer, version}`.
+
+### Monitoring (nur von 127.0.0.1 ohne Cloudflare-Header oder mit `Authorization: Bearer <AGORA_METRIKEN_TOKEN>`, sonst 404)
+- GET `/api/gesund?tief=1` → 200/503 `{ok, version, pruefungen:{datenbank:{ok, ms}, livekit:{ok, ms, verbunden}, platte:{ok, frei_bytes, frei_prozent}, hintergrund:{ok, alter_s}}}`
+  (Datenbank: echter Schreibzugriff; Platte: mindestens `AGORA_PLATTE_MIN_GB` (2) und 5 % frei unter `daten/`; Hintergrund: letzter Lauf ≤ 180 s).
+- GET `/api/metriken` → Prometheus-Textformat 0.0.4. Momentwerte: `agora_meetings_aktiv`, `agora_teilnahmen_aktiv`, `agora_teilnehmer_verbunden`,
+  `agora_livekit_raeume`, `agora_warteraum`, `agora_livekit_erreichbar`, `agora_livekit_antwort_ms`, `agora_konten{status}`, `agora_aufnahmen`,
+  `agora_aufnahmen_bytes`, `agora_db_bytes`, `agora_daten_frei_bytes`, `agora_daten_gesamt_bytes`, `agora_hintergrund_letzter_lauf_zeitstempel_sekunden`,
+  `agora_start_zeitstempel_sekunden`, `agora_info{version}`. Zähler (seit Start): `agora_anmeldungen_total{ergebnis=ok|fehlgeschlagen|begrenzt}`,
+  `agora_registrierungen_total`, `agora_mails_total{ergebnis=ok|fehler}`, `agora_livekit_fehler_total{aufruf}`, `agora_hintergrund_fehler_total`,
+  `agora_http_anfragen_total{gruppe, status=2xx…}`. Histogramm `agora_http_dauer_sekunden{gruppe}` mit
+  `gruppe` ∈ konto, raeume, meeting, aufnahmen, freigaben, betrieb, api, statisch, seiten (nie Codes oder IDs als Label).
 
 ## Ergänzungen Backend (Stand Umsetzung)
 - `raum` hat zusätzlich `chat_speichern` (bool) und `beendet` (bool, Sofort-Meeting endgültig beendet). Alle Links (`raum.link`,

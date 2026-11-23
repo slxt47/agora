@@ -28,6 +28,8 @@ from . import zwei_faktor
 from . import melden
 from . import admin
 from . import sicherheit
+from . import qualitaet
+from . import metriken
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -106,10 +108,15 @@ app.include_router(zwei_faktor.router)
 app.include_router(melden.router)
 app.include_router(admin.router)
 app.include_router(sicherheit.router)
+app.include_router(qualitaet.router)
+app.include_router(metriken.router)
+metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
 @app.api_route('/api/gesund', methods=['GET', 'HEAD'])
-def gesund():
+async def gesund(req: Request, tief: int = 0):
+    if tief:      # Datenbank schreibt, LiveKit, Platte, Hintergrund – nur lokal oder mit Token (sonst 404)
+        return await metriken.gesund_tief(req)
     db.verbindung().execute('SELECT 1')
     return {'ok': True}
 
@@ -164,7 +171,9 @@ def hintergrund():
             if time.time() - letzte_sicherung > 6 * 3600:
                 db.sichern()
                 letzte_sicherung = time.time()
+            metriken.hintergrund_gelaufen()
         except Exception as e:   # noqa: BLE001
+            metriken.zaehlen('agora_hintergrund_fehler_total')
             print(f'hintergrund-fehler {type(e).__name__}: {e}', flush=True)
         time.sleep(60)
 

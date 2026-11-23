@@ -1039,3 +1039,181 @@ def test_breakout_mit_meeting_beendet():
     assert db.verbindung().execute('SELECT COUNT(*) FROM breakout b JOIN raeume r ON r.id = b.raum_id WHERE r.code = ?', (code,)).fetchone()[0] == 0
     hz2 = zugang(host, code)
     assert bo(host, code, hz2, '', 'get').json() == {'breakout': None}
+
+
+# ---------------------------------------------------------------- Verbindungsqualität (Statistik)
+def statistik(c, code, z, **kw):
+    return c.post(f'/api/raeume/{code}/statistik', json=kw, headers=T(z))
+
+
+def test_statistik_melden_bewerten_und_host_sicht():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    assert statistik(g1, code, z1).json()['bewertung'] is None                         # nur anmelden, keine Werte
+    r = statistik(g1, code, z1, rtt=40, verlust=0.5, jitter=8, ein=900, aus=1200, kandidat='udp', aufloesung='640x360', fps=24)
+    assert r.json()['ok'] is True and r.json()['bewertung'] == 'gut'
+    assert statistik(g2, code, z2, rtt=250, verlust=1, jitter=10, kandidat='relay').json()['bewertung'] == 'mittel'
+    assert statistik(g2, code, z2, rtt=90, verlust=8, jitter=10, kandidat='tcp').json()['bewertung'] == 'schlecht'
+    # Prüfung der Werte
+    assert statistik(g1, code, z1, rtt=-1, verlust=0, jitter=0).status_code == 400
+    assert statistik(g1, code, z1, rtt=10, verlust=101, jitter=0).status_code == 400
+    assert statistik(g1, code, z1, rtt=10).status_code == 400                         # unvollständig
+    assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=0, kandidat='quic').status_code == 400
+    assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=0, aufloesung='<b>').status_code == 400
+    assert statistik(g1, code, z1, rtt=True, verlust=0, jitter=0).status_code == 400
+    assert g1.post(f'/api/raeume/{code}/statistik', json={}).status_code == 403          # ohne Teilnahme
+    # Nur Host/Co-Host sehen die Werte je Person
+    assert g1.get(f'/api/raeume/{code}/statistik', headers=T(z1)).status_code == 403
+    s = host.get(f'/api/raeume/{code}/statistik', headers=T(hz)).json()
+    assert set(s['teilnehmer']) == {z1['identity'], z2['identity']}
+    assert s['teilnehmer'][z2['identity']]['bewertung'] == 'schlecht' and s['teilnehmer'][z2['identity']]['kandidat'] == 'tcp'
+    assert s['teilnehmer'][z1['identity']]['aufloesung'] == '640x360'
+    m = s['meeting']
+    assert m['proben'] == 3 and m['teilnehmer'] == 2 and m['rtt'] == round((40 + 250 + 90) / 3) and m['verlust_max'] == 8
+    assert m['schlecht_anteil'] == 33 and m['kandidaten'] == {'udp': 33, 'tcp': 33, 'relay': 33}
+    # Keine IPs, keine Namen in der Tabelle
+    spalten = [x[1] for x in db.verbindung().execute('PRAGMA table_info(qualitaet)')]
+    assert not {'ip', 'name'} & set(spalten)
+
+
+def test_statistik_begrenzt_und_beim_ende_geloescht():
+    host, code, hz, [(g1, z1)] = meeting(1)
+    codes = [statistik(g1, code, z1, rtt=10, verlust=0, jitter=1).status_code for _ in range(13)]
+    assert codes[:12] == [200] * 12 and codes[12] == 429
+    steuern(host, code, hz, aktion='beenden')
+    c = db.verbindung()
+    rid = c.execute('SELECT id FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    assert c.execute('SELECT COUNT(*) FROM qualitaet_person WHERE raum_id = ?', (rid,)).fetchone()[0] == 0
+    assert c.execute('SELECT proben FROM qualitaet WHERE raum_id = ?', (rid,)).fetchone()[0] == 12   # Schnitt bleibt
+    assert statistik(g1, code, z1, rtt=10, verlust=0, jitter=1).status_code == 403                    # Meeting vorbei
+
+
+# ---------------------------------------------------------------- Rückmeldung nach dem Meeting
+def test_feedback_nach_dem_meeting_und_konto_schnitt():
+    host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
+    tok1 = statistik(g1, code, z1, rtt=40, verlust=1, jitter=5, kandidat='udp').json()['feedback']
+    tok2 = statistik(g2, code, z2).json()['feedback']
+    tokh = statistik(host, code, hz, rtt=20, verlust=0, jitter=2).json()['feedback']
+    steuern(host, code, hz, aktion='beenden')                       # Teilnahmen weg – Rückmeldung geht trotzdem
+    fb = lambda c, **kw: c.post(f'/api/raeume/{code}/feedback', json=kw)   # noqa: E731
+    assert fb(g1, token=tok1, sterne=4, probleme=['video', 'ton'], text='Bild ruckelte kurz',
+              statistik={'proben': 12, 'rtt': 40, 'verlust': 1.2, 'jitter': 5, 'ein': 800, 'aus': 900, 'schlecht_anteil': 0}).json() == {'ok': True}
+    assert fb(g2, token=tok2, sterne=2, probleme=['verbindung']).status_code == 200
+    assert fb(g2, token=tok2, sterne=3, probleme=['verbindung']).status_code == 200    # ändern statt doppelt zählen
+    assert fb(host, token=tokh, sterne=5).status_code == 200
+    # Prüfung
+    assert fb(g1, token=tok1, sterne=0).status_code == 400
+    assert fb(g1, token=tok1, sterne=6).status_code == 400
+    assert fb(g1, token=tok1, sterne=True).status_code == 400
+    assert fb(g1, token=tok1, sterne=3, probleme=['wetter']).status_code == 400
+    assert fb(g1, token=tok1, sterne=3, statistik={'rtt': -5}).status_code == 400
+    assert fb(g1, token=tok1, sterne=3, text='x' * 1001).status_code == 400
+    assert fb(g1, token=tok1[:-1] + ('0' if tok1[-1] != '0' else '1'), sterne=3).status_code == 403   # gefälscht
+    assert fb(g1, token='kaputt', sterne=3).status_code == 403
+    sitzung, ident, zeit, _sig = tok1.split('.')
+    from app.qualitaet import feedback_token
+    rid = db.verbindung().execute('SELECT id FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    alt = feedback_token(rid, int(sitzung), ident, int(zeit) - 25 * 3600)
+    assert fb(g1, token=alt, sterne=3).status_code == 403                             # abgelaufen
+    # anderer Raum: Token gilt nicht
+    _h2, code2, _hz2, _g = meeting(0)
+    assert g1.post(f'/api/raeume/{code2}/feedback', json={'token': tok1, 'sterne': 3}).status_code == 403
+    # Besitzer sieht Schnitt und Texte ohne Namen
+    u = host.get('/api/qualitaet').json()['raeume'][code]
+    assert u['bewertungen'] == 3 and u['sterne'] == 4.0 and u['meetings'] == 1 and u['rtt'] == 30 and u['verlust'] == 0.5
+    q = host.get(f'/api/raeume/{code}/qualitaet').json()['meetings']
+    assert len(q) == 1 and q[0]['verbindung']['proben'] == 2
+    f = q[0]['feedback']
+    assert f['anzahl'] == 3 and f['sterne'] == 4.0 and f['probleme']['verbindung'] == 1 and f['probleme']['video'] == 1
+    assert f['kommentare'] == ['Bild ruckelte kurz']
+    assert 'identity' not in str(q) and z1['identity'] not in str(q) and 'Gast' not in str(q)
+    assert g1.get(f'/api/raeume/{code}/qualitaet').status_code == 401
+    anderer, _e, _p = konto()
+    assert anderer.get(f'/api/raeume/{code}/qualitaet').status_code == 403
+    assert code not in anderer.get('/api/qualitaet').json()['raeume']
+    # je Meeting (für den Meeting-Verlauf): Schlüssel code:sitzung
+    sitzung = db.verbindung().execute('SELECT sitzung FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    jm = host.get('/api/qualitaet').json()['meetings'][f'{code}:{sitzung}']
+    assert jm == {'bewertungen': 3, 'sterne': 4.0, 'rtt': 30, 'verlust': 0.5}
+    v = [m for m in host.get('/api/verlauf').json()['meetings'] if m['code'] == code]
+    assert v and v[0]['sitzung'] == sitzung                            # passt zum Eintrag im Meeting-Verlauf
+
+
+# ---------------------------------------------------------------- Metriken und tiefe Gesundheitsprüfung
+def lokal(**kw):
+    return TestClient(main.app, client=('127.0.0.1', 40000), **kw)
+
+
+def metrik(text, name):
+    for z in text.splitlines():
+        if z.split(' ')[0] == name:
+            return float(z.rsplit(' ', 1)[1])
+    return None
+
+
+def test_metriken_nur_lokal_ohne_tunnel_oder_mit_token(monkeypatch):
+    from app import metriken
+    assert neu_client().get('/api/metriken').status_code == 404                           # von außen (Testclient-Host)
+    assert lokal().get('/api/metriken', headers={'CF-Connecting-IP': '1.2.3.4'}).status_code == 404   # über den Tunnel
+    assert lokal().get('/api/gesund?tief=1', headers={'CF-Connecting-IP': '1.2.3.4'}).status_code == 404
+    assert neu_client().get('/api/gesund').json() == {'ok': True}                         # einfache Prüfung bleibt offen
+    r = lokal().get('/api/metriken')
+    assert r.status_code == 200 and r.headers['content-type'].startswith('text/plain; version=0.0.4')
+    monkeypatch.setattr(metriken, 'TOKEN', 't' * 40)
+    assert neu_client().get('/api/metriken', headers={'Authorization': 'Bearer ' + 't' * 40}).status_code == 200
+    assert neu_client().get('/api/metriken', headers={'Authorization': 'Bearer falsch'}).status_code == 404
+    monkeypatch.setattr(metriken, 'TOKEN', '')
+    assert neu_client().get('/api/metriken', headers={'Authorization': 'Bearer '}).status_code == 404   # leeres Token zählt nie
+
+
+def test_metriken_zaehler_und_momentwerte():
+    vorher = lokal().get('/api/metriken').text
+    c, email, pw = konto()
+    neu_client().post('/api/konto/anmelden', json={'email': email, 'passwort': 'falsch-falsch-1'})
+    c.post('/api/konto/anmelden', json={'email': email, 'passwort': pw})
+    host, code, hz, [(g1, z1)] = meeting(1)
+    lk.FAKE_TEILNEHMER[code] = [{'identity': hz['identity'], 'name': 'H', 'tracks': []}, {'identity': z1['identity'], 'name': 'G', 'tracks': []}]
+    t = lokal().get('/api/metriken').text
+    diff = lambda n: metrik(t, n) - (metrik(vorher, n) or 0)   # noqa: E731
+    assert diff('agora_registrierungen_total') == 2
+    assert diff('agora_anmeldungen_total{ergebnis="ok"}') == 1
+    assert diff('agora_anmeldungen_total{ergebnis="fehlgeschlagen"}') == 1
+    assert diff('agora_mails_total{ergebnis="ok"}') == 2                  # zwei Bestätigungsmails
+    assert metrik(t, 'agora_meetings_aktiv') >= 1 and metrik(t, 'agora_teilnehmer_verbunden') == 2
+    assert metrik(t, 'agora_livekit_erreichbar') == 1 and metrik(t, 'agora_daten_frei_bytes') > 0
+    assert metrik(t, 'agora_konten{status="bestaetigt"}') >= 2 and metrik(t, 'agora_aufnahmen_bytes') is not None
+    assert '# TYPE agora_http_dauer_sekunden histogram' in t
+    assert metrik(t, 'agora_http_dauer_sekunden_count{gruppe="konto"}') >= 4
+    assert metrik(t, 'agora_http_dauer_sekunden_bucket{gruppe="konto",le="+Inf"}') == metrik(t, 'agora_http_dauer_sekunden_count{gruppe="konto"}')
+    assert code not in t and email not in t                                 # keine Codes/Adressen als Label
+
+
+def test_livekit_fehler_und_hintergrund_zaehlen(monkeypatch):
+    import asyncio
+    from app import metriken
+    monkeypatch.setattr(lk, 'FAKE', False)
+    monkeypatch.setattr(lk, 'API_HOST', 'http://127.0.0.1:9')           # nichts lauscht → Fehler
+    vorher = metrik(lokal().get('/api/metriken').text, 'agora_livekit_fehler_total{aufruf="metadaten"}') or 0
+    assert asyncio.run(lk.metadaten('abc-defg-hij', {})) is None
+    t = lokal().get('/api/metriken').text
+    assert metrik(t, 'agora_livekit_fehler_total{aufruf="metadaten"}') == vorher + 1
+    assert metrik(t, 'agora_livekit_erreichbar') == 0
+    g = lokal().get('/api/gesund?tief=1')
+    assert g.status_code == 503 and g.json()['pruefungen']['livekit']['ok'] is False
+    monkeypatch.setattr(lk, 'FAKE', True)
+    metriken.hintergrund_gelaufen()
+    assert metrik(lokal().get('/api/metriken').text, 'agora_hintergrund_letzter_lauf_zeitstempel_sekunden') > 1e9
+
+
+def test_gesund_tief(monkeypatch):
+    from app import metriken
+    g = lokal().get('/api/gesund?tief=1')
+    assert g.status_code == 200, g.text
+    p = g.json()['pruefungen']
+    assert set(p) == {'datenbank', 'livekit', 'platte', 'hintergrund'} and all(x['ok'] for x in p.values())
+    assert p['datenbank']['ms'] >= 0 and p['platte']['frei_bytes'] > 0
+    monkeypatch.setattr(metriken, 'PLATTE_MIN', 1e18)                     # „Platte voll“
+    assert lokal().get('/api/gesund?tief=1').status_code == 503
+    monkeypatch.setattr(metriken, 'PLATTE_MIN', 0)
+    monkeypatch.setitem(metriken.ZUSTAND, 'hintergrund', 1.0)             # Hintergrund hängt seit 1970
+    r = lokal().get('/api/gesund?tief=1')
+    assert r.status_code == 503 and r.json()['pruefungen']['hintergrund']['ok'] is False

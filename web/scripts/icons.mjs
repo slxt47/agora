@@ -1,7 +1,7 @@
 // Logo + Icons für Agora (nur Node-Bordmittel). Gleiche Familie wie slxt share / QR-Stream: Verlauf #6d4aff → #3b82f6,
 // weiße Formen, Sternschnuppen-Schweif aus kleiner werdenden Quadraten. Motiv: Videokamera, deren Körper unten links
 // in eine Sprechblasen-Spitze ausläuft (Video + Gespräch), mit einem kleinen „Live“-Punkt als Aussparung.
-// Erzeugt public/icons/{icon.svg, apple-touch-icon.png, icon-192.png, icon-512.png, icon-maskable-512.png}.
+// Erzeugt public/icons/{icon.svg, apple-touch-icon.png, icon-192.png, icon-512.png, icon-maskable-192.png, icon-maskable-512.png}.
 import { deflateSync, crc32 } from 'node:zlib';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -71,9 +71,20 @@ function png(g, { rand = 0, rund = true } = {}) {
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(g, 0); ihdr.writeUInt32BE(g, 4); ihdr[8] = 8; ihdr[9] = 6;
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(zeilen, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 }
+// Maskable: Android/iOS schneiden bis auf einen Kreis mit 40 % Radius (Safe Zone) ab. Alle Formen (Ecken, inkl.
+// 1 px Rand der Dreiecke) müssen nach dem Verkleinern um 2·RAND darin liegen – sonst bricht der Build ab.
+const RAND = 0.12;
+export function maskableSicher(rand = RAND) {
+  const k = 1 - 2 * rand, grenze = 0.4 * 64;
+  const punkte = [...RECHTECKE.flatMap(({ x, y, b, h }) => [[x, y], [x + b, y], [x, y + h], [x + b, y + h]].map((p) => [p, 0])),
+    ...DREIECKE.flat().map((p) => [p, 1])];
+  return Math.max(...punkte.map(([[px, py], r]) => Math.hypot((px - 32) * k, (py - 32) * k) + r * k)) <= grenze;
+}
+if (!maskableSicher()) throw new Error(`Maskable-Icon: Formen ragen bei Rand ${RAND} aus der Safe Zone`);
 writeFileSync(new URL('apple-touch-icon.png', ZIEL), png(180, { rund: false }));
+writeFileSync(new URL('icon-maskable-192.png', ZIEL), png(192, { rand: RAND }));
 writeFileSync(new URL('icon-192.png', ZIEL), png(192));
 writeFileSync(new URL('icon-512.png', ZIEL), png(512));
-writeFileSync(new URL('icon-maskable-512.png', ZIEL), png(512, { rand: 0.1 }));
+writeFileSync(new URL('icon-maskable-512.png', ZIEL), png(512, { rand: RAND }));
 writeFileSync(new URL('icon.svg', ZIEL), SVG);
 console.log('Icons erzeugt');

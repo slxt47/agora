@@ -14,6 +14,14 @@ export const de = {
   'start.bestaetigtJa': 'E-Mail bestätigt – du bist angemeldet. Viel Spaß mit Agora!', 'start.bestaetigtNein': 'Der Bestätigungslink ist ungültig oder abgelaufen. Lass dir unten einen neuen schicken.',
   'start.sitzungAbgelaufen': 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
 
+  // PWA (pwa.js, offline.js, start.js)
+  'pwa.neueVersion': 'Eine neue Version von Agora ist da.', 'pwa.neuLaden': 'Neu laden',
+  'pwa.installieren': 'App installieren', 'pwa.installierenText': 'Agora als App: eigenes Fenster, Start vom Home-Bildschirm.',
+  'pwa.iosText': 'Leg Agora auf den Home-Bildschirm – dann startet es wie eine App.', 'pwa.iosKnopf': 'So geht’s',
+  'pwa.iosTitel': 'Zum Home-Bildschirm', 'pwa.iosSchritt1': 'Tippe in Safari auf „Teilen“ (Quadrat mit Pfeil nach oben).',
+  'pwa.iosSchritt2': 'Wähle „Zum Home-Bildschirm“.', 'pwa.iosSchritt3': 'Tippe auf „Hinzufügen“.', 'pwa.nichtMehr': 'Nicht mehr anzeigen',
+  'pwa.zuerstAnmelden': 'Melde dich an, um ein neues Meeting zu starten.', 'pwa.nochOffline': 'Noch keine Verbindung …',
+
   'passwort.ohneToken': 'Der Link ist unvollständig. Öffne ihn bitte direkt aus der E-Mail oder fordere einen neuen an.',
   'passwort.ungleich': 'Die beiden Passwörter stimmen nicht überein.', 'passwort.gesetzt': 'Neues Passwort gespeichert. Du kannst dich jetzt anmelden.',
 

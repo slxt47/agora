@@ -15,6 +15,7 @@ import { menue, menueSchliessen } from './menue.js';
 import { Rekorder, aufnahmeAblegen, kannAufnehmen } from './aufnahme.js';
 import { geraeteMerken, geraeteFehler, VIDEO_AUFLOESUNG } from './lobby.js';
 import { effekte, effektePanel } from './effekte.js';
+import { mobilEinrichten } from './mobil.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -75,6 +76,7 @@ export class Meeting {
     this.buehne = new Buehne(this);
     this.oberflaeche();
     this.ereignisse();
+    mobilEinrichten(this);     // Drehen, Rückkehr aus dem Hintergrund (iOS)
     this.chat = new Chat(this);
     this.leute = new Leute(this);
 

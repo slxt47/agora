@@ -23,6 +23,7 @@ def effekt_waehlen(page, wert, bild):
 def beobachten(page, wer):
     page.on('pageerror', lambda e: fehler.append(f'[{wer}] pageerror: {e}'))
     page.on('console', lambda m: m.type == 'error' and fehler.append(f'[{wer}] console: {m.text}'))
+    page.on('requestfailed', lambda r: print(f'[{wer}] Anfrage fehlgeschlagen: {r.url[:120]} {r.failure}'))
 
 with sync_playwright() as p:
     br = p.chromium.launch(args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'])
@@ -31,6 +32,12 @@ with sync_playwright() as p:
     try:
         hp.goto(B + '/')
         hp.screenshot(path=OUT + '01-start.png')
+        # PWA: Service Worker meldet sich an und übernimmt die Seite
+        sw = hp.evaluate("navigator.serviceWorker.ready.then(r => r.active && r.active.scriptURL)")
+        hp.wait_for_function("!!navigator.serviceWorker.controller", timeout=10000)
+        caches = hp.evaluate("caches.keys()")
+        print('Service Worker:', sw, '| Caches:', caches)
+        if not sw or not sw.endswith('/sw.js') or not any(c.startswith('agora-') for c in caches): fehler.append('Service Worker fehlt')
         hp.click('#tab-registrieren')
         hp.fill('#f-registrieren [name=name]', 'Florian Test')
         hp.fill('#f-registrieren [name=email]', 'host@example.com')
@@ -97,6 +104,12 @@ with sync_playwright() as p:
         time.sleep(1.5)
         hp.screenshot(path=OUT + '10-host-meeting.png')
         gp.screenshot(path=OUT + '11-gast-meeting.png')
+        # Handy quer: kompakte Leiste, alles ≥ 44 px
+        gp.set_viewport_size({'width': 844, 'height': 390}); time.sleep(1)
+        gp.screenshot(path=OUT + '11b-gast-quer.png')
+        klein = gp.evaluate("[...document.querySelectorAll('.m-leiste button')].filter(b => b.offsetParent && (b.offsetWidth < 44 || b.offsetHeight < 44)).map(b => b.id)")
+        if klein: fehler.append(f'Knöpfe unter 44 px: {klein}')
+        gp.set_viewport_size({'width': 390, 'height': 844}); time.sleep(0.5)
         gp.click('#s-chat'); time.sleep(0.5)
         gp.screenshot(path=OUT + '12-gast-chat.png')
         n_host = hp.locator('#buehne .kv').count(); n_gast = gp.locator('#buehne .kv').count()
@@ -153,6 +166,22 @@ with sync_playwright() as p:
         hp.wait_for_selector('#v-ende:not([hidden])', timeout=15000)
         print('Gast-Ende:', gp.inner_text('#ende-titel'), '| Host-Ende:', hp.inner_text('#ende-titel'))
         gp.screenshot(path=OUT + '18-gast-ende.png')
+        # PWA: im Cache nur App-Hülle/statische Dateien – nie API, Medien, MediaPipe
+        gecacht = hp.evaluate("(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) out.push(new URL(r.url).pathname); return out; })()")
+        print('Im Cache:', len(gecacht), 'Einträge')
+        falsch = [u for u in gecacht if u.startswith(('/api', '/rtc', '/vendor')) or not u.startswith(('/assets/', '/icons/', '/offline.html', '/modus.js', '/manifest.webmanifest'))]
+        if falsch: fehler.append(f'Falsch gecacht: {falsch}')
+        # Offline: Seitenaufruf ohne Netz → „Keine Verbindung“, wieder online → Seite lädt
+        host.set_offline(True)
+        hp.goto(B + '/konto')
+        hp.wait_for_selector('.offline-karte h1')
+        titel = hp.inner_text('.offline-karte h1')
+        print('Offline-Seite:', titel)
+        if 'Keine Verbindung' not in titel: fehler.append('Offline-Seite fehlt')
+        hp.screenshot(path=OUT + '19-offline.png')
+        host.set_offline(False)      # „online“-Ereignis → die Offline-Seite lädt von selbst neu
+        hp.wait_for_function("!document.querySelector('.offline-karte')", timeout=10000)
+        print('Wieder online:', hp.url)
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

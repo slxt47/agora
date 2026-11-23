@@ -1,17 +1,28 @@
 {
+  "id": "/",
   "name": "Agora – Videokonferenzen",
   "short_name": "Agora",
   "description": "Videokonferenzen im Browser: planen, beitreten, teilen, aufzeichnen.",
   "lang": "de",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0b0e2a",
   "theme_color": "#0b0e2a",
+  "categories": ["business", "productivity", "social"],
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Neues Meeting", "short_name": "Neu", "description": "Sofort ein Meeting starten", "url": "/?aktion=neu",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Beitreten", "short_name": "Beitreten", "description": "Mit Code oder Link einem Meeting beitreten", "url": "/?aktion=beitreten",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

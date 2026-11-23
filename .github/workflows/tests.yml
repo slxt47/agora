@@ -9,13 +9,13 @@ jobs:
   api:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: API-Tests (Docker-Ziel test)
         run: docker build --target test -t agora:test . && docker run --rm agora:test
   web:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - name: Build + Tests
@@ -24,7 +24,7 @@ jobs:
   geheimnisse:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - name: gitleaks
         run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.0 git /repo --no-banner

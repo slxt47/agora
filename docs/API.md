@@ -230,7 +230,7 @@ Termin (bei Wiederholung das Vorkommen zur Zeit der Einladung). Erinnerungsmails
 
 ## Meeting-Verlauf (angemeldet, Besitzer)
 `eintrag` = `{id, code, titel, start, ende, dauer_s, spitze, teilnahmen, chat, sitzung}` – `spitze` = höchste Zahl gleichzeitig
-Verbundener (Haupt- und Breakout-Räume, minütlich gemessen, mindestens 1 nach einem Beitritt), `teilnahmen` = ausgegebene Zugänge,
+Verbundener (Haupt- und Breakout-Räume, minütlich und bei jedem Beitritt gemessen), `teilnahmen` = ausgegebene Zugänge,
 `chat` = Chat/Umfragen dieses Meetings sind gespeichert (`chat_speichern`) und der Raum existiert noch.
 
 | Methode + Pfad | Antwort |
@@ -240,4 +240,12 @@ Verbundener (Haupt- und Breakout-Räume, minütlich gemessen, mindestens 1 nach 
 | DELETE `/api/verlauf/{id}` | `{ok:true}` |
 
 Server-Haken in `raeume.py` für Module: `BEIM_START`, `BEIM_BEITRITT`, `BEI_ZAEHLUNG(raum, anzahl)` (neben `BEIM_ENDE`).
+
+## Dauer-Chat im persönlichen Raum
+`raum.dauer_chat` (bool). Nur der persönliche Raum: PATCH `/api/raeume/{code}` `{dauer_chat: true|false}` (Besitzer; bei anderen
+Räumen und in POST `/api/raeume` → 400). Ist er an, bleiben öffentliche Chat-Nachrichten nach dem Meeting-Ende erhalten und
+GET `…/chat` (laufendes Meeting, X-Teilnahme) liefert sie zusammen mit dem Chat des aktuellen Meetings (neueste 500). Private
+Nachrichten gehören nie dazu. Ausschalten löscht den Dauer-Chat.
+DELETE `/api/raeume/{code}/dauer-chat` (Besitzer) → `{ok:true, geloescht:n}`; läuft das Meeting, geht Ereignis `{typ:"chat_geleert"}`
+an alle (Client leert die Liste und lädt neu). Höchstens 1000 Nachrichten je Raum (ältere löscht der Hintergrund).
 

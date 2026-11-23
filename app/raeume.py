@@ -84,7 +84,7 @@ def raum_json(r, b=None):
     return {'code': r['code'], 'titel': r['titel'], 'besitzer_name': besitzer['name'] if besitzer else '',
             'ist_host': bool(b) and b['id'] == r['besitzer_id'], 'passcode_noetig': bool(r['passcode_hash']),
             'warteraum': bool(r['warteraum']), 'gesperrt': bool(r['gesperrt']), 'aktiv': bool(r['aktiv']),
-            'persoenlich': r['art'] == 'persoenlich', 'chat_speichern': bool(r['chat_speichern']),
+            'persoenlich': r['art'] == 'persoenlich', 'chat_speichern': bool(r['chat_speichern']), 'dauer_chat': bool(r['dauer_chat']),
             'beendet': bool(r['beendet']), 'geplant': geplant, 'naechster_termin': iso(termin(r)), 'link': link(r['code']),
             'kalender': kalender_links(r)}
 
@@ -157,7 +157,7 @@ async def einstellungen_lesen(d, b, neu):
             fehler(400, 'Passcode: 4 bis 32 Zeichen.')
         else:
             f['passcode_hash'] = await run_in_threadpool(hash_pw, pc)
-    for k in ('warteraum', 'chat_speichern'):
+    for k in ('warteraum', 'chat_speichern', 'dauer_chat'):
         if k in d:
             if not isinstance(d[k], bool):
                 fehler(400, 'Ungültige Anfrage')
@@ -216,7 +216,7 @@ async def meeting_beenden(r, grund='host'):
     c.execute("UPDATE anfragen SET status = 'beendet' WHERE raum_id = ? AND status IN ('wartet', 'zugelassen')", (r['id'],))
     c.execute('DELETE FROM sperren WHERE raum_id = ?', (r['id'],))
     if not r['chat_speichern']:
-        c.execute('DELETE FROM nachrichten WHERE raum_id = ?', (r['id'],))
+        c.execute('DELETE FROM nachrichten WHERE raum_id = ? AND dauer = 0', (r['id'],))    # Dauer-Chat bleibt (dauerchat.py)
     for f in BEIM_ENDE:
         f(r)
     c.execute('UPDATE raeume SET aktiv = 0, leer_seit = NULL, gesperrt = 0, aufnahme_von = NULL, beendet = ?, letzte_aktivitaet = ? '
@@ -329,6 +329,8 @@ async def raum_neu(req: Request):
     d = await json_body(req)
     grenze.pruefen(f'raum:{b["id"]}', 60, 3600)
     f = await einstellungen_lesen(d, b, True)
+    if f.pop('dauer_chat', 0):
+        fehler(400, 'Den Dauer-Chat gibt es nur im persönlichen Raum.')
     art = 'geplant' if 'start' in f else 'sofort'
     titel = f.pop('titel', '') or (f'Meeting von {b["name"]}' if art == 'sofort' else 'Geplantes Meeting')
     r = raum_anlegen(b['id'], art, titel[:120], f)
@@ -368,6 +370,10 @@ async def raum_aendern(code: str, req: Request):
     if r['art'] != 'geplant' and d.get('geplant') is not None:
         fehler(400, 'Nur geplante Meetings haben einen Termin.')
     f = await einstellungen_lesen(d, b, False)
+    if 'dauer_chat' in f and r['art'] != 'persoenlich':
+        fehler(400, 'Den Dauer-Chat gibt es nur im persönlichen Raum.')
+    if f.get('dauer_chat') == 0:          # ausschalten = Dauer-Chat löschen
+        db.verbindung().execute('DELETE FROM nachrichten WHERE raum_id = ? AND dauer = 1', (r['id'],))
     if 'titel' in f and not f['titel']:
         del f['titel']
     c = db.verbindung()

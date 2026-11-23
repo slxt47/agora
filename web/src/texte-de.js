@@ -246,4 +246,8 @@ export const de = {
   'verlauf.beitritte': '{n} Beitritt(e)', 'verlauf.inhalt': 'Chat und Umfragen', 'verlauf.inhaltTitel': 'Gespeichert: {titel}',
   'verlauf.chat': 'Chat', 'verlauf.umfragen': 'Umfragen', 'verlauf.stimmen': '{n} Stimme(n)',
   'verlauf.entfernen': 'Aus Verlauf entfernen', 'verlauf.entfernenTitel': 'Eintrag entfernen?', 'verlauf.entfernenText': 'Der Eintrag verschwindet aus dem Verlauf. Gespeicherte Chats bleiben beim Raum.',
+  'dauerchat.feld': 'Dauer-Chat', 'dauerchat.feldHinweis': 'Öffentliche Chat-Nachrichten bleiben nach dem Meeting erhalten und sind beim nächsten Meeting wieder da. Ausschalten löscht sie.',
+  'dauerchat.marker': 'Dauer-Chat', 'dauerchat.hinweis': 'Dauer-Chat: Nachrichten an alle bleiben nach dem Meeting erhalten.',
+  'dauerchat.leeren': 'Dauer-Chat leeren', 'dauerchat.leerenTitel': 'Dauer-Chat leeren?', 'dauerchat.leerenText': 'Alle gespeicherten Nachrichten des Dauer-Chats werden für alle gelöscht.',
+  'dauerchat.geleert': 'Dauer-Chat geleert.',
 };

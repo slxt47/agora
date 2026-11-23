@@ -56,6 +56,7 @@ function merkmale(raum) {
   if (raum.passcode_noetig) m.push(h('span', { class: 'marker' }, t('konto.passcode')));
   if (raum.warteraum) m.push(h('span', { class: 'marker' }, t('konto.warteraum')));
   if (raum.chat_speichern) m.push(h('span', { class: 'marker' }, t('konto.chatGespeichert')));
+  if (raum.dauer_chat) m.push(h('span', { class: 'marker' }, t('dauerchat.marker')));
   return m.length ? h('div', { class: 'zeile' }, m) : null;
 }
 
@@ -72,6 +73,10 @@ function persoenlichZeigen(raum) {
       knopf(t('konto.linkKopieren'), { symbol: 'kopie', onclick: () => kopieren(raumLink(raum), t('konto.linkKopiert')) }),
       knopf(t('konto.einladen'), { symbol: 'mail', onclick: () => einladenDialog(raum) }),
       knopf(t('konto.einstellungen'), { symbol: 'zahnrad', onclick: () => planenDialog(raum, { persoenlich: true }) }),
+      raum.dauer_chat ? knopf(t('dauerchat.leeren'), { klasse: 'btn gefahr', symbol: 'muell', onclick: async () => {
+        if (!await bestaetigen(t('dauerchat.leerenTitel'), t('dauerchat.leerenText'), { ja: t('dauerchat.leeren'), gefahr: true })) return;
+        await beschaeftigt(null, async () => { await api(`/api/raeume/${raum.code}/dauer-chat`, { methode: 'DELETE' }); toast(t('dauerchat.geleert'), 'ok'); });
+      } }) : null,
     ),
   );
 }
@@ -191,6 +196,7 @@ function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {})
     raum?.passcode_noetig ? schalter('passcode_weg', t('konto.passcodeEntfernen'), '', false) : null,
     schalter('warteraum', t('konto.feldWarteraum'), t('konto.warteraumHinweis'), raum ? !!raum.warteraum : !!ve?.warteraum),
     schalter('chat_speichern', t('konto.feldChatSpeichern'), t('konto.chatSpeichernHinweis'), raum ? !!raum.chat_speichern : !!ve?.chat_speichern),
+    persoenlich ? schalter('dauer_chat', t('dauerchat.feld'), t('dauerchat.feldHinweis'), !!raum?.dauer_chat) : null,
     statusEl,
     h('div', { class: 'knoepfe' },
       h('button', { type: 'button', class: 'btn', onclick: () => schliessen() }, t('allg.abbrechen')),
@@ -207,6 +213,7 @@ function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {})
     e.preventDefault();
     if (!f.reportValidity()) return;
     const body = { warteraum: f.warteraum.checked, chat_speichern: f.chat_speichern.checked };
+    if (persoenlich) body.dauer_chat = f.dauer_chat.checked;
     if (!persoenlich) {
       body.titel = f.titel.value.trim();
       const startIso = lokalZuUtc(f.datum.value, f.zeit.value, f.zeitzone.value);

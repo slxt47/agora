@@ -227,10 +227,11 @@ async def chat_senden(code: str, req: Request):
     if z and z['identity'] == t['identity']:
         fehler(400, 'Das geht nicht bei dir selbst.')
     c = db.verbindung()
-    nid = c.execute('INSERT INTO nachrichten (raum_id, sitzung, von, von_name, von_benutzer, an, an_name, an_benutzer, text, zeit) '
-                    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    nid = c.execute('INSERT INTO nachrichten (raum_id, sitzung, von, von_name, von_benutzer, an, an_name, an_benutzer, text, zeit, dauer) '
+                    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     (r['id'], r['sitzung'], t['identity'], t['name'], t['benutzer_id'], z['identity'] if z else None,
-                     z['name'] if z else None, z['benutzer_id'] if z else None, text, jetzt())).lastrowid
+                     z['name'] if z else None, z['benutzer_id'] if z else None, text, jetzt(),
+                     int(bool(r['dauer_chat']) and not z))).lastrowid      # Dauer-Chat: nur öffentliche Nachrichten
     n = nachricht_json(c.execute('SELECT * FROM nachrichten WHERE id = ?', (nid,)).fetchone())
     await lk.senden(r['code'], n, topic='chat', an=[t['identity'], z['identity']] if z else None)
     return {'nachricht': n}
@@ -241,7 +242,7 @@ def chat_lesen(code: str, req: Request):
     r, t = teilnahme(req, code)
     bid = t['benutzer_id'] or -1
     rows = db.verbindung().execute(
-        'SELECT * FROM (SELECT * FROM nachrichten WHERE raum_id = ? AND sitzung = ? AND '
+        'SELECT * FROM (SELECT * FROM nachrichten WHERE raum_id = ? AND (sitzung = ? OR dauer = 1) AND '
         '(an IS NULL OR von = ? OR an = ? OR von_benutzer = ? OR an_benutzer = ?) ORDER BY id DESC LIMIT 500) ORDER BY id',
         (r['id'], r['sitzung'], t['identity'], t['identity'], bid, bid)).fetchall()
     return {'nachrichten': [nachricht_json(n) for n in rows]}

@@ -364,3 +364,63 @@ def test_verlauf_leerlauf_ende():
     asyncio.run(raeume.leere_pruefen(t + 10 + raeume.LEER_S))
     m = c.get('/api/verlauf').json()['meetings']
     assert len(m) == 1 and m[0]['spitze'] == 1 and m[0]['teilnahmen'] == 1
+
+
+# ---------------------------------------------------------------- Dauer-Chat im persönlichen Raum
+def test_dauer_chat_persoenlicher_raum():
+    from app import dauerchat
+    c, _e, _p = konto(name='Dauer')
+    pers = c.get('/api/raeume').json()['persoenlich']
+    code = pers['code']
+    assert pers['dauer_chat'] is False
+    # Nur im persönlichen Raum
+    assert c.post('/api/raeume', json={'dauer_chat': True}).status_code == 400
+    sofort = raum(c)
+    assert c.patch(f'/api/raeume/{sofort["code"]}', json={'dauer_chat': True}).status_code == 400
+    assert c.patch(f'/api/raeume/{code}', json={'dauer_chat': 'ja'}).status_code == 400
+    assert c.patch(f'/api/raeume/{code}', json={'dauer_chat': True}).json()['raum']['dauer_chat'] is True
+    andere, _e2, _p2 = konto()
+    assert andere.patch(f'/api/raeume/{code}', json={'dauer_chat': False}).status_code == 403
+    assert andere.request('DELETE', f'/api/raeume/{code}/dauer-chat').status_code == 403
+    url = f'/api/raeume/{code}/chat'
+    hz = zugang(c, code)
+    g = neu_client()
+    gz = zugang(g, code, name='Gast')
+    c.post(url, json={'text': 'Bleibt da'}, headers=T(hz))
+    g.post(url, json={'text': 'Nur für dich', 'an': hz['identity']}, headers=T(gz))
+    steuern(c, code, hz, aktion='beenden')
+    # Neues Meeting: öffentlicher Dauer-Chat ist wieder da, private Nachricht nicht
+    hz2 = zugang(c, code)
+    gz2 = zugang(g, code, name='Gast')
+    assert [n['text'] for n in g.get(url, headers=T(gz2)).json()['nachrichten']] == ['Bleibt da']
+    c.post(url, json={'text': 'Zweite Runde'}, headers=T(hz2))
+    assert [n['text'] for n in c.get(url, headers=T(hz2)).json()['nachrichten']] == ['Bleibt da', 'Zweite Runde']
+    # Außerhalb eines Meetings nicht lesbar
+    steuern(c, code, hz2, aktion='beenden')
+    assert g.get(url, headers=T(gz2)).status_code == 403
+    # Besitzer leert (mit Ereignis, wenn das Meeting läuft)
+    hz3 = zugang(c, code)
+    r = c.request('DELETE', f'/api/raeume/{code}/dauer-chat').json()
+    assert r == {'ok': True, 'geloescht': 2} and ereignisse('chat_geleert')
+    assert c.get(url, headers=T(hz3)).json()['nachrichten'] == []
+    # Ausschalten löscht; danach verhält sich der Raum wie vorher (Chat endet mit dem Meeting)
+    c.post(url, json={'text': 'Noch eine'}, headers=T(hz3))
+    c.patch(f'/api/raeume/{code}', json={'dauer_chat': False})
+    assert c.get(url, headers=T(hz3)).json()['nachrichten'] == []
+    c.post(url, json={'text': 'Flüchtig'}, headers=T(hz3))
+    steuern(c, code, hz3, aktion='beenden')
+    hz4 = zugang(c, code)
+    assert c.get(url, headers=T(hz4)).json()['nachrichten'] == []
+    # Obergrenze
+    c.patch(f'/api/raeume/{code}', json={'dauer_chat': True})
+    rid = db.verbindung().execute('SELECT id FROM raeume WHERE code = ?', (code,)).fetchone()[0]
+    alt = dauerchat.MAX_NACHRICHTEN
+    try:
+        dauerchat.MAX_NACHRICHTEN = 3
+        for i in range(5):
+            db.verbindung().execute("INSERT INTO nachrichten (raum_id, sitzung, von, von_name, text, zeit, dauer) VALUES (?, 1, 'x', 'X', ?, 0, 1)",
+                                    (rid, f'n{i}'))
+        dauerchat.aufraeumen()
+    finally:
+        dauerchat.MAX_NACHRICHTEN = alt
+    assert [n['text'] for n in c.get(url, headers=T(hz4)).json()['nachrichten']] == ['n2', 'n3', 'n4']

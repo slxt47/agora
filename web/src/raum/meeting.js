@@ -18,6 +18,7 @@ import { effekte, effektePanel } from './effekte.js';
 import { mobilEinrichten } from './mobil.js';
 import { Umfragen } from './umfragen.js';
 import { Breakout } from './breakout.js';
+import { dauerChatEinrichten, dauerChatGeleert } from './dauerchat.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -108,6 +109,7 @@ export class Meeting {
     this.chat.empfaengerAktualisieren();
     this.chat.rechteAktualisieren();
     this.chat.laden();
+    dauerChatEinrichten(this);
     this.umfragen.laden();
     this.breakout.laden();
     this.buehne.sync();
@@ -255,6 +257,7 @@ export class Meeting {
       case 'beendet': this.grund = 'beendet'; this.room.disconnect(); break;
       case 'entfernt': this.grund = 'entfernt'; break;
       case 'aufnahme': this.aufnahmeSetzen(d.aktiv ? { von_name: d.von_name } : null); break;
+      case 'chat_geleert': dauerChatGeleert(this); break;
       case 'umfrage': this.umfragen.ereignis(d); break;
       case 'breakout': case 'breakout_hilfe': case 'breakout_nachricht': this.breakout.ereignis(d); break;
       case 'stumm':

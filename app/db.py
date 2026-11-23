@@ -229,6 +229,11 @@ SCHEMA = [
     );
     CREATE INDEX meeting_verlauf_besitzer ON meeting_verlauf(besitzer_id, start);
     """,
+    # ==== Version 8 (Dauer-Chat im persönlichen Raum) – eigener Block, beim Zusammenführen ggf. umnummerieren ====
+    """
+    ALTER TABLE raeume ADD COLUMN dauer_chat INTEGER NOT NULL DEFAULT 0;      -- nur persönlicher Raum, Besitzer schaltet
+    ALTER TABLE nachrichten ADD COLUMN dauer INTEGER NOT NULL DEFAULT 0;      -- 1 = gehört zum Dauer-Chat (bleibt nach dem Meeting)
+    """,
 ]
 
 

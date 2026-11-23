@@ -14,6 +14,7 @@ import { Chat, Leute, EMOJIS } from './panels.js';
 import { menue, menueSchliessen } from './menue.js';
 import { Rekorder, aufnahmeAblegen, kannAufnehmen } from './aufnahme.js';
 import { geraeteMerken, geraeteFehler, VIDEO_AUFLOESUNG } from './lobby.js';
+import { effekte, effektePanel } from './effekte.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -151,7 +152,7 @@ export class Meeting {
       .on(RoomEvent.TrackUnsubscribed, (track, _pub, p) => { if (track.kind === Track.Kind.Audio) { track.detach().forEach((el) => el.remove()); this.rekorder?.audioAbgleichen(); } neuZeichnen(p); })
       .on(RoomEvent.TrackMuted, (_pub, p) => { neuZeichnen(p); if (p.isLocal) this.steuerAktualisieren(); })
       .on(RoomEvent.TrackUnmuted, (_pub, p) => { neuZeichnen(p); if (p.isLocal) this.steuerAktualisieren(); })
-      .on(RoomEvent.LocalTrackPublished, (pub) => { this.buehne.sync(); neuZeichnen(r.localParticipant); this.steuerAktualisieren(); if (pub.source === Track.Source.Microphone) this.rekorder?.audioAbgleichen(); })
+      .on(RoomEvent.LocalTrackPublished, (pub) => { if (pub.source === Track.Source.Camera) effekte.anwenden(pub.track); this.buehne.sync(); neuZeichnen(r.localParticipant); this.steuerAktualisieren(); if (pub.source === Track.Source.Microphone) this.rekorder?.audioAbgleichen(); })
       .on(RoomEvent.LocalTrackUnpublished, () => { this.buehne.sync(); neuZeichnen(r.localParticipant); this.steuerAktualisieren(); })
       .on(RoomEvent.ActiveSpeakersChanged, (liste) => this.buehne.sprecher(liste))
       .on(RoomEvent.ConnectionQualityChanged, (_q, p) => this.buehne.aktualisieren(p))
@@ -639,6 +640,7 @@ export class Meeting {
       '-',
       this.istMod() ? { text: this.rekorder?.laeuft ? t('aufnahme.stoppen') : t('aufnahme.starten'), symbol: this.rekorder?.laeuft ? 'stopp' : 'aufnahme',
         deaktiviert: !aufnahmeMoeglich || (!!this.aufnahmeInfo && !this.rekorder?.laeuft), aktion: () => this.aufnahmeUmschalten() } : null,
+      { text: t('effekte.titel'), symbol: 'hintergrund', aktion: () => effektePanel(anker) },
       { text: t('meeting.bildImBild'), symbol: 'bildImBild', deaktiviert: !document.pictureInPictureEnabled, aktion: () => this.bildImBild() },
       { text: t('meeting.sprecheransicht'), symbol: 'sprecher', an: this.buehne.effektiveAnsicht() === 'sprecher', aktion: () => this.buehne.ansichtSetzen('sprecher') },
       { text: t('meeting.galerieansicht'), symbol: 'galerie', an: this.buehne.effektiveAnsicht() === 'galerie', aktion: () => this.buehne.ansichtSetzen('galerie') },
@@ -710,6 +712,7 @@ export class Meeting {
   // ---------------------------------------------------------------- Datensparmodus
   sparmodusSetzen(modus) {
     this.sparmodus = modus;
+    effekte.pausieren(modus !== 'aus');     // Effekte kosten Rechenzeit und Akku – im Sparmodus aus
     for (const p of this.room.remoteParticipants.values()) for (const pub of p.videoTrackPublications.values()) this.sparenAnwenden(pub);
     if (modus === 'audio' && this.room.localParticipant.isCameraEnabled) this.room.localParticipant.setCameraEnabled(false).then(() => this.steuerAktualisieren());
     toast(t(`einst.sparToast.${modus}`), '', { dauer: 3000 });

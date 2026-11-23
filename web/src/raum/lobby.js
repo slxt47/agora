@@ -7,6 +7,7 @@ import {
 import { $, h } from '../common.js';
 import { t } from '../i18n.js';
 import { icon } from '../icons.js';
+import { effekte, effektePanel } from './effekte.js';
 
 const SPEICHER = 'agora-geraete';
 export function geraeteMerken(werte) {
@@ -53,6 +54,8 @@ export class Lobby {
     $('#wahl-mikrofon').addEventListener('change', (e) => this.wechseln('audioinput', e.target.value));
     $('#wahl-lautsprecher').addEventListener('change', (e) => this.wechseln('audiooutput', e.target.value));
     $('#ton-testen').addEventListener('click', () => this.tonTesten());
+    $('#lobby-effekte').addEventListener('click', (e) => effektePanel(e.currentTarget));
+    effekte.addEventListener('zustand', () => this.aktiv && this.knoepfe());
     if (!supportsAudioOutputSelection()) $('#feld-lautsprecher').hidden = true;
     navigator.mediaDevices?.addEventListener?.('devicechange', this.geraeteNeu);
     await Promise.all([this.camAn ? this.kameraHolen() : null, this.mikrofonHolen()]);
@@ -69,6 +72,7 @@ export class Lobby {
     try {
       this.videoTrack = await createLocalVideoTrack({ deviceId: this.wahl.videoinput || undefined, resolution: VIDEO_AUFLOESUNG, facingMode: 'user' });
       this.videoTrack.attach(this.videoEl);
+      effekte.anwenden(this.videoTrack);     // gespeicherten Hintergrund-Effekt gleich in der Vorschau zeigen
       this.fehler.kamera = '';
       this.wahl.videoinput = (await this.videoTrack.getDeviceId()) || this.wahl.videoinput;
     } catch (e) {
@@ -132,6 +136,10 @@ export class Lobby {
     cam.setAttribute('aria-label', this.camAn ? t('steuer.camAus') : t('steuer.camAn'));
     cam.title = cam.getAttribute('aria-label');
     $('#vorschau').classList.toggle('mit-video', !!(this.camAn && this.videoTrack));
+    const fx = $('#lobby-effekte');
+    fx.innerHTML = icon('hintergrund');
+    fx.setAttribute('aria-label', t('effekte.knopf')); fx.title = t('effekte.knopf');
+    fx.classList.toggle('an', !!effekte.ziel() && effekte.zustand === 'aktiv');
   }
 
   async micUmschalten() {

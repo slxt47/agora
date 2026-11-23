@@ -8,6 +8,18 @@ B = os.environ.get('BASIS', 'http://127.0.0.1:8111')
 OUT = os.environ.get('AUSGABE', '/tmp/') 
 fehler = []
 
+def frames(page):
+    """Summe der dekodierten Bilder aller fremden Videos (wächst, solange Video ankommt)."""
+    return page.evaluate("""() => [...document.querySelectorAll('#buehne .kv.mit-video:not(.spiegeln) video')]
+        .reduce((s, v) => s + (v.getVideoPlaybackQuality?.().totalVideoFrames || 0), 0)""")
+
+def effekt_waehlen(page, wert, bild):
+    page.click(f'.effekte [data-wert="{wert}"]')
+    page.wait_for_selector('.effekte .effekt-status[data-zustand="aktiv"]', state='attached', timeout=45000)
+    time.sleep(1.5)
+    page.screenshot(path=OUT + bild)
+    page.keyboard.press('Escape')
+
 def beobachten(page, wer):
     page.on('pageerror', lambda e: fehler.append(f'[{wer}] pageerror: {e}'))
     page.on('console', lambda m: m.type == 'error' and fehler.append(f'[{wer}] console: {m.text}'))
@@ -45,6 +57,12 @@ with sync_playwright() as p:
         hp.wait_for_selector('#v-lobby:not([hidden])')
         time.sleep(1.5)
         hp.screenshot(path=OUT + '05-lobby.png')
+        # Video-Effekte in der Lobby: virtueller Hintergrund (MediaPipe selbst gehostet)
+        hp.click('#lobby-effekte')
+        hp.wait_for_selector('.menue .effekte')
+        effekt_waehlen(hp, 'nachthimmel', '05b-lobby-effekte.png')
+        time.sleep(1)
+        hp.screenshot(path=OUT + '05c-lobby-hintergrund.png')
         hp.click('#beitreten-knopf')
         hp.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
         time.sleep(2)
@@ -90,6 +108,33 @@ with sync_playwright() as p:
         hp.click('#s-mehr'); time.sleep(0.3)
         hp.screenshot(path=OUT + '14-mehr.png')
         hp.keyboard.press('Escape')
+        # Effekt im Meeting umstellen: starke Unschärfe; das Video muss beim Gast weiter ankommen
+        hp.click('#s-mehr'); hp.click('.menue [role=menuitem] >> text=Hintergrund und Effekte')
+        hp.wait_for_selector('.menue .effekte')
+        effekt_waehlen(hp, 'stark', '14b-effekte-meeting.png')
+        gp.click('#leiste-zu')   # Chat beim Gast zu, damit das Bild zu sehen ist
+        f0 = frames(gp); time.sleep(3); f1 = frames(gp)
+        print('Gast empfängt Bilder vom Host (mit Unschärfe):', f0, '→', f1)
+        if f1 <= f0: fehler.append('Video kommt mit Effekt nicht beim Gast an')
+        gp.screenshot(path=OUT + '14c-gast-sieht-effekt.png')
+        # Nur „Aussehen verbessern“ (Canvas-Filter ohne MediaPipe)
+        hp.click('#s-mehr'); hp.click('.menue [role=menuitem] >> text=Hintergrund und Effekte')
+        hp.click('.effekte [data-wert="aus"]')
+        hp.wait_for_selector('.effekte .effekt-status[data-zustand="aus"]', state='attached')
+        hp.click('.effekte .schalter input')
+        effekt_waehlen(hp, 'aus', '14d-verbessern.png')
+        f0 = frames(gp); time.sleep(2); f1 = frames(gp)
+        print('Gast empfängt Bilder vom Host (verbessert):', f0, '→', f1)
+        if f1 <= f0: fehler.append('Video kommt mit „Aussehen verbessern“ nicht beim Gast an')
+        quellen = hp.evaluate("performance.getEntriesByType('resource').map(e => e.name)")
+        fremd = [q for q in quellen if not q.startswith(B) and not q.startswith(('blob:', 'data:'))]
+        mp = [q for q in quellen if '/vendor/mediapipe-' in q]
+        print('MediaPipe-Dateien:', [q.rsplit('/', 1)[-1] for q in mp])
+        if fremd: fehler.append(f'Fremde Quellen geladen: {fremd}')
+        if not any(q.endswith('.wasm') for q in mp) or not any(q.endswith('.tflite') for q in mp): fehler.append('MediaPipe nicht selbst gehostet geladen')
+        wasm = hp.request.get(next(q for q in mp if q.endswith('.wasm')))
+        if wasm.headers.get('content-type') != 'application/wasm' or 'immutable' not in wasm.headers.get('cache-control', ''):
+            fehler.append(f"WASM-Header: {wasm.headers.get('content-type')} / {wasm.headers.get('cache-control')}")
         # Host: Gast stummschalten über Teilnehmerliste
         hp.click('#s-leute'); time.sleep(0.5)
         hp.click('#panel-leute .leute-liste li:nth-child(2) .icon-btn')

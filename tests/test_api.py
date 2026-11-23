@@ -121,6 +121,23 @@ def test_sicherheitsheader_und_csrf():
     assert c.get('/gibts-nicht').json() == {'fehler': 'Nicht gefunden'}
 
 
+def test_csp_video_effekte():
+    """Video-Effekte (MediaPipe-WASM, selbst gehostet): nur 'wasm-unsafe-eval' dazu – kein eval, kein inline, kein CDN."""
+    r = neu_client().get('/api/gesund')
+    teile = {t.split()[0]: t.split()[1:] for t in r.headers['content-security-policy'].split('; ')}
+    assert teile['script-src'] == ["'self'", "'wasm-unsafe-eval'"]
+    assert teile['style-src'] == ["'self'"] and teile['default-src'] == ["'self'"]
+    assert teile['worker-src'] == ["'self'", 'blob:']
+    assert teile['connect-src'][0] == "'self'" and all(q.startswith(('ws://127.0.0.1', 'http://127.0.0.1')) for q in teile['connect-src'][1:])
+    csp = r.headers['content-security-policy']
+    assert "'unsafe-eval'" not in csp and "'unsafe-inline'" not in csp
+    for cdn in ('jsdelivr', 'googleapis', 'unpkg', 'gstatic', 'https:'):
+        assert cdn not in csp
+    # Fehlende Vendor-Dateien dürfen nicht dauerhaft gecacht werden (nur echte 200er sind „immutable“)
+    v = neu_client().get('/vendor/mediapipe-0.0.0/wasm/fehlt.wasm')
+    assert v.status_code == 404 and v.headers['cache-control'] == 'no-store'
+
+
 def test_einstellungen_und_test_posteingang():
     c = neu_client()
     assert c.get('/api/einstellungen').json() == {'livekit_url': 'ws://127.0.0.1:7980', 'max_teilnehmer': 50, 'version': '1.0.0'}

@@ -1,17 +1,24 @@
-# Abhängigkeits-Updates als Pull Requests (wöchentlich). Images bleiben per Digest fest und werden bewusst geändert.
+# Abhängigkeits-Updates als Pull Requests (wöchentlich, gruppiert). Images bleiben per Digest fest; nur Patch/Minor.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    groups:
+      python: { patterns: ["*"] }        # pydantic + pydantic_core usw. nur gemeinsam
   - package-ecosystem: npm
     directory: /web
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    groups:
+      web: { patterns: ["*"] }
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]   # Node/Python-Hauptversionen bewusst von Hand

@@ -3,12 +3,14 @@
 import { $, api, ApiFehler, ichLaden, status, toast, beschaeftigt } from './common.js';
 import { t } from './i18n.js';
 import { codeAusText, initialen } from './helfer.js';
+import './sicherheit.css';
 
 const params = new URLSearchParams(location.search);
 // Nur eigene Pfade als Ziel nach der Anmeldung (kein //fremd.de)
 const weiter = (() => { const w = params.get('weiter') || ''; return /^\/(?!\/)[\w\-/#?=&.]*$/.test(w) ? w : ''; })();
-const FORMULARE = ['f-anmelden', 'f-registrieren', 'f-vergessen', 'f-erneut'];
+const FORMULARE = ['f-anmelden', 'f-registrieren', 'f-vergessen', 'f-erneut', 'f-code'];
 let ich = null;
+let schritt = null;          // Zwei-Faktor: Passwort war richtig, Code fehlt noch
 
 function zeigen(id) {
   for (const f of FORMULARE) $('#' + f).hidden = f !== id;
@@ -43,15 +45,54 @@ senden('f-anmelden', async (f) => {
   try {
     const r = await api('/api/konto/anmelden', { methode: 'POST', json: { email: f.email.value.trim(), passwort: f.passwort.value } });
     f.passwort.value = '';
-    if (weiter) { location.href = weiter; return; }
-    angemeldet(r.ich);
-    toast(t('start.willkommen', { name: r.ich?.name || '' }), 'ok');
+    if (r.zwei_faktor) { codeSchritt(r.schritt); return; }
+    fertigAngemeldet(r);
   } catch (e) {
     if (e instanceof ApiFehler && e.status === 403 && /best[äa]tig/i.test(e.message)) {
       meldung(t('start.nichtBestaetigt'), 'warn');
       $('#f-erneut').email.value = f.email.value.trim();
       return;
     }
+    throw e;
+  }
+});
+
+function fertigAngemeldet(r) {
+  if (weiter) { location.href = weiter; return; }
+  angemeldet(r.ich);
+  toast(t('start.willkommen', { name: r.ich?.name || '' }), 'ok');
+}
+
+// ---------------------------------------------------------------- Zwei-Faktor: zweiter Schritt (Code)
+function codeSchritt(neu) {
+  schritt = neu;
+  const f = $('#f-code');
+  f.code.value = '';
+  f.code.inputMode = 'numeric';
+  $('#code-text').textContent = t('zweifaktor.anmeldenText');
+  zeigen('f-code');
+}
+$('#code-wiederherstellung').addEventListener('click', () => {
+  const feld = $('#f-code').code;
+  feld.inputMode = 'text';
+  $('#code-text').textContent = t('zweifaktor.anmeldenWiederherstellung');
+  feld.focus();
+});
+senden('f-code', async (f) => {
+  try {
+    const r = await api('/api/konto/anmelden/code', { methode: 'POST', json: { schritt, code: f.code.value.replace(/\s/g, '') } });
+    schritt = null;
+    f.code.value = '';
+    fertigAngemeldet(r);
+    if (typeof r.codes_uebrig === 'number' && r.codes_uebrig <= 2) toast(t('zweifaktor.wenigeCodes', { n: r.codes_uebrig }), 'warn', { dauer: 9000 });
+  } catch (e) {
+    if (e instanceof ApiFehler && e.status === 400 && !/stimmt nicht/.test(e.message)) {   // abgelaufen / zu viele → neu anmelden
+      schritt = null;
+      zeigen('f-anmelden');
+      meldung(e.message, 'warn');
+      return;
+    }
+    f.code.select();
     throw e;
   }
 });

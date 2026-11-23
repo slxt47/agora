@@ -7,6 +7,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 ## Funktionen
 
 - **Konten:** Registrierung mit E-Mail-Bestätigung, Passwort-Reset per Link, Profil (Name, Zeitzone, Sprache, Avatar-Farbe), Datenexport und Konto löschen. Gäste können ohne Konto beitreten.
+- **Zwei-Faktor-Anmeldung (TOTP):** freiwillig im Profil; QR-Code wird im Browser gezeichnet, 10 Wiederherstellungscodes
+  (nur einmal sichtbar, gespeichert nur als Hash), ±30 s Toleranz, jeder Code nur einmal, Geheimnis verschlüsselt gespeichert.
 - **Meetings:**
   - Sofort-Meeting, Code `abc-defg-hij` oder Link, Passcode
   - Warteraum mit Zulassen und Ablehnen, Meeting sperren

@@ -234,6 +234,26 @@ SCHEMA = [
     ALTER TABLE raeume ADD COLUMN dauer_chat INTEGER NOT NULL DEFAULT 0;      -- nur persönlicher Raum, Besitzer schaltet
     ALTER TABLE nachrichten ADD COLUMN dauer INTEGER NOT NULL DEFAULT 0;      -- 1 = gehört zum Dauer-Chat (bleibt nach dem Meeting)
     """,
+    # ======== Block „Zwei-Faktor-Anmeldung (TOTP)“ (beim Zusammenführen ggf. neu nummerieren) ========
+    # Version 9: TOTP-Geheimnis (verschlüsselt mit einem aus AGORA_GEHEIM abgeleiteten Schlüssel), letzter benutzter
+    # Zeitschritt (Schutz gegen Wiederverwendung), Wiederherstellungscodes (nur Hash), zweiter Anmeldeschritt
+    """
+    ALTER TABLE benutzer ADD COLUMN totp_geheim TEXT;            -- verschlüsselt (zwei_faktor.verschluesseln) oder NULL
+    ALTER TABLE benutzer ADD COLUMN totp_an INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE benutzer ADD COLUMN totp_schritt INTEGER NOT NULL DEFAULT 0;   -- zuletzt angenommener 30-s-Schritt
+    CREATE TABLE wiederherstellung (    -- Wiederherstellungscodes, je einmal nutzbar, nur als HMAC gespeichert
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      code_hash TEXT NOT NULL,
+      PRIMARY KEY (benutzer_id, code_hash)
+    );
+    CREATE TABLE anmeldeschritte (      -- Passwort war richtig, Code fehlt noch (5 min, höchstens 5 Versuche)
+      token_hash TEXT PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      gueltig_bis INTEGER NOT NULL,
+      versuche INTEGER NOT NULL DEFAULT 0
+    );
+    """,
+    # ======== Ende Block „Zwei-Faktor-Anmeldung“ ========
 ]
 
 

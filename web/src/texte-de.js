@@ -250,4 +250,26 @@ export const de = {
   'dauerchat.marker': 'Dauer-Chat', 'dauerchat.hinweis': 'Dauer-Chat: Nachrichten an alle bleiben nach dem Meeting erhalten.',
   'dauerchat.leeren': 'Dauer-Chat leeren', 'dauerchat.leerenTitel': 'Dauer-Chat leeren?', 'dauerchat.leerenText': 'Alle gespeicherten Nachrichten des Dauer-Chats werden für alle gelöscht.',
   'dauerchat.geleert': 'Dauer-Chat geleert.',
+
+  // ---- Zwei-Faktor-Anmeldung (web/src/konto-sicherheit.js, start.js) – Block „Sicherheit“
+  'zweifaktor.aus': 'Ausgeschaltet', 'zweifaktor.an': 'Eingeschaltet', 'zweifaktor.einschalten': 'Einschalten', 'zweifaktor.ausschalten': 'Ausschalten',
+  'zweifaktor.erklaerung': 'Zusätzlich zum Passwort fragt Agora bei der Anmeldung nach einem Code aus einer Authenticator-App (z. B. Apple Passwörter, 2FAS, Aegis, Google Authenticator). Wer nur dein Passwort kennt, kommt dann nicht in dein Konto.',
+  'zweifaktor.anErklaerung': 'Bei jeder Anmeldung brauchst du zusätzlich den Code aus deiner Authenticator-App. Ohne Handy hilft ein Wiederherstellungscode.',
+  'zweifaktor.codesUebrig': '{n} Wiederherstellungscode(s) übrig', 'zweifaktor.neueCodes': 'Neue Wiederherstellungscodes',
+  'zweifaktor.einrichtenTitel': 'Zwei-Faktor-Anmeldung einschalten', 'zweifaktor.schritt1': 'Bestätige zuerst dein Passwort.', 'zweifaktor.weiter': 'Weiter',
+  'zweifaktor.schritt2': 'Scanne den QR-Code mit deiner Authenticator-App und gib dann den angezeigten 6-stelligen Code ein.',
+  'zweifaktor.qrLabel': 'QR-Code für die Authenticator-App', 'zweifaktor.ohneKamera': 'QR-Code geht nicht? Schlüssel von Hand eingeben',
+  'zweifaktor.ohneKameraText': 'Wähle in der App „Schlüssel eingeben“ (zeitbasiert, 6 Stellen, 30 Sekunden) und tippe diesen Schlüssel ab:',
+  'zweifaktor.codeFeld': 'Code aus der App', 'zweifaktor.codeHinweis': 'Der Code wechselt alle 30 Sekunden.',
+  'zweifaktor.eingeschaltet': 'Die Zwei-Faktor-Anmeldung ist eingeschaltet.', 'zweifaktor.codesTitel': 'Wiederherstellungscodes',
+  'zweifaktor.codesText': 'Bewahre diese Wiederherstellungscodes sicher auf (z. B. im Passwort-Manager). Jeder Code funktioniert genau einmal, falls du dein Handy nicht zur Hand hast. Du siehst sie nur jetzt.',
+  'zweifaktor.kopieren': 'Alle kopieren', 'zweifaktor.herunterladen': 'Als Datei speichern', 'zweifaktor.dateiKopf': 'Agora – Wiederherstellungscodes für {email}. Jeder Code gilt genau einmal.',
+  'zweifaktor.ausschaltenTitel': 'Zwei-Faktor-Anmeldung ausschalten', 'zweifaktor.ausschaltenText': 'Danach reicht zum Anmelden wieder das Passwort allein. Bestätige mit Passwort und einem aktuellen Code.',
+  'zweifaktor.neueCodesTitel': 'Neue Wiederherstellungscodes', 'zweifaktor.neueCodesText': 'Die bisherigen Wiederherstellungscodes werden ungültig. Bestätige mit Passwort und einem aktuellen Code.',
+  'zweifaktor.neueCodesFertig': 'Neue Wiederherstellungscodes erstellt.', 'zweifaktor.codeOderWiederherstellung': 'Code aus der App oder Wiederherstellungscode',
+  'zweifaktor.ausgeschaltet': 'Zwei-Faktor-Anmeldung ausgeschaltet.', 'zweifaktor.schluesselKopieren': 'Schlüssel kopieren',
+  'zweifaktor.anmeldenText': 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
+  'zweifaktor.anmeldenWiederherstellung': 'Gib einen deiner Wiederherstellungscodes ein (z. B. abcde-fghjk). Jeder gilt nur einmal.',
+  'zweifaktor.wenigeCodes': 'Nur noch {n} Wiederherstellungscode(s) übrig – erstelle im Konto neue.',
+  // ---- Ende Block „Sicherheit“
 };

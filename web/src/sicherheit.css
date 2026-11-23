@@ -1,0 +1,11 @@
+/* Sicherheit (Konto → Profil, Anmeldung): Zwei-Faktor-Einrichtung, Wiederherstellungscodes, Code-Feld. slxt-Design. */
+.zf-qr { display: grid; place-items: center; }
+.zf-qr svg { width: min(240px, 70vw); height: auto; border-radius: 14px; box-shadow: 0 0 0 1px var(--card-line); }
+.zf-geheim summary { cursor: pointer; color: var(--accent); font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.zf-geheim[open] { display: grid; gap: 8px; }
+.zf-geheim .btn { justify-self: start; }
+.zf-code, .feld input.zf-code { font: 600 1.5rem/1.2 var(--mono); letter-spacing: .3em; text-align: center; }
+.zf-codes { margin: 0; padding: 14px 16px 14px 2.6em; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px;
+  border-radius: var(--r-tile); background: var(--tile); border: 1px solid var(--card-line); font-size: 1rem; }
+@media (max-width: 420px) { .zf-codes { grid-template-columns: 1fr; } }
+.zf-warnung { color: var(--warn); font-weight: 600; }

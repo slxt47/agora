@@ -18,6 +18,7 @@
   <script src="/modus.js?v=6"></script>
   <title>Mein Konto – Agora</title>
   <script type="module" src="/src/konto.js"></script>
+  <script type="module" src="/src/konto-sicherheit.js"></script>
 </head>
 <body>
   <a class="springen" href="#inhalt">Zum Inhalt springen</a>
@@ -114,6 +115,10 @@
           <label class="feld"><span>Neues Passwort</span><input name="neu" type="password" autocomplete="new-password" required minlength="10"><small>Mindestens 10 Zeichen.</small></label>
           <button class="btn primary" type="submit">Passwort ändern</button>
         </form>
+      </section>
+      <section class="card" aria-labelledby="h-2fa">
+        <h2 id="h-2fa">Zwei-Faktor-Anmeldung</h2>
+        <div class="formular" id="zwei-faktor"><p class="sec">Wird geladen …</p></div>
       </section>
       <section class="card" aria-labelledby="h-daten">
         <h2 id="h-daten">Deine Daten</h2>

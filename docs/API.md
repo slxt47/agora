@@ -20,7 +20,8 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | Methode + Pfad | Body | Antwort |
 |---|---|---|
 | POST `/api/konto/registrieren` | `{name, email, passwort}` (Passwort ≥ 10) | `{ok:true}` – Mail mit Bestätigungslink |
-| POST `/api/konto/anmelden` | `{email, passwort}` | `{ok:true, ich}` + Cookie. 403 `nicht bestätigt` |
+| POST `/api/konto/anmelden` | `{email, passwort}` | `{ok:true, ich}` + Cookie. 403 `nicht bestätigt`. Mit Zwei-Faktor: `{zwei_faktor:true, schritt}` (noch kein Cookie) |
+| POST `/api/konto/anmelden/code` | `{schritt, code}` (TOTP oder Wiederherstellungscode) | `{ok:true, ich, codes_uebrig}` + Cookie. 400 `Der Code stimmt nicht.` bzw. abgelaufen/zu viele (dann neu mit Passwort) |
 | POST `/api/konto/bestaetigung-erneut` | `{email}` | `{ok:true}` (immer) |
 | POST `/api/konto/abmelden` | – | `{ok:true}` |
 | GET `/api/konto/ich` | – | `{angemeldet:false}` oder `{angemeldet:true, ich}` |
@@ -31,8 +32,22 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | GET `/api/konto/export` | – | JSON-Download aller eigenen Daten |
 | DELETE `/api/konto` | `{passwort}` | `{ok:true}` – löscht Konto, Räume, Aufnahmen |
 
-`ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code).
+`ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool).
 Grenzen: Anmelden 10/10 min je IP+Mail, Registrieren 5/h je IP, Mails 3/h je Adresse.
+
+### Zwei-Faktor-Anmeldung (TOTP, angemeldet)
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `/api/konto/2fa` | – | `{an, codes_uebrig}` |
+| POST `/api/konto/2fa/einrichten` | `{passwort}` | `{geheim (Base32), uri (otpauth://totp/…)}` – noch nicht aktiv; 409 wenn schon an |
+| POST `/api/konto/2fa/bestaetigen` | `{code}` | `{ok:true, wiederherstellungscodes:[10]}` – jetzt aktiv; Codes nur in dieser Antwort |
+| POST `/api/konto/2fa/codes` | `{passwort, code}` | `{ok:true, wiederherstellungscodes:[10]}` – alte Codes ungültig |
+| POST `/api/konto/2fa/ausschalten` | `{passwort, code}` | `{ok:true}` |
+
+TOTP nach RFC 6238 (SHA-1, 6 Stellen, 30 s), Toleranz ±1 Schritt, jeder Schritt wird nur einmal angenommen (auch nicht der
+vom Einschalten). `code` darf überall auch ein Wiederherstellungscode sein (`abcde-fghjk`, Groß/Klein, Leer- und
+Bindestriche egal; jeder einmal). Der Anmeldeschritt gilt 5 min und 5 Versuche; dazu 10 Codes/10 min je Konto und 30/10 min je IP.
+Das Geheimnis liegt verschlüsselt (Schlüssel aus `AGORA_GEHEIM`), Wiederherstellungscodes nur als HMAC.
 
 ## Räume
 `raum` = `{code, titel, besitzer_name, ist_host, passcode_noetig, warteraum, gesperrt, aktiv, persoenlich,

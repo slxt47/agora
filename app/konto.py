@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from . import aufnahmen, db, mail, raeume
+from . import aufnahmen, db, mail, raeume, zwei_faktor
 from .kern import (TEST, SEITE, benutzer_aus_sitzung, client_ip, cookie_loeschen, fehler, grenze, h, hash_pw, iso, jetzt,
                    json_body, pw_ok, sitzung_setzen, text_feld)
 
@@ -31,7 +31,7 @@ PASSWORT_S = 3600
 def ich_json(b):
     r = db.verbindung().execute("SELECT code FROM raeume WHERE besitzer_id = ? AND art = 'persoenlich'", (b['id'],)).fetchone()
     return {'id': b['id'], 'name': b['name'], 'email': b['email'], 'zeitzone': b['zeitzone'], 'sprache': b['sprache'],
-            'farbe': b['farbe'], 'persoenlicher_raum': r['code'] if r else None}
+            'farbe': b['farbe'], 'persoenlicher_raum': r['code'] if r else None, 'zwei_faktor': bool(b['totp_an'])}
 
 
 def email_feld(d):
@@ -154,6 +154,8 @@ async def anmelden(req: Request):
         fehler(400, 'E-Mail oder Passwort falsch.')
     if not b['bestaetigt']:
         fehler(403, 'E-Mail-Adresse noch nicht bestätigt – bitte den Link in der Mail öffnen.')
+    if b['totp_an']:               # Zwei-Faktor: erst nach dem Code gibt es eine Sitzung
+        return {'zwei_faktor': True, 'schritt': zwei_faktor.schritt_erstellen(b)}
     c.execute('UPDATE benutzer SET letzte_anmeldung = ? WHERE id = ?', (jetzt(), b['id']))
     db.protokollieren('angemeldet', b['id'])
     resp = JSONResponse({'ok': True, 'ich': ich_json(b)})

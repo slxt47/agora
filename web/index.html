@@ -98,6 +98,17 @@
             </div>
           </form>
 
+          <form class="formular oben" id="f-code" hidden>
+            <h3>Bestätigungscode</h3>
+            <p class="sec klein" id="code-text">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
+            <label class="feld"><span>Code</span><input name="code" class="zf-code" autocomplete="one-time-code" inputmode="numeric" autocapitalize="none" spellcheck="false" required maxlength="20" aria-describedby="code-text"></label>
+            <button class="btn primary" type="submit">Anmelden</button>
+            <div class="knoepfe">
+              <button class="btn leise klein" type="button" id="code-wiederherstellung">Wiederherstellungscode verwenden</button>
+              <button class="btn leise klein" type="button" data-zeige="f-anmelden">Zurück zur Anmeldung</button>
+            </div>
+          </form>
+
           <form class="formular oben" id="f-registrieren" role="tabpanel" aria-labelledby="tab-registrieren" hidden>
             <label class="feld"><span>Name</span><input name="name" autocomplete="name" required maxlength="60"><small>So sehen dich andere im Meeting.</small></label>
             <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required><small>Wir schicken dir einen Bestätigungslink.</small></label>

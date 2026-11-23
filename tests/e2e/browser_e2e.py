@@ -1,6 +1,7 @@
 # Browser-E2E (Playwright, Kamera/Mikro-Attrappe): Host + Gast, Warteraum, Video, Chat, Steuerung, Beenden.
 # Lauf: siehe tests/e2e/lauf.sh
 import re, json, time, traceback
+import base64, hashlib, hmac, struct
 from playwright.sync_api import sync_playwright
 
 import os
@@ -22,6 +23,22 @@ def effekt_waehlen(page, wert, bild):
 
 # Bekannte Browser-Meldung aus @livekit/track-processors (Chromium räumt VideoFrames selbst auf) – kein Fehler von Agora
 BEKANNT = lambda text: 'VideoFrame was garbage collected without being closed' in text
+
+
+def totp(geheim, versatz=0):
+    """TOTP (RFC 6238, SHA-1, 6 Stellen, 30 s) selbst gerechnet – ohne pyotp."""
+    k = base64.b32decode(geheim + '=' * (-len(geheim) % 8))
+    d = hmac.new(k, struct.pack('>Q', int(time.time() // 30) + versatz), hashlib.sha1).digest()
+    o = d[-1] & 15
+    return str((struct.unpack('>I', d[o:o + 4])[0] & 0x7FFFFFFF) % 1000000).zfill(6)
+
+
+def neuer_zeitschritt():
+    """Warten, bis ein neuer 30-s-Schritt beginnt (der Server nimmt jeden Schritt nur einmal an)."""
+    s = int(time.time() // 30)
+    while int(time.time() // 30) == s:
+        time.sleep(0.5)
+    time.sleep(1)
 
 
 def beobachten(page, wer):
@@ -291,6 +308,36 @@ with sync_playwright() as p:
         hp.wait_for_selector('#liste-verlauf li[data-verlauf] .name:has-text("Testmeeting")', timeout=10000)
         print('Verlauf:', hp.inner_text('#liste-verlauf li[data-verlauf]').replace('\n', ' | '))
         hp.screenshot(path=OUT + '18i-verlauf.png', full_page=True)
+        # Zwei-Faktor-Anmeldung: im Profil einschalten (QR lokal gezeichnet, Code im Test berechnet), abmelden,
+        # mit Passwort + Code wieder anmelden
+        hp.goto(B + '/konto#profil')
+        hp.click('#zf-einschalten')
+        hp.fill('dialog [name=passwort]', 'geheimespasswort1')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('dialog .zf-qr svg path')
+        hp.click('dialog .zf-geheim summary')
+        geheim = hp.inner_text('#zf-geheim').replace(' ', '').strip()
+        hp.screenshot(path=OUT + '20a-2fa-qr.png')
+        hp.fill('dialog [name=code]', totp(geheim))
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('dialog .zf-codes li')
+        n_codes = hp.locator('dialog .zf-codes li').count()
+        if n_codes != 10: fehler.append(f'{n_codes} statt 10 Wiederherstellungscodes')
+        hp.screenshot(path=OUT + '20b-2fa-codes.png')
+        hp.click('#zf-fertig')
+        hp.wait_for_selector('#zwei-faktor .marker.ok')
+        hp.click('#abmelden')
+        hp.wait_for_selector('#abgemeldet:not([hidden])')
+        neuer_zeitschritt()
+        hp.fill('#f-anmelden [name=email]', 'host@example.com')
+        hp.fill('#f-anmelden [name=passwort]', 'geheimespasswort1')
+        hp.click('#f-anmelden button[type=submit]')
+        hp.wait_for_selector('#f-code:not([hidden])')
+        hp.screenshot(path=OUT + '20c-2fa-anmelden.png')
+        hp.fill('#f-code [name=code]', totp(geheim))
+        hp.click('#f-code button[type=submit]')
+        hp.wait_for_selector('#angemeldet:not([hidden])')
+        print('2FA: eingeschaltet, mit Code angemeldet')
         # PWA: im Cache nur App-Hülle/statische Dateien – nie API, Medien, MediaPipe
         gecacht = hp.evaluate("(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) out.push(new URL(r.url).pathname); return out; })()")
         print('Im Cache:', len(gecacht), 'Einträge')

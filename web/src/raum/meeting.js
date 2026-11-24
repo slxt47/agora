@@ -601,7 +601,8 @@ export class Meeting {
   async handUmschalten() {
     this.hand = !this.hand;
     this.steuerAktualisieren();
-    try { await this.room.localParticipant.setAttributes({ hand: this.hand ? '1' : '' }); } catch (e) {
+    // Das Attribut setzt der Server (das Token erlaubt keine eigenen Attribute/Namen – sonst wären sie fälschbar)
+    try { await this.api(`/api/raeume/${this.code}/hand`, { methode: 'POST', json: { an: this.hand } }); } catch (e) {
       this.hand = !this.hand; this.steuerAktualisieren(); toast(t('meeting.handFehler'), 'err');
     }
     this.buehne.aktualisieren(this.room.localParticipant);

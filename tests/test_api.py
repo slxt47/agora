@@ -275,7 +275,7 @@ def test_sofort_meeting_und_token():
     claims = jwt.decode(hz['token'], lk.API_SECRET, algorithms=['HS256'], options={'verify_iss': False})
     assert claims['sub'] == hz['identity'] and claims['name'] == 'Hanna'
     v = claims['video']
-    assert v['roomJoin'] and v['room'] == r['code'] and v['canUpdateOwnMetadata'] and v['canPublishData']
+    assert v['roomJoin'] and v['room'] == r['code'] and not v.get('canUpdateOwnMetadata') and v['canPublishData']
     assert set(v['canPublishSources']) == {'camera', 'microphone', 'screen_share', 'screen_share_audio'}
     assert claims['attributes']['rolle'] == 'host' and claims['attributes']['farbe'].startswith('#')
     anlegen = aufrufe('raum_anlegen')[-1]
@@ -412,7 +412,7 @@ def test_umbenennen():
     host, code, hz, [(g1, z1), (g2, z2)] = meeting(2)
     assert steuern(g1, code, z1, aktion='umbenennen', ziel=z1['identity'], name='Neuer Name').json() == {'ok': True}
     assert aufrufe('aktualisieren')[-1] == {'code': code, 'identity': z1['identity'], 'name': 'Neuer Name', 'rolle': None,
-                                            'farbe': None, 'rechte': None}
+                                            'farbe': None, 'rechte': None, 'attribute': None}
     assert steuern(g1, code, z1, aktion='umbenennen', ziel=z2['identity'], name='Fremd').status_code == 403
     steuern(host, code, hz, aktion='rechte', umbenennen=False)
     assert steuern(g1, code, z1, aktion='umbenennen', ziel=z1['identity'], name='Nochmal').status_code == 403

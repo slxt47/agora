@@ -1,10 +1,12 @@
-"""Tests Sicherheitsereignisse des eigenen Kontos (GET /api/konto/sicherheit)."""
+"""Tests Sicherheitsereignisse des eigenen Kontos (GET /api/konto/sicherheit) und Härtungen aus docs/SICHERHEIT.md."""
 import pathlib
 import re
 
-from test_api import frisch, konto, neu_client  # noqa: F401
+import jwt
+from test_api import T, aufrufe, frisch, konto, meeting, neu_client  # noqa: F401
 
 from app import db, sicherheit
+from app import livekit_dienst as lk
 
 
 def test_eigene_sicherheitsereignisse():
@@ -92,3 +94,24 @@ def test_json_body_grenzen_ueber_http():
     assert c.post('/api/konto/anmelden', content=b'{"email":"' + b'a' * 20000 + b'"}', headers=j).status_code == 413
     for body in (b'[' * 15000, b'{"a":' * 2500 + b'1' + b'}' * 2500):      # tief verschachtelt: 400 statt 500
         assert c.post('/api/konto/anmelden', content=body, headers=j).status_code == 400
+
+
+# ---------------------------------------------------------------- LiveKit: Name/Attribute/Metadaten nur vom Server
+def test_token_ohne_eigene_metadaten_und_hand_ueber_server():
+    host, code, hz, [(g, gz)] = meeting(1)
+    for z in (hz, gz):
+        v = jwt.decode(z['token'], lk.API_SECRET, algorithms=['HS256'], options={'verify_iss': False})['video']
+        assert not v.get('canUpdateOwnMetadata')          # sonst: selbst umbenennen trotz Recht aus, Attribute fälschen
+    assert lk.berechtigung('gast', {}).can_update_metadata is False
+    # Hand heben/senken geht über den Server (Attribut hand)
+    r = g.post(f'/api/raeume/{code}/hand', json={'an': True}, headers=T(gz))
+    assert r.status_code == 200 and r.json() == {'ok': True, 'hand': True}
+    a = aufrufe('aktualisieren')[-1]
+    assert a['identity'] == gz['identity'] and a['attribute'] == {'hand': '1'} and a['name'] is None and a['rolle'] is None
+    assert g.post(f'/api/raeume/{code}/hand', json={'an': False}, headers=T(gz)).status_code == 200
+    assert aufrufe('aktualisieren')[-1]['attribute'] == {'hand': ''}
+    # nur mit gültiger Teilnahme, nur bool
+    assert neu_client().post(f'/api/raeume/{code}/hand', json={'an': True}).status_code == 403
+    assert g.post(f'/api/raeume/{code}/hand', json={'an': 'ja'}, headers=T(gz)).status_code == 400
+    assert g.post(f'/api/raeume/{code}/hand', json={'an': True, 'rolle': 'host'}, headers=T(gz)).status_code == 200
+    assert aufrufe('aktualisieren')[-1]['attribute'] == {'hand': '1'}       # nichts außer hand

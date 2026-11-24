@@ -1,6 +1,8 @@
 """Alle Aufrufe an LiveKit (livekit-api 2.0.1) an einer Stelle.
 
 - Zugangs-Token (JWT) mit VideoGrants: room_join, room = Raum-Code, Quellen je Rolle/Rechten, Attribute rolle/farbe.
+  Ohne can_update_own_metadata: Name, Attribute (rolle, farbe, hand) und Metadaten setzt nur der Server – sonst könnte
+  jeder Client sich selbst umbenennen (trotz Recht „umbenennen“ aus) oder Attribute fälschen.
 - Server-API (Twirp über HTTP an LIVEKIT_API_HOST): Raum anlegen/Metadaten/löschen, Teilnehmer auflisten,
   stummschalten, entfernen (Token widerrufen), aktualisieren (Name/Rechte/Attribute), Daten senden.
 
@@ -70,13 +72,13 @@ def quellen(rolle, rechte):
 
 def token(code, identity, name, rolle, farbe, rechte):
     grants = api.VideoGrants(room_join=True, room=code, can_publish=bool(quellen(rolle, rechte)), can_subscribe=True, can_publish_data=True,
-                             can_update_own_metadata=True, can_publish_sources=[QUELLEN_JWT[q] for q in quellen(rolle, rechte)])
+                             can_update_own_metadata=False, can_publish_sources=[QUELLEN_JWT[q] for q in quellen(rolle, rechte)])
     return (api.AccessToken(API_KEY, API_SECRET).with_identity(identity).with_name(name).with_grants(grants)
             .with_attributes({'rolle': rolle, 'farbe': farbe}).with_ttl(TOKEN_TTL).to_jwt())
 
 
 def berechtigung(rolle, rechte):
-    return api.ParticipantPermission(can_subscribe=True, can_publish=bool(quellen(rolle, rechte)), can_publish_data=True, can_update_metadata=True,
+    return api.ParticipantPermission(can_subscribe=True, can_publish=bool(quellen(rolle, rechte)), can_publish_data=True, can_update_metadata=False,
                                      can_publish_sources=[QUELLEN_PROTO[q] for q in quellen(rolle, rechte)])
 
 
@@ -191,12 +193,14 @@ async def entfernen(code, identity):
     return ergebnisse[-1]
 
 
-async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, rechte=None):
-    """Name, Attribut rolle und Rechte (Quellen) eines Teilnehmers ändern."""
-    async def f(lk, code, identity, name, rolle, farbe, rechte):
+async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, rechte=None, attribute=None):
+    """Name, Attribut rolle und Rechte (Quellen) eines Teilnehmers ändern; attribute: weitere Attribute (z. B. hand)."""
+    async def f(lk, code, identity, name, rolle, farbe, rechte, attribute):
         req = api.UpdateParticipantRequest(room=code, identity=identity)
         if name is not None:
             req.name = name
+        for k, v in (attribute or {}).items():
+            req.attributes[k] = v
         if rolle is not None:
             req.attributes['rolle'] = rolle
             if farbe:
@@ -204,7 +208,8 @@ async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, recht
             req.permission.CopyFrom(berechtigung(rolle, rechte or {}))
         await lk.room.update_participant(req)
         return True
-    return await _aufruf('aktualisieren', f, code=ort(code, identity), identity=identity, name=name, rolle=rolle, farbe=farbe, rechte=rechte)
+    return await _aufruf('aktualisieren', f, code=ort(code, identity), identity=identity, name=name, rolle=rolle, farbe=farbe, rechte=rechte,
+                         attribute=attribute)
 
 
 async def senden(code, daten, topic='agora', an=None):

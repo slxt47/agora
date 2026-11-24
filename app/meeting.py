@@ -190,6 +190,18 @@ async def steuerung(code: str, req: Request):
     return {'ok': True}
 
 
+@router.post('/api/raeume/{code}/hand')
+async def hand(code: str, req: Request):
+    """Hand heben/senken: Attribut `hand` setzt der Server (Clients dürfen eigene Attribute nicht ändern)."""
+    r, t = teilnahme(req, code)
+    d = await json_body(req, 1024)
+    if not isinstance(d.get('an'), bool):
+        fehler(400, 'Bitte „an“ (true/false) angeben.')
+    grenze.pruefen('hand:' + t['identity'], 30, 60)
+    await lk.aktualisieren(r['code'], t['identity'], attribute={'hand': '1' if d['an'] else ''})
+    return {'ok': True, 'hand': d['an']}
+
+
 @router.get('/api/raeume/{code}/zustand')
 def zustand(code: str, req: Request):
     r, t = teilnahme(req, code)

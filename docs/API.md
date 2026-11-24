@@ -108,7 +108,10 @@ GET `/api/raeume/{code}/warten/{anfrage}?g=<anfrage_geheim>` → `{status:"warte
 
 `zugang` = `{token (LiveKit-JWT), url (LiveKit-WebSocket-URL), identity, name, rolle: "host"|"cohost"|"teilnehmer"|"gast", teilnahme (Geheimnis für X-Teilnahme)}`.
 LiveKit-URL: `AGORA_LIVEKIT_URL` (Prod `wss://agora.slxt.dev`, Pfad `/rtc` geht per Tunnel an LiveKit; Test `ws://127.0.0.1:7980`).
-LiveKit-Teilnehmer: `identity` = `u<id>-<zufall>` oder `g-<zufall>`; `attributes.rolle` = Rolle, `attributes.farbe`; Client darf eigene Attribute setzen (`hand`="1"/"").
+LiveKit-Teilnehmer: `identity` = `u<id>-<zufall>` oder `g-<zufall>`; `attributes.rolle` = Rolle, `attributes.farbe`, `attributes.hand`="1"/"". Das Token erlaubt **keine** eigenen
+Änderungen an Name, Attributen und Metadaten (`canUpdateOwnMetadata` aus) – das macht nur der Server.
+
+POST `/api/raeume/{code}/hand` (X-Teilnahme) `{an: true|false}` → `{ok:true, hand}`: Hand heben/senken (setzt `attributes.hand`, 30/min).
 Raum-Metadaten (LiveKit `room.metadata`, JSON, nur Server schreibt): `{rechte:{chat, bildschirm, selbst_unmute, umbenennen, mehrfach_freigabe}, gesperrt, aufnahme:false|{von_name}}`.
 
 ### Host-Steuerung (X-Teilnahme, Rolle host/cohost; manche nur host)
@@ -129,8 +132,8 @@ GET `/api/raeume/{code}/zustand` (X-Teilnahme) → `{rolle, rechte, gesperrt, au
 `{typ:"beendet"}` · `{typ:"aufnahme", aktiv, von_name}` · `{typ:"stumm", von_name}` (an Ziel) · `{typ:"kamera_bitten", von_name}` · `{typ:"entfernt"}` (an Ziel, kurz vor Entfernen).
 Client → Client (Topic `reaktion`, lossy): `{emoji}`.
 Zusätzliches Ereignis: `{typ:"kamera_aus", von_name}` (an Ziel). Ereignisse und Chat sendet nur der Server
-(im Client: `participant` ist leer) – Pakete auf `agora`/`chat` von Teilnehmern ignorieren. Das Attribut `rolle` kann ein
-Client selbst überschreiben (can_update_own_metadata für `hand`) → maßgeblich sind `zustand.rollen` und `rolle`-Ereignisse.
+(im Client: `participant` ist leer) – Pakete auf `agora`/`chat` von Teilnehmern ignorieren. Rollen kommen aus
+`zustand.rollen` und `rolle`-Ereignissen (Attribute setzt nur der Server; trotzdem nie aus Client-Daten Rechte ableiten).
 
 ## Chat (X-Teilnahme)
 POST `/api/raeume/{code}/chat` `{text (≤ 2000), an?: identity}` → `{nachricht}`; Server verteilt über Topic `chat` (an alle bzw. nur Empfänger + Absender).

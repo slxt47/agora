@@ -41,6 +41,19 @@ def neuer_zeitschritt():
     time.sleep(1)
 
 
+def warten_js(seite, ausdruck, sekunden=10):
+    """Wie wait_for_function, aber über evaluate (wait_for_function wertet den Text per eval aus – die CSP verbietet das)."""
+    ende = time.time() + sekunden
+    while time.time() < ende:
+        try:
+            if seite.evaluate(ausdruck):
+                return
+        except Exception:      # noqa: BLE001 – Seite lädt gerade neu
+            pass
+        time.sleep(0.25)
+    raise AssertionError(f'Zeitüberschreitung: {ausdruck}')
+
+
 def beobachten(page, wer):
     page.on('pageerror', lambda e: fehler.append(f'[{wer}] pageerror: {e}'))
     page.on('console', lambda m: m.type == 'error' and not BEKANNT(m.text) and fehler.append(f'[{wer}] console: {m.text}'))
@@ -671,7 +684,7 @@ with sync_playwright() as p:
         if 'Keine Verbindung' not in titel: fehler.append('Offline-Seite fehlt')
         hp.screenshot(path=OUT + '19-offline.png')
         host.set_offline(False)      # „online“-Ereignis → die Offline-Seite lädt von selbst neu
-        hp.wait_for_function("!document.querySelector('.offline-karte')", timeout=10000)
+        warten_js(hp, "!document.querySelector('.offline-karte')")
         print('Wieder online:', hp.url)
         # ==== Block E2EE: Host schaltet in der Lobby ein (Schlüssel im Fragment), Gast mit Link entschlüsselt das Video,
         # Gast mit falschem Schlüssel bekommt eine klare Meldung und kommt nicht hinein
@@ -722,6 +735,47 @@ with sync_playwright() as p:
         fgp.screenshot(path=OUT + '30d-e2ee-falscher-schluessel.png')
         fg.close()
         # ==== Ende Block E2EE ====
+        # ==== Block Audio-Modi: Lobby-Menü, Originalton (Musik) im Meeting, starke Rauschunterdrückung (RNNoise, selbst gehostet)
+        lg = br.new_context(viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
+        lgp = lg.new_page(); beobachten(lgp, 'lobby-audio')
+        lgp.goto(elink)
+        lgp.wait_for_selector('#lobby-audio')
+        lgp.click('#lobby-audio')
+        lgp.click('.menue .audio-menue label.schalter:has([name=musik])')
+        warten_js(lgp, "JSON.parse(localStorage.getItem('agora-audio') || '{}').musik === true")
+        if not lgp.is_disabled('.menue .audio-menue select[name=rauschen]'): fehler.append('Audio: Rauschunterdrückung im Musikmodus nicht gesperrt')
+        time.sleep(1)
+        lgp.screenshot(path=OUT + '31a-audio-lobby.png')
+        lg.close()
+        egp.click('#s-mehr'); egp.click('.menue [role=menuitemcheckbox]:has-text("Originalton (Musik)")')
+        egp.wait_for_selector('.toast:has-text("Originalton an")', timeout=10000)
+        egp.wait_for_selector('body[data-mikrofon="roh"]', state='attached', timeout=10000)
+        egp.click('#s-mehr')
+        if egp.get_attribute('.menue [role=menuitemcheckbox]:has-text("Originalton (Musik)")', 'aria-checked') != 'true': fehler.append('Audio: Musikmodus nicht als an markiert')
+        egp.keyboard.press('Escape')
+        print('Audio: Originalton an, Mikrofon ohne Verarbeitung')
+        egp.click('#s-mehr'); egp.click('.menue [role=menuitemcheckbox]:has-text("Originalton (Musik)")')
+        egp.wait_for_selector('body[data-mikrofon="sprache"]', state='attached', timeout=10000)
+        egp.click('#s-mehr'); egp.click('.menue [role=menuitem]:has-text("Einstellungen")')
+        egp.wait_for_selector('dialog select[name=rauschen]')
+        egp.select_option('dialog select[name=rauschen]', 'stark')
+        egp.wait_for_selector('body[data-rauschfilter="aktiv"]', state='attached', timeout=20000)
+        egp.screenshot(path=OUT + '31b-audio-einstellungen.png')
+        egp.keyboard.press('Escape')
+        quellen = egp.evaluate("performance.getEntriesByType('resource').map(e => e.name)")
+        rn = [q.rsplit('/', 1)[-1] for q in quellen if '/vendor/rnnoise-' in q]
+        print('RNNoise-Dateien:', rn, '| Zustand:', egp.get_attribute('body', 'data-rauschfilter'))
+        if not any(q.endswith('.wasm') for q in rn): fehler.append(f'RNNoise nicht selbst gehostet geladen: {rn}')
+        # Das Worklet (addModule) taucht nicht in den Resource-Timings auf → direkt prüfen
+        wasm_url = next(q for q in quellen if '/vendor/rnnoise-' in q)
+        wl = egp.request.get(wasm_url.rsplit('/', 1)[0] + '/rnnoise-worklet.js')
+        if wl.status != 200 or 'javascript' not in wl.headers.get('content-type', '') or 'immutable' not in wl.headers.get('cache-control', ''):
+            fehler.append(f"RNNoise-Worklet: {wl.status} {wl.headers.get('content-type')} {wl.headers.get('cache-control')}")
+        fremd = [q for q in quellen if not q.startswith(B) and not q.startswith(('blob:', 'data:'))]
+        if fremd: fehler.append(f'Fremde Quellen geladen: {fremd}')
+        f0 = frames(ep); time.sleep(2); f1 = frames(ep)
+        if f1 <= f0: fehler.append('Audio-Modi: Video des Gastes kommt beim Host nicht mehr an')
+        # ==== Ende Block Audio-Modi ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

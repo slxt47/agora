@@ -8,6 +8,7 @@
   "author": "Florian Neubauer",
   "dependencies": {
     "@livekit/track-processors": "0.8.3",
+    "@sapphi-red/web-noise-suppressor": "0.4.1",
     "livekit-client": "2.25.0",
     "qrcode-generator": "1.4.4"
   },
@@ -15,8 +16,8 @@
     "vite": "8.3.8"
   },
   "scripts": {
-    "build": "node scripts/icons.mjs && node scripts/hintergruende.mjs && node scripts/mediapipe.mjs && vite build",
-    "dev": "node scripts/hintergruende.mjs && node scripts/mediapipe.mjs && vite",
+    "build": "node scripts/icons.mjs && node scripts/hintergruende.mjs && node scripts/mediapipe.mjs && node scripts/rnnoise.mjs && vite build",
+    "dev": "node scripts/hintergruende.mjs && node scripts/mediapipe.mjs && node scripts/rnnoise.mjs && vite",
     "test": "node --test test/*.test.js"
   }
 }

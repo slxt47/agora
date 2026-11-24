@@ -26,6 +26,7 @@ import { Webinar } from './webinar.js';          // Webinar: Bühne nur Panel, Z
 import { ServerAufnahme } from './egress.js';     // Server-Aufnahme + Livestream (nur mit AGORA_EGRESS=1)
 import { Untertitel } from './untertitel.js';     // Live-Untertitel (Web Speech, nur mit Zustimmung)
 import { e2eeVorbereiten, E2eeAnzeige } from './e2ee.js';
+import { AudioModi } from './audio-modi.js';
 import { linkMitSchluessel } from '../e2ee-schluessel.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
@@ -108,6 +109,7 @@ export class Meeting {
     this.webinar = new Webinar(this);
     this.egress = new ServerAufnahme(this);
     this.untertitel = new Untertitel(this);
+    this.audioModi = new AudioModi(this);     // Musik-Modus, RNNoise (setzt Raum-Optionen vor dem Veröffentlichen)
     await e2ee.aktivieren(this.room);
     if (this.schluessel) this.e2eeAnzeige = new E2eeAnzeige(this);
 
@@ -564,6 +566,7 @@ export class Meeting {
         h('small', {}, t('einst.sparHinweis'))),
       h('label', { class: 'schalter' }, h('span', { class: 'txt' }, h('span', {}, t('einst.selbstAusblenden'))),
         h('input', { type: 'checkbox', role: 'switch', checked: this.buehne.selbstAus, onchange: () => this.selbstUmschalten() })),
+      ...this.audioModi.felder(),
     );
   }
 
@@ -728,6 +731,7 @@ export class Meeting {
       { text: t('meeting.galerieansicht'), symbol: 'galerie', an: this.buehne.effektiveAnsicht() === 'galerie', aktion: () => this.buehne.ansichtSetzen('galerie') },
       { text: t('einst.selbstAusblenden'), symbol: 'augeAus', an: this.buehne.selbstAus, aktion: () => this.selbstUmschalten() },
       { text: t('einst.sparmodus'), symbol: 'sparen', an: this.sparmodus !== 'aus', aktion: () => this.sparmodusSetzen(this.sparmodus === 'aus' ? 'audio' : 'aus') },
+      this.audioModi.menueEintrag(),
       '-',
       { text: t('meeting.linkKopieren'), symbol: 'link', aktion: () => kopieren(this.einladeLink(), t('meeting.linkKopiert')) },
       { text: t('einst.titel'), symbol: 'zahnrad', aktion: () => this.einstellungen() },

@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { BASIS as MP_BASIS, MODELL as MP_MODELL } from './scripts/mediapipe.mjs';
+import { BASIS as RNNOISE_BASIS } from './scripts/rnnoise.mjs';
 
 // @livekit/track-processors lädt MediaPipe ohne assetPaths von jsDelivr bzw. storage.googleapis.com. Wir geben die
 // Pfade zwar immer selbst an (effekte-verarbeitung.js), ersetzen die Vorgaben aber trotzdem durch die eigenen –
@@ -51,7 +52,7 @@ const serviceWorker = {
 export default defineConfig({
   base: '/',
   plugins: [ohneCdn, serviceWorker],
-  define: { __MP_BASIS__: JSON.stringify(MP_BASIS), __MP_MODELL__: JSON.stringify(MP_MODELL) },
+  define: { __MP_BASIS__: JSON.stringify(MP_BASIS), __MP_MODELL__: JSON.stringify(MP_MODELL), __RNNOISE_BASIS__: JSON.stringify(RNNOISE_BASIS) },
   build: {
     outDir: 'dist', emptyOutDir: true, sourcemap: false, assetsInlineLimit: 0, modulePreload: { polyfill: false },
     target: 'es2022',

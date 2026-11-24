@@ -8,6 +8,10 @@ import { $, h } from '../common.js';
 import { t } from '../i18n.js';
 import { icon } from '../icons.js';
 import { effekte, effektePanel } from './effekte.js';
+import { audioFelder } from './audio-modi.js';
+import { audioLesen, audioMerken, erfassung, rauschenWirksam } from './audio-wahl.js';
+import { menue } from './menue.js';
+import './audio.css';
 
 const SPEICHER = 'agora-geraete';
 export function geraeteMerken(werte) {
@@ -55,6 +59,7 @@ export class Lobby {
     $('#wahl-lautsprecher').addEventListener('change', (e) => this.wechseln('audiooutput', e.target.value));
     $('#ton-testen').addEventListener('click', () => this.tonTesten());
     $('#lobby-effekte').addEventListener('click', (e) => effektePanel(e.currentTarget));
+    $('#lobby-audio').addEventListener('click', (e) => this.audioMenue(e.currentTarget));
     effekte.addEventListener('zustand', () => this.aktiv && this.knoepfe());
     if (!supportsAudioOutputSelection()) $('#feld-lautsprecher').hidden = true;
     navigator.mediaDevices?.addEventListener?.('devicechange', this.geraeteNeu);
@@ -87,7 +92,7 @@ export class Lobby {
 
   async mikrofonHolen() {
     try {
-      this.audioTrack = await createLocalAudioTrack({ deviceId: this.wahl.audioinput || undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true });
+      this.audioTrack = await createLocalAudioTrack({ deviceId: this.wahl.audioinput || undefined, ...erfassung(audioLesen()) });   // Audio-Modi
       this.fehler.mikrofon = '';
       this.wahl.audioinput = (await this.audioTrack.getDeviceId()) || this.wahl.audioinput;
       if (!this.micAn) await this.audioTrack.mute();
@@ -140,6 +145,22 @@ export class Lobby {
     fx.innerHTML = icon('hintergrund');
     fx.setAttribute('aria-label', t('effekte.knopf')); fx.title = t('effekte.knopf');
     fx.classList.toggle('an', !!effekte.ziel() && effekte.zustand === 'aktiv');
+    const au = $('#lobby-audio'), aw = audioLesen();
+    au.innerHTML = icon('lautsprecher');
+    au.setAttribute('aria-label', t('audio.knopf')); au.title = t('audio.knopf');
+    au.classList.toggle('an', aw.musik || rauschenWirksam(aw) === 'stark');
+  }
+
+  /** Audio-Modi (Musik, Rauschunterdrückung): Wahl merken, Mikrofon mit den neuen Einstellungen neu holen. */
+  audioMenue(anker) {
+    const inhalt = h('div', { class: 'formular audio-menue' }, h('b', {}, t('audio.titel')),
+      ...audioFelder(audioLesen(), async (neu) => {
+        audioMerken({ ...audioLesen(), ...neu });
+        this.audioTrack?.stop(); this.audioTrack = null;
+        await this.mikrofonHolen();
+        this.knoepfe();
+      }));
+    menue(anker, null, { inhalt, label: t('audio.titel') });
   }
 
   async micUmschalten() {

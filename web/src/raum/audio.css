@@ -1,0 +1,2 @@
+/* Audio-Modi: Menü in der Lobby (Ton-Einstellungen) */
+.audio-menue { padding: 8px; width: min(360px, calc(100vw - 32px)); }

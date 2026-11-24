@@ -150,4 +150,7 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
 
 ## Updates
 
+RNNoise (`@sapphi-red/web-noise-suppressor`) ist exakt gepinnt; `scripts/rnnoise.mjs` kopiert Worklet und WASM beim Build
+nach `/vendor/rnnoise-<version>/` (wie MediaPipe: unveränderlich gecacht, vom Service Worker nicht gespeichert).
+
 LiveKit-, Node- und Python-Images sind per Digest festgelegt. Für ein Update Tag und Digest bewusst ändern, `sh tests/e2e/lauf.sh` laufen lassen und danach ausrollen.

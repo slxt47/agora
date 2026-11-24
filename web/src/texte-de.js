@@ -483,4 +483,15 @@ export const de = {
   'e2ee.einladenHinweis': 'Ende-zu-Ende-verschlüsselt: Die Einladungs-Mail enthält den Schlüssel nicht (der Server kennt ihn nicht). Schicke den Link unten zusätzlich auf einem anderen Weg.',
   'e2ee.einladenOhneSchluessel': 'Ende-zu-Ende-verschlüsselt, aber der Schlüssel ist auf diesem Gerät nicht gespeichert. Öffne das Meeting über den Link mit Schlüssel oder schalte die Verschlüsselung neu ein.',
   // ==== Ende Block E2EE ====
+  // ==== Block Audio-Modi (web/src/raum/audio-*.js) ====
+  'audio.knopf': 'Ton-Einstellungen', 'audio.titel': 'Ton',
+  'audio.rauschen': 'Rauschunterdrückung',
+  'audio.rauschenBrowser': 'Browser (Standard)', 'audio.rauschenStark': 'Stark (KI, RNNoise)', 'audio.rauschenAus': 'Aus',
+  'audio.rauschenHinweis': '„Stark“ filtert Tastatur, Lüfter und Straßenlärm mit einem kleinen KI-Modell – komplett in deinem Browser.',
+  'audio.rauschenMusik': 'Im Originalton-Modus ist jede Rauschunterdrückung aus.',
+  'audio.musik': 'Originalton (Musik)',
+  'audio.musikHinweis': 'Für Musik und Instrumente: ohne Echo- und Rauschunterdrückung und automatische Lautstärke, in Stereo mit hoher Qualität. Bitte Kopfhörer verwenden.',
+  'audio.musikAn': 'Originalton an – bitte Kopfhörer verwenden, sonst gibt es Echo.', 'audio.musikAus': 'Originalton aus – Sprache wird wieder gefiltert.',
+  'audio.rnnoiseFehler': 'Die starke Rauschunterdrückung lässt sich hier nicht starten. Der Ton läuft ohne sie weiter.',
+  // ==== Ende Block Audio-Modi ====
 };

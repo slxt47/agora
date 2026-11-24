@@ -38,6 +38,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
     eigenes Bild (bleibt im Browser, wird nie hochgeladen), „Aussehen verbessern“ (milder Helligkeits-/Kontrastfilter).
     Läuft mit `@livekit/track-processors` und MediaPipe komplett im Browser; WASM und Modell liegen unter `/vendor/`,
     nichts kommt von einem CDN. Im Datensparmodus pausiert, auf zu langsamen Geräten schaltet es sich selbst ab.
+  - Audio-Modi in Lobby und Meeting (je Gerät gemerkt): **Originalton (Musik)** ohne Echo-/Rauschunterdrückung und
+    automatische Lautstärke, stereo, Opus mit 128 kbit/s (`musicHighQualityStereo`), ohne DTX/RED – für Musik und
+    Instrumente (mit Kopfhörern). **Rauschunterdrückung** „Browser“ (Standard), „Stark“ (KI-Modell RNNoise als WASM im
+    AudioWorklet, als LiveKit-TrackProcessor, `@sapphi-red/web-noise-suppressor` 0.4.1 – MIT, darin RNNoise BSD-3 und
+    `@shiguredo/rnnoise-wasm` Apache-2.0) oder „Aus“. Dateien selbst gehostet unter `/vendor/rnnoise-<version>/`,
+    geladen erst bei Bedarf.
 - **Oberfläche:**
   - Galerie und Sprecheransicht, Anheften und Spotlight, Seiten bei vielen Teilnehmenden
   - Vollbild, Bild-in-Bild
@@ -103,7 +109,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 | Teil | Technik |
 |---|---|
 | `app/` | FastAPI + SQLite, argon2, LiveKit-Server-API (`livekit-api`), Mails über SMTP |
-| `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
+| `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), RNNoise (`scripts/rnnoise.mjs`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
 | `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges); `redis` + `egress` nur mit Profil `egress` |
 

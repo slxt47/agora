@@ -6,6 +6,7 @@ import { icon } from './icons.js';
 import { zeitText, laufzeitText, uhrzeitText, linkTeile } from './helfer.js';
 import './planung.css';
 import { qualitaetBereit, qualitaetVerlaufMarke } from './qualitaet-konto.js';
+import { zusammenarbeitVerlauf } from './zusammenarbeit-verlauf.js';   // Whiteboard, Notizen, Fragen, Dateien
 
 let zone = () => undefined;
 
@@ -71,5 +72,6 @@ async function inhaltDialog(m) {
           h('small', { class: 'sec' }, t('verlauf.stimmen', { n: u.ergebnis?.stimmen ?? 0 }))));
       }
     }
+    zusammenarbeitVerlauf(inhalt, r, m);
   } catch (e) { inhalt.replaceChildren(h('p', { class: 'leer' }, e.message)); }
 }

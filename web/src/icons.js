@@ -64,6 +64,25 @@ const P = {
   // Melden und Blockieren
   flagge: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
   blockieren: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  // ==== Block „Zusammenarbeit“ (Whiteboard, Notizen, Q&A, Dateien) ====
+  whiteboard: '<rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M8 20.5l4-4 4 4M7 12.5l3-3 2.5 2 4-4.5"/>',
+  zeiger: '<path d="M5 3.5l13 6.2-5.6 1.7-2.2 5.6z"/><path d="M12.6 12.2 18 19"/>',
+  linie: '<path d="M5 19 19 5"/>',
+  pfeil: '<path d="M5 19 19 5M10 5h9v9"/>',
+  rechteck: '<rect x="4" y="6" width="16" height="12" rx="1.5"/>',
+  ellipse: '<ellipse cx="12" cy="12" rx="8.5" ry="6.5"/>',
+  text: '<path d="M5 6V4.5h14V6M12 4.5v15M9 19.5h6"/>',
+  notiz: '<path d="M4 4h16v10.5L14.5 20H4z"/><path d="M14.5 20v-5.5H20"/>',
+  radierer: '<path d="M8.5 20.5h11M4.3 14.7l9.4-9.4a2 2 0 0 1 2.8 0l3.2 3.2a2 2 0 0 1 0 2.8L12 19.5H8.6l-4.3-4.3a.4.4 0 0 1 0-.5zM9.5 9.5l5 5"/>',
+  rueckgaengig: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  wiederholen: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+  zoomPlus: '<circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16M8 11h6M11 8v6"/>',
+  zoomMinus: '<circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16M8 11h6"/>',
+  fragen: '<path d="M20.5 12a8 8 0 0 1-11.8 7L3.5 20.5 5 15.6A8 8 0 1 1 20.5 12z"/><path d="M10 9.5a2.2 2.2 0 1 1 3 2c-.6.3-1 .8-1 1.5M12 15.6h.01"/>',
+  daumen: '<path d="M7 10.5v10H4v-10zM7 10.5 11 3a2 2 0 0 1 2.6 1.9L13 9h5.6a2 2 0 0 1 2 2.4l-1.4 7a2 2 0 0 1-2 1.6H7"/>',
+  datei: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  notizen: '<path d="M5 4h14v16H5z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
+  // ==== Ende Block „Zusammenarbeit“ ====
 };
 
 /** SVG-Zeichenkette für ein Symbol. */

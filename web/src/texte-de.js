@@ -348,4 +348,22 @@ export const de = {
   'qk.leer': 'Für diesen Raum gibt es noch keine Werte.', 'qk.wann': 'Meeting', 'qk.sterne': 'Bewertung', 'qk.verbindung': 'RTT · Verlust · Jitter',
   'qk.schlecht': 'schlecht', 'qk.probleme': 'Probleme und Hinweise',
   // ==== Ende Block Verbindungsqualität ====
+  // ==== Block „Zusammenarbeit“ (web/src/raum/whiteboard.js, zusammenarbeit.js, web/src/zusammenarbeit-verlauf.js) ====
+  'wb.titel': 'Whiteboard', 'wb.werkzeuge': 'Whiteboard-Werkzeuge', 'wb.tafelLabel': 'Gemeinsames Whiteboard',
+  'wb.wz.auswahl': 'Auswählen und verschieben', 'wb.wz.stift': 'Stift', 'wb.wz.linie': 'Linie', 'wb.wz.pfeil': 'Pfeil',
+  'wb.wz.rechteck': 'Rechteck', 'wb.wz.ellipse': 'Ellipse', 'wb.wz.text': 'Text', 'wb.wz.notiz': 'Notizzettel', 'wb.wz.radierer': 'Radierer',
+  'wb.farbe.1d1d1f': 'Schwarz', 'wb.farbe.e5484d': 'Rot', 'wb.farbe.f08c00': 'Orange', 'wb.farbe.2fb67c': 'Grün', 'wb.farbe.2f80ed': 'Blau', 'wb.farbe.8e6cff': 'Lila',
+  'wb.breite': 'Strichstärke {n}', 'wb.rueckgaengig': 'Rückgängig (Strg+Z)', 'wb.wiederholen': 'Wiederholen (Strg+Umschalt+Z)',
+  'wb.zoomRein': 'Vergrößern', 'wb.zoomRaus': 'Verkleinern', 'wb.zoomZurueck': 'Zoom zurücksetzen',
+  'wb.export': 'Als PNG speichern', 'wb.schliessen': 'Whiteboard schließen', 'wb.oeffnen': 'Öffnen',
+  'wb.sperren': 'Sperren (nur Moderation zeichnet)', 'wb.entsperren': 'Für alle freigeben', 'wb.zeigen': 'Bei allen öffnen', 'wb.leeren': 'Whiteboard leeren',
+  'wb.leerenTitel': 'Whiteboard leeren?', 'wb.leerenText': 'Alles auf dem Whiteboard wird für alle gelöscht.',
+  'wb.gesperrtMod': 'Gesperrt – nur Host und Co-Hosts zeichnen', 'wb.nurAnsehen': 'Nur ansehen – der Host hat das Whiteboard gesperrt',
+  'wb.gesperrtToast': 'Das Whiteboard ist jetzt gesperrt.', 'wb.entsperrtToast': 'Alle können wieder auf dem Whiteboard zeichnen.',
+  'wb.gesperrtOk': 'Whiteboard gesperrt.', 'wb.entsperrtOk': 'Whiteboard freigegeben.', 'wb.gezeigtOk': 'Das Whiteboard ist bei allen offen.',
+  'wb.gezeigtVon': '{name} zeigt das Whiteboard.', 'wb.geleertVon': '{name} hat das Whiteboard geleert.',
+  'wb.zeichnetToast': '{name} zeichnet auf dem Whiteboard.', 'wb.leer': 'Das Whiteboard ist noch leer.',
+  'wb.textEingabe': 'Text', 'wb.textPlatzhalter': 'Text eingeben …', 'wb.notizText': 'Text des Notizzettels', 'wb.notizPlatzhalter': 'Notiz …',
+  'zv.whiteboard': 'Whiteboard', 'zv.whiteboardPng': 'Als PNG speichern',
+  // ==== Ende Block „Zusammenarbeit“ ====
 };

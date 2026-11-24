@@ -329,7 +329,7 @@ Verbundener (Haupt- und Breakout-Räume, minütlich und bei jedem Beitritt gemes
 | Methode + Pfad | Antwort |
 |---|---|
 | GET `/api/verlauf` | `{meetings:[eintrag]}` – nur beendete, neueste zuerst, max. 100 |
-| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat |
+| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
 | DELETE `/api/verlauf/{id}` | `{ok:true}` |
 
 Server-Haken in `raeume.py` für Module: `BEIM_START`, `BEIM_BEITRITT`, `BEI_ZAEHLUNG(raum, anzahl)` (neben `BEIM_ENDE`).
@@ -342,3 +342,26 @@ Nachrichten gehören nie dazu. Ausschalten löscht den Dauer-Chat.
 DELETE `/api/raeume/{code}/dauer-chat` (Besitzer) → `{ok:true, geloescht:n}`; läuft das Meeting, geht Ereignis `{typ:"chat_geleert"}`
 an alle (Client leert die Liste und lädt neu). Höchstens 1000 Nachrichten je Raum (ältere löscht der Hintergrund).
 
+## Zusammenarbeit (X-Teilnahme)
+Alle Inhalte gehören zu einem Meeting (Raum + Sitzung) und werden mit seinem Ende gelöscht – außer der Raum hat `chat_speichern`;
+dann liefert sie GET `/api/verlauf/{id}/inhalt` dem Besitzer. Server-Haken: `verlauf.INHALT` (f(raum_id, sitzung) → dict).
+
+### Whiteboard
+`objekt` = `{id ([A-Za-z0-9_-]{6,40}, vom Client), art: stift|linie|pfeil|rechteck|ellipse|text|notiz, farbe "#rrggbb", breite 1–40,`
+`punkte:[x0,y0,…]` (stift, ≤ 2000 Punkte) bzw. `x, y, w, h` (sonst; Linie/Pfeil von x,y nach x+w,y+h), `text` (text/notiz, ≤ 2000)}`.
+Zahlen werden auf 0,1 gerundet, unbekannte Felder verworfen. `op` = `{art:"neu", objekt}` · `{art:"aendern", objekt}` · `{art:"loeschen", id}`.
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| GET `/api/raeume/{code}/whiteboard` | alle | – | `{seq, objekte:[objekt] (Zeichenreihenfolge), gesperrt, darf_zeichnen}` |
+| POST `/api/raeume/{code}/whiteboard/ops` | alle (gesperrt: host/cohost) | `{ops:[op] (1–20)}` (≤ 64 KB) | `{seq, angenommen}`; 403 gesperrt, 409 `neu` mit vorhandener id, 413 voll (3000 Objekte / 3 MB) |
+| POST `/api/raeume/{code}/whiteboard/sperren` | host/cohost | `{an: bool}` | `{ok, gesperrt}` |
+| POST `/api/raeume/{code}/whiteboard/leeren` | host/cohost | – | `{ok, seq}` |
+| POST `/api/raeume/{code}/whiteboard/zeigen` | host/cohost | – | `{ok}` – öffnet das Whiteboard bei allen |
+
+`aendern`/`loeschen` einer unbekannten id werden still übergangen (gleichzeitig gelöscht). Ab 4000 Log-Einträgen verdichtet der
+Server das Log zu einem Schnappschuss. Grenze 80 Anfragen je 10 s und Person.
+Pakete (Topic `whiteboard`, nur vom Server – Clients verwerfen Pakete mit Absender): `{typ:"ops", von_seq, seq, ops, von, von_name}` ·
+`{typ:"neu_laden", seq, von, von_name}` (Paket wäre > 14 KB) · `{typ:"geleert", seq, von_name}` · `{typ:"gesperrt", an, von_name}` ·
+`{typ:"zeigen", von, von_name}`. Passt `von_seq` nicht zu `seq + 1` des Clients, lädt er den Stand per GET. Rückgängig/Wiederholen
+macht der Client (nur eigene Schritte, als Gegen-Operation).

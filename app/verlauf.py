@@ -14,6 +14,7 @@ from .kern import benutzer_aus_sitzung, fehler, iso, jetzt
 
 router = APIRouter()
 AUFBEWAHRUNG_S = 90 * 86400
+INHALT = []           # f(raum_id, sitzung) → dict: weitere gespeicherte Inhalte (Whiteboard, Notizen, Fragen, Dateien)
 
 
 def _sicherstellen(r):
@@ -95,8 +96,11 @@ def inhalt(vid: int, req: Request):
     n = c.execute('SELECT * FROM nachrichten WHERE raum_id = ? AND sitzung = ? AND (an IS NULL OR von_benutzer = ? OR an_benutzer = ?) ORDER BY id',
                   (v['raum_id'], v['sitzung'], b['id'], b['id'])).fetchall()
     u = c.execute('SELECT * FROM umfragen WHERE raum_id = ? AND sitzung = ? ORDER BY id', (v['raum_id'], v['sitzung'])).fetchall()
-    return {'meeting': eintrag_json(v), 'nachrichten': [raeume.nachricht_json(x) for x in n],
-            'umfragen': [umfragen.umfrage_json(x, mod=True) for x in u]}
+    erg = {'meeting': eintrag_json(v), 'nachrichten': [raeume.nachricht_json(x) for x in n],
+           'umfragen': [umfragen.umfrage_json(x, mod=True) for x in u]}
+    for f in INHALT:
+        erg |= f(v['raum_id'], v['sitzung'])
+    return erg
 
 
 konto.EXPORT.append(lambda b: {'meeting_verlauf': [eintrag_json(v) for v in db.verbindung().execute(

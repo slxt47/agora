@@ -21,6 +21,7 @@ import { Breakout } from './breakout.js';
 import { dauerChatEinrichten, dauerChatGeleert } from './dauerchat.js';
 import { Melden } from './melden.js';
 import { Statistik } from './statistik.js';
+import { Zusammenarbeit } from './zusammenarbeit.js';     // Whiteboard, Notizen, Q&A, Dateien
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -88,6 +89,7 @@ export class Meeting {
     this.breakout = new Breakout(this);
     this.melden = new Melden(this);
     this.statistik = new Statistik(this);
+    this.zusammen = new Zusammenarbeit(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.statistik.starten();
@@ -116,6 +118,7 @@ export class Meeting {
     this.chat.laden();
     dauerChatEinrichten(this);
     this.umfragen.laden();
+    this.zusammen.laden();
     this.breakout.laden();
     this.buehne.sync();
     this.steuerAktualisieren();
@@ -197,11 +200,12 @@ export class Meeting {
   }
 
   datenEmpfangen(daten, p, topic) {
-    if (topic === 'agora' || topic === 'chat') {
+    if (topic === 'agora' || topic === 'chat' || topic === 'whiteboard') {
       if (p) return;                          // nur der Server darf hier senden
       const d = jsonLesen(daten, null);
       if (!d) return;
       if (topic === 'chat') { this.chat.empfangen(d.nachricht || d); return; }
+      if (topic === 'whiteboard') { this.zusammen.daten(topic, d); return; }
       this.serverEreignis(d);
       return;
     }
@@ -245,7 +249,7 @@ export class Meeting {
           this.rolle = d.rolle;
           if (war !== d.rolle) toast(t(`meeting.rolleNeu.${d.rolle}`), 'ok');
           if (this.istMod()) this.leute.warteraumLaden();
-          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.breakout.laden(); }
+          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.zusammen.rolleGeaendert(); this.breakout.laden(); }
           this.chat.rechteAktualisieren();
           this.steuerAktualisieren();
         }
@@ -280,7 +284,7 @@ export class Meeting {
         bestaetigen(t('meeting.kameraBittenTitel'), t('meeting.kameraBittenText', { name: d.von_name || t('rolle.host') }), { ja: t('steuer.camAn'), nein: t('meeting.spaeter') })
           .then((ja) => ja && this.kameraUmschalten());
         break;
-      default: break;
+      default: this.zusammen?.ereignis(d); break;
     }
   }
 
@@ -635,13 +639,14 @@ export class Meeting {
   leisteOeffnen(welche, fokus = true) {
     this.leisteOffen = welche;
     $('#seitenleiste').hidden = false;
-    for (const p of ['chat', 'leute', 'umfragen']) {
+    for (const p of ['chat', 'leute', 'umfragen', ...this.zusammen.panels]) {
       $(`#panel-${p}`).hidden = welche !== p;
       $(`#tab-${p}`).setAttribute('aria-selected', String(welche === p));
     }
     this.chat.zeigen(welche === 'chat');
     this.leute.zeigen(welche === 'leute');
     this.umfragen.zeigen(welche === 'umfragen');
+    this.zusammen.zeigen(welche);
     this.steuerAktualisieren();
     if (!fokus) { /* automatisch geöffnet (z. B. neue Umfrage) – Fokus bleibt, wo er ist */ } else if (welche === 'chat') this.chat.feld.focus({ preventScroll: true });
     else $(`#tab-${welche}`).focus({ preventScroll: true });
@@ -654,6 +659,7 @@ export class Meeting {
     this.chat.zeigen(false);
     this.leute.zeigen(false);
     this.umfragen.zeigen(false);
+    this.zusammen.zeigen(null);
     this.steuerAktualisieren();
     this.buehne.planen();
   }
@@ -667,6 +673,7 @@ export class Meeting {
       { text: this.hand ? t('steuer.handSenken') : t('steuer.handHeben'), symbol: 'hand', aktion: () => this.handUmschalten() },
       { text: t('steuer.reaktion'), symbol: 'smiley', aktion: () => this.reaktionWahl(anker) },
       { text: t('umfrage.tab'), symbol: 'umfrage', aktion: () => this.leisteOeffnen('umfragen') },
+      ...this.zusammen.menueEintraege(),
       ...this.breakout.menueEintraege(),
       '-',
       this.istMod() ? { text: this.rekorder?.laeuft ? t('aufnahme.stoppen') : t('aufnahme.starten'), symbol: this.rekorder?.laeuft ? 'stopp' : 'aufnahme',

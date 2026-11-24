@@ -273,6 +273,54 @@ with sync_playwright() as p:
         hp.evaluate("window.slxtModus.setzen('hell')"); time.sleep(0.5)
         hp.screenshot(path=OUT + '17e-host-ergebnis-hell.png')
         hp.evaluate("window.slxtModus.setzen('dunkel')")
+        # ==== Zusammenarbeit: Whiteboard – Host zeichnet (Stift, Rechteck, Notizzettel), zeigt es allen, Gast sieht es ====
+        TINTE = """() => { const c = document.querySelector('.wb .wb-tafel'); if (!c || !c.width) return 0;
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0;
+            for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] < 600) n++; return n; }"""
+        if gp.locator('#seitenleiste:not([hidden])').count():
+            gp.click('#leiste-zu')
+        hp.click('#s-mehr'); hp.click('.menue [role=menuitem] >> text=Whiteboard')
+        hp.wait_for_selector('.wb:not([hidden]) .wb-tafel')
+        box = hp.locator('.wb .wb-tafel').bounding_box()
+        def zug(punkte):
+            hp.mouse.move(box['x'] + punkte[0][0], box['y'] + punkte[0][1]); hp.mouse.down()
+            for x, y in punkte[1:]:
+                hp.mouse.move(box['x'] + x, box['y'] + y, steps=6)
+            hp.mouse.up()
+        zug([(120, 160), (180, 220), (240, 170), (320, 260), (400, 180)])          # Stift
+        hp.click('.wb-leiste [data-werkzeug=rechteck]'); hp.click('.wb-leiste [data-farbe="#2f80ed"]')
+        zug([(460, 140), (640, 260)])
+        hp.click('.wb-leiste [data-werkzeug=pfeil]')
+        zug([(420, 320), (560, 300)])
+        hp.click('.wb-leiste [data-werkzeug=notiz]'); hp.click('.wb-leiste [data-farbe="#f08c00"]')
+        hp.mouse.click(box['x'] + 260, box['y'] + 360)
+        hp.wait_for_selector('.wb .wb-editor.notiz')
+        hp.keyboard.type('Ideen sammeln')
+        hp.keyboard.press('Control+Enter')
+        hp.wait_for_selector('.wb .wb-editor', state='detached')
+        time.sleep(0.5)
+        hp.screenshot(path=OUT + '17f-host-whiteboard.png')
+        hp.click('.wb [data-aktion=zeigen]')
+        gp.wait_for_selector('.wb:not([hidden]) .wb-tafel', timeout=10000)
+        gp.wait_for_function(f'(n) => ({TINTE})() > n', arg=200, timeout=10000)
+        print('Whiteboard beim Gast: Tinte', gp.evaluate(f'({TINTE})()'))
+        time.sleep(0.5)
+        gp.screenshot(path=OUT + '17g-gast-whiteboard.png')
+        # Host sperrt → Gast darf nicht mehr zeichnen; wieder freigeben, Gast zeichnet, Host sieht es
+        hp.click('.wb [data-aktion=sperren]')
+        gp.wait_for_selector('.wb .wb-status:has-text("Nur ansehen")', timeout=10000)
+        if not gp.locator('.wb-leiste [data-werkzeug=stift]').is_disabled(): fehler.append('Whiteboard gesperrt, Gast-Stift trotzdem aktiv')
+        hp.click('.wb [data-aktion=sperren]')
+        gp.wait_for_selector('.wb .wb-status', state='hidden', timeout=10000)
+        vorher = hp.evaluate(f'({TINTE})()')
+        gbox = gp.locator('.wb .wb-tafel').bounding_box()
+        gp.click('.wb-leiste [data-werkzeug=stift]')
+        gp.mouse.move(gbox['x'] + 40, gbox['y'] + 250); gp.mouse.down()
+        gp.mouse.move(gbox['x'] + 250, gbox['y'] + 320, steps=8); gp.mouse.up()
+        hp.wait_for_function(f'(n) => ({TINTE})() > n', arg=vorher, timeout=10000)
+        hp.screenshot(path=OUT + '17h-host-whiteboard-gast.png')
+        gp.click('.wb [data-aktion=schliessen]'); hp.click('.wb [data-aktion=schliessen]')
+        print('Whiteboard: Host zeichnet, Gast sieht es; Sperre wirkt; Gast zeichnet, Host sieht es')
         # Breakout-Räume: Host legt 2 Räume an (automatisch, Timer), öffnet; Gast landet im Breakout-Raum und ruft Hilfe;
         # Host besucht ihn über den Hinweis, schickt eine Nachricht an alle Räume und schließt (60 s Countdown) → alle zurück
         def warten_bis(seite, sel, anzahl, sekunden=20):

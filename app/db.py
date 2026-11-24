@@ -324,6 +324,30 @@ SCHEMA = [
     );
     """,
     # ==== Ende Block Verbindungsqualität ====
+    # ======== Platzhalter Version 14 und 15 (andere parallele Blöcke) – beim Zusammenführen durch diese ersetzen ========
+    'SELECT 1;',
+    'SELECT 1;',
+    # ======== Block „Zusammenarbeit“ (Whiteboard, Notizen, Q&A, Dateien) – beim Zusammenführen ggf. neu nummerieren ========
+    # Version 16: Gemeinsames Whiteboard – Operations-Log je Meeting (raum_id + sitzung), Sperre/Zähler je Raum.
+    # Mit dem Meeting gelöscht, außer der Raum hat chat_speichern (dann sieht der Besitzer das Bild im Meeting-Verlauf).
+    """
+    CREATE TABLE whiteboard (          -- je Raum: laufende Nummer der Operationen und Sperre (nur Moderation zeichnet)
+      raum_id INTEGER PRIMARY KEY REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      seq INTEGER NOT NULL DEFAULT 0,
+      gesperrt INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE whiteboard_ops (      -- {art: neu|aendern|loeschen, ...} als JSON, in Reihenfolge von id
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      seq INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      op TEXT NOT NULL,
+      zeit INTEGER NOT NULL
+    );
+    CREATE INDEX whiteboard_ops_raum ON whiteboard_ops(raum_id, sitzung, id);
+    """,
 ]
 
 

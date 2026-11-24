@@ -1,0 +1,54 @@
+/* Agora – Zusammenarbeit: Whiteboard über der Bühne und weitere Reiter der Seitenleiste (Notizen, Fragen, Dateien). */
+
+/* Mehr Reiter in der Seitenleiste: waagrecht scrollbar statt gequetscht */
+.leiste-kopf .umschalter { grid-auto-columns: minmax(max-content, 1fr); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.leiste-kopf .umschalter::-webkit-scrollbar { display: none; }
+.leiste-kopf .umschalter button { padding: 0 10px; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- Whiteboard */
+.wb { position: absolute; inset: 0; z-index: 5; border-radius: 18px; overflow: hidden; background: #fbfaf7; border: 1px solid var(--m-linie);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .35); }
+.wb[hidden] { display: none; }
+.wb-tafel { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; cursor: crosshair; }
+.wb-tafel:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.wb-tafel[data-werkzeug="auswahl"] { cursor: default; }
+.wb-tafel[data-werkzeug="text"] { cursor: text; }
+.wb-tafel[data-werkzeug="radierer"] { cursor: cell; }
+
+.wb-oben, .wb-leiste, .wb-zoom { position: absolute; display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 14px;
+  background: var(--m-flaeche); color: var(--m-text); border: 1px solid var(--m-linie); box-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
+.wb-oben { top: 10px; left: 10px; right: 10px; padding-left: 14px; flex-wrap: wrap; }
+.wb-titel { font: 700 .9375rem/1 var(--display); }
+.wb-status { font-size: .8125rem; color: var(--warn); font-weight: 600; }
+.wb-rechts { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+.wb-leiste { left: 50%; bottom: 10px; transform: translateX(-50%); max-width: calc(100% - 20px); overflow-x: auto; scrollbar-width: none; }
+.wb-zoom { right: 10px; bottom: 72px; }
+.wb-gruppe { display: flex; gap: 2px; align-items: center; flex: none; }
+.wb-gruppe + .wb-gruppe { padding-left: 6px; border-left: 1px solid var(--m-linie); }
+.wb-gruppe[hidden] { display: none; }
+
+.wb-knopf, .wb-farbe, .wb-breite, .wb-zoomtext { min-width: 40px; height: 40px; border: 0; border-radius: 10px; background: transparent; color: inherit;
+  display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
+.wb-knopf svg { width: 20px; height: 20px; }
+.wb-knopf:hover, .wb-farbe:hover, .wb-breite:hover, .wb-zoomtext:hover { background: var(--m-flaeche-2); }
+.wb-knopf[aria-pressed="true"], .wb-breite[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+.wb-knopf:disabled, .wb-farbe:disabled, .wb-breite:disabled { opacity: .35; cursor: not-allowed; }
+.wb-knopf:focus-visible, .wb-farbe:focus-visible, .wb-breite:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.wb-farbe::before { content: ""; width: 22px; height: 22px; border-radius: 50%; background: var(--f); box-shadow: 0 0 0 1px rgba(255, 255, 255, .35) inset; }
+.wb-farbe[aria-pressed="true"]::before { box-shadow: 0 0 0 2px var(--m-flaeche), 0 0 0 4px var(--accent); }
+.wb-breite i { display: block; width: 22px; height: var(--b); border-radius: 99px; background: currentColor; }
+.wb-zoomtext { min-width: 56px; font: 600 .8125rem/1 var(--font); font-variant-numeric: tabular-nums; }
+
+.wb-editor { position: absolute; z-index: 2; border: 1.5px dashed #6d4aff; border-radius: 4px; resize: none; outline: none; line-height: 1.25;
+  overflow: hidden; min-width: 40px; }
+.wb-editor.notiz { border-style: solid; border-color: rgba(0, 0, 0, .2); line-height: 23px; box-shadow: 0 3px 10px rgba(0, 0, 0, .18); }
+.wb-editor::placeholder { color: rgba(29, 29, 31, .45); }
+
+@media (max-width: 760px) {
+  .wb { border-radius: 12px; }
+  .wb-oben { padding-left: 10px; }
+  .wb-titel { display: none; }
+  .wb-zoom { bottom: auto; top: 64px; }
+  .wb-knopf, .wb-farbe, .wb-breite { min-width: 44px; height: 44px; }
+}
+

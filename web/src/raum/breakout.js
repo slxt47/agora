@@ -43,6 +43,7 @@ export class Breakout {
 
   // ---------------------------------------------------------------- Zustand
   async laden() {
+    if (this.m.beendet || this.m.grund) return;              // nach dem Ende nichts mehr nachladen (sonst 403)
     try {
       const r = await this.m.api(`/api/raeume/${this.m.code}/breakout`);
       this.z = r.breakout || null;

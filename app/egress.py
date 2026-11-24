@@ -206,6 +206,8 @@ async def aufnahme(code: str, req: Request):
     r, t = meeting.steuernd(req, code)
     d = await json_body(req)
     c = db.verbindung()
+    if d.get('aktion') != 'stopp' and r['e2ee']:     # Server sieht in E2EE-Meetings nur verschlüsselte Medien
+        fehler(409, 'In Ende-zu-Ende-verschlüsselten Meetings geht das nur im Browser – der Server kann Bild und Ton nicht lesen.')
     if d.get('aktion') == 'stopp':
         e = _aktiv(r, 'aufnahme', ('startet', 'laeuft'))
         if not e:
@@ -252,6 +254,8 @@ async def stream(code: str, req: Request):
     r, t = meeting.steuernd(req, code)
     d = await json_body(req)
     c = db.verbindung()
+    if d.get('aktion') != 'stopp' and r['e2ee']:     # Server sieht in E2EE-Meetings nur verschlüsselte Medien
+        fehler(409, 'In Ende-zu-Ende-verschlüsselten Meetings geht das nur im Browser – der Server kann Bild und Ton nicht lesen.')
     if d.get('aktion') == 'stopp':
         e = _aktiv(r, 'stream', ('startet', 'laeuft'))
         if not e:

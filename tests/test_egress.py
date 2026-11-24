@@ -111,3 +111,11 @@ def test_meeting_ende_vergisst_stream_ziel(egress_an):
                     headers=T(hz)).json()['id']
     host.post(f'/api/raeume/{code}/steuerung', json={'aktion': 'beenden'}, headers=T(hz))
     assert db.verbindung().execute('SELECT ziel_verschluesselt FROM egress_laeufe WHERE egress_id = ?', (eid,)).fetchone()[0] is None
+
+
+def test_e2ee_meeting_ohne_server_aufnahme(egress_an):
+    host, code, hz, g, gz = runde()
+    db.verbindung().execute('UPDATE raeume SET e2ee = 1 WHERE code = ?', (code,))
+    for pfad in ('aufnahme', 'stream'):
+        r = host.post(f'/api/raeume/{code}/egress/{pfad}', json={'aktion': 'start', 'layout': 'raster', 'url': 'rtmps://a.example.org/live', 'schluessel': 'x'}, headers=T(hz))
+        assert r.status_code == 409, r.text

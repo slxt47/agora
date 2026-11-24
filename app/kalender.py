@@ -15,7 +15,7 @@ import base64
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from . import db, ics, raeume
+from . import db, ics, raeume, texte
 from .kern import GEHEIM, SEITE, benutzer_aus_sitzung, client_ip, fehler, grenze, h, iso, jetzt
 
 router = APIRouter()
@@ -78,7 +78,8 @@ def feed_text(b, t=None):
                         'start': r['start'], 'dauer_min': r['dauer_min'], 'zeitzone': r['zeitzone'] or 'UTC',
                         'wiederholung': r['wiederholung'], 'bis': r['bis'], 'erstellt': r['erstellt'],
                         'veranstalter': b['name']})
-    return ics.abo_kalender(f'Agora – {b["name"]}', termine)
+    with texte.mit_sprache(b['sprache']):      # Feed in der Konto-Sprache (Kalender-Apps schicken keine passende Sprache)
+        return ics.abo_kalender(f'Agora – {b["name"]}', termine)
 
 
 @router.get('/kalender/{datei}')

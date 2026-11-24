@@ -24,7 +24,7 @@ import secrets
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from . import db, mail
+from . import db, mail, texte
 from . import livekit_dienst as lk
 from . import meeting, raeume
 from .kern import GEHEIM, SEITE, benutzer_aus_sitzung, client_ip, fehler, grenze, h, iso, jetzt, json_body, text_feld
@@ -333,7 +333,7 @@ async def anmelden(code: str, req: Request):
         details = raeume.termin_details(r, None)
         ics_daten = raeume.ics_text(r) if r['art'] == 'geplant' else None
         mail.im_hintergrund(anmelde_mail, email, name, r['titel'], f'{SEITE}/r/{r["code"]}?anmeldung={tok}', details, ics_daten,
-                            f'{anmelde_link(r["code"])}?abmelden={tok}')
+                            f'{anmelde_link(r["code"])}?abmelden={tok}', texte.sprache())
     db.protokollieren('Webinar-Anmeldung', None, code)
     return {'ok': True}
 
@@ -351,16 +351,16 @@ async def abmelden(code: str, req: Request):
     return {'ok': True}
 
 
-def anmelde_mail(an, name, titel, link, details, ics_daten, abmelde_link):
-    saetze = [f'Hallo {name},', f'du bist für das Webinar „{titel}“ angemeldet. Mit deinem persönlichen Link kommst du hinein – '
-              'bitte gib ihn nicht weiter.']
-    hinweis = (f'Abmelden (deine Angaben werden sofort gelöscht): {abmelde_link} · Sonst löschen wir deine Anmeldung '
-               '30 Tage nach dem Webinar.')
-    text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in details) + f'\n\nTeilnehmen: {link}\n\n{hinweis}\n'
+def anmelde_mail(an, name, titel, link, details, ics_daten, abmelde_link, sprache='de'):
+    """Bestätigung in der Sprache der Anmeldeseite (Accept-Language bei der Anmeldung)."""
+    s = sprache
+    saetze = [texte.tx(s, 'hallo', name=name), texte.tx(s, 'webinar.satz', titel=titel)]
+    hinweis = texte.tx(s, 'webinar.hinweis', link=abmelde_link)
+    text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in details) + f'\n\n{texte.tx(s, "webinar.teilnehmen")}: {link}\n\n{hinweis}\n'
     anhaenge = [('webinar.ics', 'text', 'calendar', ics_daten.encode(), {'method': 'PUBLISH', 'charset': 'utf-8'})] if ics_daten else []
-    mail.senden(an, f'Anmeldung bestätigt: {titel}', text,
-                mail.html_mail('Du bist angemeldet', saetze, knopf=('Zum Webinar', link), details=details, hinweis=hinweis,
-                               vorschau=f'Dein Link für „{titel}“'), anhaenge)
+    mail.senden(an, texte.tx(s, 'webinar.betreff', titel=titel), text,
+                mail.html_mail(texte.tx(s, 'webinar.titel'), saetze, knopf=(texte.tx(s, 'webinar.knopf'), link), details=details,
+                               hinweis=hinweis, vorschau=texte.tx(s, 'webinar.vorschau', titel=titel), sprache=s), anhaenge, sprache=s)
 
 
 # ---------------------------------------------------------------- Im Meeting: Podium, Zustand

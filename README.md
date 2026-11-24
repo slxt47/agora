@@ -48,6 +48,9 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Galerie und Sprecheransicht, Anheften und Spotlight, Seiten bei vielen Teilnehmenden
   - Vollbild, Bild-in-Bild
   - Hell und Dunkel, Tastenkürzel, für Handy, Tablet und Desktop
+  - Deutsch und Englisch: Schalter DE/EN in der Kopfzeile (im Browser gemerkt), für Angemeldete die Sprache aus dem Profil,
+    sonst die Browsersprache. Nur das aktive Wörterbuch wird geladen; Datum/Uhrzeit per `Intl`. Fehlermeldungen der API und
+    Mails ebenfalls zweisprachig; Impressum/Datenschutz bleiben deutsch (Hinweis „(German)“). Siehe [`docs/adr/0006-sprachen.md`](docs/adr/0006-sprachen.md).
 - **App (PWA) und Mobil:**
   - installierbar (Knopf auf der Startseite, auf iPhone/iPad Anleitung „Zum Home-Bildschirm“), Verknüpfungen „Neues Meeting“ und „Beitreten“
   - Service Worker cacht nur App-Hülle und statische Dateien (versioniert; nie `/api`, `/rtc`, Medien oder MediaPipe),

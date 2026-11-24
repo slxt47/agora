@@ -1,6 +1,10 @@
 # Agora – API-Vertrag (Backend ↔ Frontend)
 
-Alle Antworten JSON. Fehler: HTTP-Status + `{"fehler": "deutscher Text"}`.
+Alle Antworten JSON. Fehler: HTTP-Status + `{"fehler": "Text"}` – auf Deutsch, mit `Accept-Language: en…` auf Englisch
+(erste de/en-Angabe des Headers, sonst Deutsch; das Frontend schickt immer die Sprache der Oberfläche, ADR 0006).
+Dieselbe Sprache gilt für Termin-Texte (`.ics`, Kalender-Links), Standard-Titel neuer Räume, die Konto-Sprache bei der
+Registrierung, Einladungs-Mails und Webinar-Bestätigungen. Andere Mails gehen in der Konto-Sprache des Empfängers
+(Erinnerungen an Eingeladene: Sprache des einladenden Kontos); Meldungen an Admins bleiben deutsch.
 Zustandsändernde Aufrufe (POST/PUT/PATCH/DELETE) brauchen Header `X-Agora: 1` (CSRF-Schutz), sonst 403.
 Anmeldung per Cookie `__Host-agora` (httponly, secure, samesite=lax). Test: `AGORA_COOKIE=agora`, `AGORA_COOKIE_SECURE=0`.
 Wer in einem Meeting ist, schickt bei Raum-Aktionen Header `X-Teilnahme: <teilnahme>` (Geheimnis aus dem Beitritt).

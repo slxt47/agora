@@ -3,6 +3,7 @@
 Jede Mail hat eine Textfassung und eine HTML-Fassung: tabellenbasiert, Styles inline (Gmail/Outlook), Logo als
 eingebettetes Bild (cid:, nichts wird nachgeladen – keine Tracking-Pixel), dunkler Nachthimmel wie slxt.org,
 helle Variante über prefers-color-scheme (Apple Mail, iOS). Im Testmodus landen Mails nur im Speicher.
+Texte in der Sprache des Empfängers (texte.MAIL, Deutsch/Englisch, ADR 0006) – nur Meldungen an Admins bleiben deutsch.
 """
 import html
 import os
@@ -12,6 +13,8 @@ import threading
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 
+from .texte import gueltig, tx
+
 TEST = os.environ.get('AGORA_TEST') == '1'
 POSTEINGANG_TEST = []          # nur im Testmodus: (an, betreff, text, html, anhaenge)
 _lock = threading.Lock()
@@ -20,7 +23,7 @@ SEITE = os.environ.get('AGORA_SEITE', 'https://agora.slxt.dev').rstrip('/')
 MARKE = 'Agora'
 
 
-def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=None, links=None):
+def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=None, links=None, sprache='de'):
     """slxt-Design: Nachthimmel, Glaskarte, violetter Akzent, Systemschrift. Alles inline."""
     e = html.escape
     absatz_html = ''.join(f'<p style="margin:0 0 14px;font-size:16px;line-height:1.55;color:#c9cbe0" class="sec">{e(a)}</p>' for a in absaetze)
@@ -39,8 +42,9 @@ def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=No
     if links:      # kleine Textlinks unter dem Knopf, z. B. „Zu Google Kalender“ (nur https-Ziele)
         teile = ' · '.join(f'<a href="{e(u)}" class="akzent" style="color:#a993ff;text-decoration:none">{e(t)}</a>' for t, u in links)
         hinweis_html = f'<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#8e90ad" class="leise">{teile}</p>' + hinweis_html
+    sp = gueltig(sprache)
     return f'''<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="{sp}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>{e(titel)}</title>
 <style>
   @media (prefers-color-scheme: light) {{
@@ -72,17 +76,17 @@ def html_mail(titel, absaetze, knopf=None, hinweis=None, vorschau='', details=No
       {absatz_html}{details_html}{knopf_html}{hinweis_html}
     </td></tr>
     <tr><td class="fuss" style="padding:20px 8px 0;text-align:center;font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#8e90ad">
-      Videokonferenzen · ohne Werbung, ohne Tracking<br>
+      {e(tx(sp, 'fuss'))}<br>
       <a href="{SEITE}" class="akzent" style="color:#a993ff;text-decoration:none">{e(SEITE.split('://')[-1])}</a> ·
-      <a href="https://slxt.org/impressum/" style="color:#8e90ad;text-decoration:none">Impressum</a> ·
-      <a href="https://slxt.org/datenschutz/#agora" style="color:#8e90ad;text-decoration:none">Datenschutz</a>
+      <a href="https://slxt.org/impressum/" style="color:#8e90ad;text-decoration:none">{e(tx(sp, 'impressum'))}</a> ·
+      <a href="https://slxt.org/datenschutz/#agora" style="color:#8e90ad;text-decoration:none">{e(tx(sp, 'datenschutz'))}</a>
     </td></tr>
   </table>
 </td></tr></table>
 </body></html>'''
 
 
-def senden(an, betreff, text, html_text=None, anhaenge=()):
+def senden(an, betreff, text, html_text=None, anhaenge=(), sprache='de'):
     """anhaenge: [(dateiname, maintype, subtype, bytes, params)]"""
     if TEST:
         with _lock:
@@ -93,7 +97,8 @@ def senden(an, betreff, text, html_text=None, anhaenge=()):
     m['To'] = an
     m['Subject'] = betreff
     m['Message-ID'] = make_msgid(domain=os.environ['SMTP_FROM'].split('@')[-1])
-    m.set_content(text + f'\n\n– {MARKE} · {SEITE}\nDiese Nachricht wurde automatisch verschickt.\n')
+    m['Content-Language'] = gueltig(sprache)
+    m.set_content(text + f'\n\n– {MARKE} · {SEITE}\n{tx(sprache, "automatisch")}\n')
     if html_text:
         m.add_alternative(html_text, subtype='html')
         if os.path.exists(LOGO):
@@ -124,68 +129,75 @@ def im_hintergrund(funktion, *args):
         threading.Thread(target=lauf, daemon=True).start()
 
 
-IGNORIEREN = 'Wenn du das nicht warst, kannst du diese Mail ignorieren. Wir fragen dich nie nach deinem Passwort.'
+def bestaetigen_mail(an, name, link, sprache='de'):
+    s = sprache
+    satz, gilt, ign = tx(s, 'bestaetigen.satz'), tx(s, 'bestaetigen.gilt'), tx(s, 'ignorieren')
+    text = f'{tx(s, "hallo", name=name)}\n\n{satz}\n\n{link}\n\n{gilt}\n{ign}'
+    senden(an, tx(s, 'bestaetigen.betreff'), text,
+           html_mail(tx(s, 'bestaetigen.titel'), [tx(s, 'hallo', name=name), satz], knopf=(tx(s, 'bestaetigen.knopf'), link),
+                     hinweis=f'{gilt} {ign}', vorschau=tx(s, 'bestaetigen.vorschau'), sprache=s), sprache=s)
 
 
-def bestaetigen_mail(an, name, link):
-    satz = 'Bitte bestätige deine E-Mail-Adresse. Danach kannst du Meetings starten, planen und deinen persönlichen Raum nutzen.'
-    text = f'Hallo {name},\n\n{satz}\n\n{link}\n\nDer Link gilt 48 Stunden.\n{IGNORIEREN}'
-    senden(an, f'{MARKE}: E-Mail-Adresse bestätigen', text,
-           html_mail('Willkommen bei Agora', [f'Hallo {name},', satz], knopf=('E-Mail-Adresse bestätigen', link),
-                     hinweis='Der Link gilt 48 Stunden. ' + IGNORIEREN, vorschau='Bitte bestätige deine E-Mail-Adresse'))
+def schon_registriert_mail(an, name, link, sprache='de'):
+    s = sprache
+    satz, ign = tx(s, 'schon.satz'), tx(s, 'ignorieren')
+    text = f'{tx(s, "hallo", name=name)}\n\n{satz}\n\n{link}\n\n{ign}'
+    senden(an, tx(s, 'schon.betreff'), text,
+           html_mail(tx(s, 'schon.titel'), [tx(s, 'hallo', name=name), satz], knopf=(tx(s, 'schon.knopf'), link),
+                     hinweis=ign, vorschau=tx(s, 'schon.vorschau'), sprache=s), sprache=s)
 
 
-def schon_registriert_mail(an, name, link):
-    satz = 'Jemand wollte mit dieser Adresse ein neues Konto anlegen – du hast aber schon eins. Falls du dein Passwort vergessen hast:'
-    text = f'Hallo {name},\n\n{satz}\n\n{link}\n\n{IGNORIEREN}'
-    senden(an, f'{MARKE}: Du hast schon ein Konto', text,
-           html_mail('Du hast schon ein Konto', [f'Hallo {name},', satz], knopf=('Passwort zurücksetzen', link),
-                     hinweis=IGNORIEREN, vorschau='Du hast schon ein Konto bei Agora'))
+def passwort_mail(an, name, link, sprache='de'):
+    s = sprache
+    satz, gilt, ign = tx(s, 'passwort.satz'), tx(s, 'passwort.gilt'), tx(s, 'ignorieren')
+    text = f'{tx(s, "hallo", name=name)}\n\n{satz}\n\n{link}\n\n{gilt}\n{ign}'
+    senden(an, tx(s, 'passwort.betreff'), text,
+           html_mail(tx(s, 'passwort.titel'), [tx(s, 'hallo', name=name), satz], knopf=(tx(s, 'passwort.knopf'), link),
+                     hinweis=f'{gilt} {ign}', vorschau=tx(s, 'passwort.vorschau'), sprache=s), sprache=s)
 
 
-def passwort_mail(an, name, link):
-    satz = 'Mit diesem Link setzt du ein neues Passwort. Danach wirst du überall abgemeldet.'
-    text = f'Hallo {name},\n\n{satz}\n\n{link}\n\nDer Link gilt 1 Stunde.\n{IGNORIEREN}'
-    senden(an, f'{MARKE}: Passwort zurücksetzen', text,
-           html_mail('Passwort zurücksetzen', [f'Hallo {name},', satz], knopf=('Neues Passwort setzen', link),
-                     hinweis='Der Link gilt 1 Stunde. ' + IGNORIEREN, vorschau='Neues Passwort setzen'))
+KALENDER = ('google', 'outlook', 'office365')
 
 
-KALENDER_NAMEN = (('google', 'Zu Google Kalender'), ('outlook', 'Zu Outlook.com'), ('office365', 'Zu Outlook/Office 365'))
+def kalender_namen(sprache):
+    """[(schluessel, „Zu Google Kalender“ …)] in der Sprache der Mail."""
+    return [(k, tx(sprache, f'kal.{k}')) for k in KALENDER]
 
 
-def einladung_mail(an, von_name, titel, link, details, ics_daten=None, passcode=None, kalender=None):
-    saetze = [f'{von_name} lädt dich zu einem Meeting ein: „{titel}“.']
+def einladung_mail(an, von_name, titel, link, details, ics_daten=None, passcode=None, kalender=None, sprache='de'):
+    s = sprache
+    saetze = [tx(s, 'einladung.satz', von=von_name, titel=titel)]
     zeilen = list(details)
     if passcode:
-        zeilen.append(('Passcode', passcode))
-    text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in zeilen) + f'\n\nBeitreten: {link}\n'
-    links = [(name, kalender[k]) for k, name in KALENDER_NAMEN if kalender and kalender.get(k)]
+        zeilen.append((tx(s, 'einladung.passcode'), passcode))
+    text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in zeilen) + f'\n\n{tx(s, "einladung.beitreten")}: {link}\n'
+    links = [(name, kalender[k]) for k, name in kalender_namen(s) if kalender and kalender.get(k)]
     if links:
         text += '\n' + '\n'.join(f'{name}: {u}' for name, u in links) + '\n'
-    anhaenge = [('einladung.ics', 'text', 'calendar', ics_daten.encode(), {'method': 'PUBLISH', 'charset': 'utf-8'})] if ics_daten else []
-    hinweis = 'Den Termin kannst du mit dem Anhang in deinen Kalender übernehmen.' if ics_daten else None
-    senden(an, f'Einladung: {titel}', text,
-           html_mail('Einladung zum Meeting', saetze, knopf=('Meeting beitreten', link), details=zeilen,
-                     hinweis=hinweis, vorschau=f'{von_name} lädt dich ein', links=links), anhaenge)
+    anhaenge = ([(tx(s, 'einladung.datei'), 'text', 'calendar', ics_daten.encode(), {'method': 'PUBLISH', 'charset': 'utf-8'})]
+                if ics_daten else [])
+    hinweis = tx(s, 'einladung.ics') if ics_daten else None
+    senden(an, tx(s, 'einladung.betreff', titel=titel), text,
+           html_mail(tx(s, 'einladung.titel'), saetze, knopf=(tx(s, 'einladung.knopf'), link), details=zeilen,
+                     hinweis=hinweis, vorschau=tx(s, 'einladung.vorschau', von=von_name), links=links, sprache=s), anhaenge, sprache=s)
 
 
 # ---------------------------------------------------------------- Erinnerungen (erinnerungen.py)
-def erinnerung_mail(an, name, titel, link, wann, minuten, ist_host, kalender=None, von_name=''):
+def erinnerung_mail(an, name, titel, link, wann, minuten, ist_host, kalender=None, von_name='', sprache='de'):
     """Erinnerung vor einem Termin – an den Besitzer (ist_host) oder an Eingeladene (ohne Namen, ohne Passcode)."""
+    s = sprache
     if ist_host:
-        saetze = [f'Hallo {name},', f'dein Meeting „{titel}“ beginnt in {minuten} Minuten.']
-        knopf = ('Meeting starten', link)
-        hinweis = 'Du bekommst diese Erinnerung, weil du sie in deinem Agora-Profil eingeschaltet hast.'
+        saetze = [tx(s, 'hallo', name=name), tx(s, 'erinnerung.hostSatz', titel=titel, n=minuten)]
+        knopf = (tx(s, 'erinnerung.hostKnopf'), link)
+        hinweis = tx(s, 'erinnerung.hostHinweis')
     else:
-        saetze = [f'„{titel}“' + (f' von {von_name}' if von_name else '') + f' beginnt in {minuten} Minuten.']
-        knopf = ('Meeting beitreten', link)
-        hinweis = ('Du bekommst diese einmalige Erinnerung, weil du zu diesem Meeting eingeladen wurdest. Den Passcode (falls nötig) '
-                   'findest du in der Einladung. Deine Adresse wird nach dem Termin gelöscht.')
-    zeilen = [('Wann', wann), ('Link', link)]
-    links = [(n, kalender[k]) for k, n in KALENDER_NAMEN if kalender and kalender.get(k)] if ist_host else []
+        saetze = [tx(s, 'erinnerung.gastSatzVon', titel=titel, von=von_name, n=minuten) if von_name
+                  else tx(s, 'erinnerung.gastSatz', titel=titel, n=minuten)]
+        knopf = (tx(s, 'erinnerung.gastKnopf'), link)
+        hinweis = tx(s, 'erinnerung.gastHinweis')
+    zeilen = [(tx(s, 'erinnerung.wann'), wann), (tx(s, 'erinnerung.link'), link)]
+    links = [(n, kalender[k]) for k, n in kalender_namen(s) if kalender and kalender.get(k)] if ist_host else []
     text = '\n'.join(saetze) + '\n\n' + '\n'.join(f'{k}: {v}' for k, v in zeilen) + f'\n\n{hinweis}\n'
-    senden(an, f'Erinnerung: {titel} beginnt in {minuten} Minuten', text,
-           html_mail('Gleich geht’s los', saetze, knopf=knopf, details=zeilen, hinweis=hinweis,
-                     vorschau=f'„{titel}“ beginnt in {minuten} Minuten', links=links))
-
+    senden(an, tx(s, 'erinnerung.betreff', titel=titel, n=minuten), text,
+           html_mail(tx(s, 'erinnerung.titel'), saetze, knopf=knopf, details=zeilen, hinweis=hinweis,
+                     vorschau=tx(s, 'erinnerung.vorschau', titel=titel, n=minuten), links=links, sprache=s), sprache=s)

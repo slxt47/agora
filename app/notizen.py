@@ -16,7 +16,7 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from . import db, verlauf
+from . import db, texte, verlauf
 from . import livekit_dienst as lk
 from .kern import fehler, grenze, iso, jetzt, json_body
 from .meeting import teilnahme
@@ -65,7 +65,7 @@ async def speichern(code: str, req: Request):
         jetzt_stand = stand(r)
         if version != jetzt_stand['version']:
             c.execute('ROLLBACK')
-            return JSONResponse({'fehler': 'Inzwischen hat jemand anderes die Notizen geändert.', 'konflikt': jetzt_stand}, status_code=409)
+            return JSONResponse({'fehler': texte.fehler_text('Inzwischen hat jemand anderes die Notizen geändert.'), 'konflikt': jetzt_stand}, status_code=409)
         neu = version + 1
         c.execute('INSERT OR REPLACE INTO notizen (raum_id, sitzung, text, version, geaendert, von_name) VALUES (?, ?, ?, ?, ?, ?)',
                   (r['id'], r['sitzung'], text, neu, jetzt(), t['name']))

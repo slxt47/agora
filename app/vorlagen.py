@@ -13,7 +13,7 @@ import secrets
 from fastapi import APIRouter, Request
 from starlette.concurrency import run_in_threadpool
 
-from . import db, konto, raeume
+from . import db, konto, raeume, texte
 from .kern import benutzer_aus_sitzung, fehler, grenze, hash_pw, iso, jetzt, json_body, text_feld
 
 router = APIRouter()
@@ -161,7 +161,8 @@ async def raum_aus_vorlage(vid: int, req: Request):
     if passcode:
         f['passcode_hash'] = await run_in_threadpool(hash_pw, passcode)
     art = 'geplant' if 'start' in f else 'sofort'
-    titel = f.pop('titel', '') or (f'Meeting von {b["name"]}' if art == 'sofort' else 'Geplantes Meeting')
+    titel = f.pop('titel', '') or (texte.tx(texte.sprache(), 'titel.sofort', name=b['name']) if art == 'sofort'
+                                     else texte.tx(texte.sprache(), 'titel.geplant'))
     rechte = json.dumps(e['rechte'])
     f |= {'rechte': rechte, 'rechte_standard': rechte, 'stumm_beitritt': int(e['stumm_beitritt'])}
     r = raeume.raum_anlegen(b['id'], art, titel[:120], f)

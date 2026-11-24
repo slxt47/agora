@@ -39,6 +39,7 @@ from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur 
 from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnahme (Whisper)
 from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
 from . import livekit_dienst as lk
+from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
 db.einrichten()      # idempotent; gleich beim Laden, damit auch Tests ohne Lifespan eine Datenbank haben
@@ -59,12 +60,14 @@ async def http_fehler(req, e: StarletteHTTPException):
     text = e.detail
     if not isinstance(text, str) or text in ('Not Found', 'Method Not Allowed'):
         text = {404: 'Nicht gefunden', 405: 'Methode nicht erlaubt'}.get(e.status_code, 'Fehler')
+    text = texte.fehler_text(text, texte.aus_header(req.headers.get('accept-language')))
     return JSONResponse({'fehler': text}, status_code=e.status_code, headers=getattr(e, 'headers', None))
 
 
 @app.exception_handler(RequestValidationError)
 async def eingabe_fehler(req, e):
-    return JSONResponse({'fehler': 'Ungültige Anfrage'}, status_code=400)
+    return JSONResponse({'fehler': texte.fehler_text('Ungültige Anfrage', texte.aus_header(req.headers.get('accept-language')))},
+                        status_code=400)
 
 
 SICHERHEIT = {
@@ -86,9 +89,11 @@ SICHERHEIT = {
 
 @app.middleware('http')
 async def schutz(req: Request, call_next):
+    sprache = texte.aus_header(req.headers.get('accept-language'))
+    texte.SPRACHE.set(sprache)          # für Termin-Texte, .ics, Kalender-Links in dieser Anfrage
     # Zustandsändernde Aufrufe nur mit eigenem Header (CSRF: fremde Seiten können ihn ohne CORS nicht setzen)
     if req.method in ('POST', 'PUT', 'PATCH', 'DELETE') and req.headers.get('x-agora') != '1':
-        r = JSONResponse({'fehler': 'Anfrage abgelehnt'}, status_code=403)
+        r = JSONResponse({'fehler': texte.fehler_text('Anfrage abgelehnt', sprache)}, status_code=403)
     else:
         r = await call_next(req)
     for k, v in SICHERHEIT.items():

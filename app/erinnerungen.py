@@ -16,7 +16,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request
 
-from . import db, ics, konto, mail, raeume
+from . import db, ics, konto, mail, raeume, texte
 from .kern import benutzer_aus_sitzung, fehler, h, jetzt, json_body
 
 router = APIRouter()
@@ -70,10 +70,17 @@ def vormerken(r, adressen, minuten):
 
 
 # ---------------------------------------------------------------- Versand
-def wann_text(t, zeitzone):
+def wann_text(t, zeitzone, sprache='de'):
     lokal = datetime.fromtimestamp(t, ics.zone(zeitzone))
-    tage = ['Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.', 'So.']
-    return f'{tage[lokal.weekday()]} {lokal.strftime("%d.%m.%Y, %H:%M")} Uhr ({zeitzone})'
+    tage = texte.tx(sprache, 'termin.tage').split(',')
+    return texte.tx(sprache, 'termin.erinnerungWann', tag=tage[lokal.weekday()], datum=texte.datum(lokal, sprache),
+                    uhr=lokal.strftime('%H:%M'), zone=zeitzone)
+
+
+def _erinnern(sprache, *args, **kw):
+    """Erinnerung in der Sprache des Empfängers (Konto) bzw. des einladenden Kontos (Gäste) – auch Kalender-Links."""
+    with texte.mit_sprache(sprache):
+        mail.erinnerung_mail(*args, kalender=raeume.kalender_links(kw.pop('raum')), sprache=texte.gueltig(sprache), **kw)
 
 
 def _einmal(schluessel, t, senden):
@@ -109,9 +116,9 @@ def pruefen(t=None):
             n = raeume.termin(r, t)
             if n is None or not faellig(n, e['minuten'], r['erstellt'], t):
                 continue
-            if _einmal(f'konto:{r["id"]}:{n}:{e["id"]}', t, lambda e=e, r=r, n=n: mail.erinnerung_mail(
-                    e['email'], e['name'], r['titel'], raeume.link(r['code']), wann_text(n, e['zeitzone']), e['minuten'], True,
-                    raeume.kalender_links(r))) == 'gesendet':
+            if _einmal(f'konto:{r["id"]}:{n}:{e["id"]}', t, lambda e=e, r=r, n=n: _erinnern(
+                    e['sprache'], e['email'], e['name'], r['titel'], raeume.link(r['code']), wann_text(n, e['zeitzone'], texte.gueltig(e['sprache'])),
+                    e['minuten'], True, raum=r)) == 'gesendet':
                 gesendet += 1
     for g in c.execute('SELECT * FROM erinnerung_gaeste').fetchall():
         r = c.execute('SELECT * FROM raeume WHERE id = ?', (g['raum_id'],)).fetchone()
@@ -124,10 +131,11 @@ def pruefen(t=None):
         if n != ziel or not faellig(ziel, g['minuten'], g['erstellt'], t):
             continue
         if r['besitzer_id'] not in besitzer:
-            besitzer[r['besitzer_id']] = (c.execute('SELECT name FROM benutzer WHERE id = ?', (r['besitzer_id'],)).fetchone() or {'name': ''})['name']
-        if _einmal(f'gast:{r["id"]}:{n}:{g["email"].lower()}', t, lambda g=g, r=r, n=n: mail.erinnerung_mail(
-                g['email'], None, r['titel'], raeume.link(r['code']), wann_text(n, r['zeitzone'] or 'UTC'), g['minuten'], False,
-                raeume.kalender_links(r), besitzer[r['besitzer_id']])) == 'gesendet':
+            besitzer[r['besitzer_id']] = c.execute('SELECT name, sprache FROM benutzer WHERE id = ?', (r['besitzer_id'],)).fetchone() \
+                or {'name': '', 'sprache': 'de'}
+        if _einmal(f'gast:{r["id"]}:{n}:{g["email"].lower()}', t, lambda g=g, r=r, n=n, bs=besitzer[r['besitzer_id']]: _erinnern(
+                bs['sprache'], g['email'], None, r['titel'], raeume.link(r['code']), wann_text(n, r['zeitzone'] or 'UTC', texte.gueltig(bs['sprache'])),
+                g['minuten'], False, raum=r, von_name=bs['name'])) == 'gesendet':
             gesendet += 1
     c.execute('DELETE FROM erinnerungen_gesendet WHERE zeit < ?', (t - 2 * 86400,))
     return gesendet

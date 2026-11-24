@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from . import admins, aufnahmen, db, mail, raeume, zwei_faktor
+from . import admins, aufnahmen, db, mail, raeume, texte, zwei_faktor
 from .kern import (TEST, SEITE, benutzer_aus_sitzung, client_ip, cookie_loeschen, fehler, grenze, h, hash_pw, iso, jetzt,
                    json_body, pw_ok, sitzung_setzen, text_feld)
 
@@ -76,14 +76,14 @@ def mail_erlaubt(email):
 def bestaetigung_schicken(b):
     if mail_erlaubt(b['email']):
         link = f'{SEITE}/api/konto/bestaetigen?t={token_erstellen(b["id"], "bestaetigen", BESTAETIGEN_S)}'
-        mail.im_hintergrund(mail.bestaetigen_mail, b['email'], b['name'], link)
+        mail.im_hintergrund(mail.bestaetigen_mail, b['email'], b['name'], link, texte.gueltig(b['sprache']))
 
 
 def reset_schicken(b, schon_registriert=False):
     if mail_erlaubt(b['email']):
         link = f'{SEITE}/passwort?t={token_erstellen(b["id"], "passwort", PASSWORT_S)}'
         f = mail.schon_registriert_mail if schon_registriert else mail.passwort_mail
-        mail.im_hintergrund(f, b['email'], b['name'], link)
+        mail.im_hintergrund(f, b['email'], b['name'], link, texte.gueltig(b['sprache']))
 
 
 @router.post('/api/konto/registrieren')
@@ -102,12 +102,13 @@ async def registrieren(req: Request):
         # Kein Hinweis in der Antwort, ob es die Adresse schon gibt – stattdessen eine Mail an die Adresse
         reset_schicken(alt, schon_registriert=True)
         return {'ok': True}
+    sprache = texte.sprache()        # Sprache der Seite, auf der registriert wurde (Accept-Language) → Konto und Mails
     if alt:      # unbestätigtes Konto: neu belegen
-        c.execute('UPDATE benutzer SET name = ?, passwort_hash = ? WHERE id = ?', (name, pw_hash, alt['id']))
+        c.execute('UPDATE benutzer SET name = ?, passwort_hash = ?, sprache = ? WHERE id = ?', (name, pw_hash, sprache, alt['id']))
         bid = alt['id']
     else:
-        bid = c.execute('INSERT INTO benutzer (name, email, passwort_hash, farbe, erstellt) VALUES (?, ?, ?, ?, ?)',
-                        (name, email, pw_hash, secrets.choice(FARBEN), jetzt())).lastrowid
+        bid = c.execute('INSERT INTO benutzer (name, email, passwort_hash, farbe, erstellt, sprache) VALUES (?, ?, ?, ?, ?, ?)',
+                        (name, email, pw_hash, secrets.choice(FARBEN), jetzt(), sprache)).lastrowid
         raeume.persoenlichen_raum_anlegen(bid, name)
     db.protokollieren('registriert (unbestätigt)', bid)
     bestaetigung_schicken(c.execute('SELECT * FROM benutzer WHERE id = ?', (bid,)).fetchone())

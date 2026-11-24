@@ -14,7 +14,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
-from . import db, ics, mail
+from . import db, ics, mail, texte
 from . import e2ee        # Ende-zu-Ende-Verschlüsselung (nur Schalter + Prüfwert, nie der Schlüssel)
 from . import livekit_dienst as lk
 from .kern import (MAX_TEILNEHMER, SEITE, benutzer_aus_sitzung, client_ip, fehler, grenze, h, hash_pw, iso, jetzt,
@@ -201,7 +201,7 @@ def raum_anlegen(besitzer_id, art, titel, felder=None):
 
 
 def persoenlichen_raum_anlegen(benutzer_id, name):
-    return raum_anlegen(benutzer_id, 'persoenlich', f'Persönlicher Raum von {name}'[:120])
+    return raum_anlegen(benutzer_id, 'persoenlich', texte.tx(texte.sprache(), 'titel.persoenlich', name=name)[:120])
 
 
 def besitzer_raum(req, code):
@@ -354,7 +354,8 @@ async def raum_neu(req: Request):
     if f.pop('dauer_chat', 0):
         fehler(400, 'Den Dauer-Chat gibt es nur im persönlichen Raum.')
     art = 'geplant' if 'start' in f else 'sofort'
-    titel = f.pop('titel', '') or (f'Meeting von {b["name"]}' if art == 'sofort' else 'Geplantes Meeting')
+    titel = f.pop('titel', '') or (texte.tx(texte.sprache(), 'titel.sofort', name=b['name']) if art == 'sofort'
+                                     else texte.tx(texte.sprache(), 'titel.geplant'))
     r = raum_anlegen(b['id'], art, titel[:120], f)
     db.protokollieren(f'Raum angelegt ({art})', b['id'], r['code'])
     return {'raum': raum_json(r, b)}
@@ -416,19 +417,22 @@ async def raum_loeschen(code: str, req: Request):
     return {'ok': True}
 
 
-def termin_details(r, b):
-    """Zeilen für die Einladung (Zeit in der Zeitzone des Meetings)."""
+def termin_details(r, b, sprache=None):
+    """Zeilen für die Einladung (Zeit in der Zeitzone des Meetings) – in der Sprache der Mail (Standard: der Anfrage)."""
+    s = sprache or texte.sprache()
     zeilen = []
     t = termin(r)
     if t is not None:
         tz = ics.zone(r['zeitzone'])
         lokal = datetime.fromtimestamp(t, tz)
-        zeilen.append(('Wann', f'{lokal.strftime("%d.%m.%Y, %H:%M")} Uhr ({r["zeitzone"]}), {r["dauer_min"]} min'))
+        zeilen.append((texte.tx(s, 'termin.wann'), texte.tx(s, 'termin.wannWert', datum=texte.datum(lokal, s), uhr=lokal.strftime('%H:%M'),
+                                                           zone=r['zeitzone'], dauer=r['dauer_min'])))
         if r['wiederholung'] != 'keine':
-            zeilen.append(('Wiederholung', 'täglich' if r['wiederholung'] == 'taeglich' else 'wöchentlich'))
-    zeilen.append(('Meeting-Code', r['code']))
+            zeilen.append((texte.tx(s, 'termin.wiederholung'),
+                           texte.tx(s, 'termin.taeglich' if r['wiederholung'] == 'taeglich' else 'termin.woechentlich')))
+    zeilen.append((texte.tx(s, 'termin.code'), r['code']))
     if r['beschreibung']:
-        zeilen.append(('Beschreibung', r['beschreibung']))
+        zeilen.append((texte.tx(s, 'termin.beschreibung'), r['beschreibung']))
     return zeilen
 
 
@@ -469,7 +473,7 @@ async def einladen(code: str, req: Request):
         if grenze.ok('mail:' + a.lower(), 3, 3600):
             verschickt.append(a)
             mail.im_hintergrund(mail.einladung_mail, a, b['name'], r['titel'], link(code), details, ics_daten, passcode,
-                                kalender_links(r))
+                                kalender_links(r), texte.sprache())     # Sprache der einladenden Seite
             gesendet += 1
     db.protokollieren(f'Einladungen verschickt ({gesendet})', b['id'], code)
     if erinnerung:

@@ -6,6 +6,8 @@ Die .ics enthält dafür eine VTIMEZONE, die aus den Umstellungen der IANA-Zeitz
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from .texte import sprache, tx
+
 SCHRITT = {'taeglich': 1, 'woechentlich': 7}
 RRULE = {'taeglich': 'DAILY', 'woechentlich': 'WEEKLY'}
 
@@ -118,7 +120,8 @@ def vtimezone(name, jahr):
 
 
 def _beschreibung(beschreibung, link, code):
-    return (beschreibung + '\n\n' if beschreibung else '') + f'Beitreten: {link}\nMeeting-Code: {code}'
+    s = sprache()       # Sprache der Anfrage (bzw. mit_sprache im Hintergrund)
+    return (beschreibung + '\n\n' if beschreibung else '') + tx(s, 'ics.beitreten', link=link) + '\n' + tx(s, 'ics.code', code=code)
 
 
 def _vevent(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederholung, bis, erstellt, veranstalter='Agora',
@@ -138,7 +141,7 @@ def _vevent(code, titel, beschreibung, link, start, dauer_min, zeitzone, wiederh
     zeilen += [f'SUMMARY:{_esc(titel)}', f'DESCRIPTION:{_esc(_beschreibung(beschreibung, link, code))}', f'LOCATION:{_esc(link)}',
                f'URL:{link}', 'ORGANIZER;CN="' + veranstalter.replace('"', "'")[:60] + '":mailto:noreply@slxt.dev',
                'STATUS:CONFIRMED', 'TRANSP:OPAQUE',
-               'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Meeting beginnt', 'TRIGGER:-PT10M', 'END:VALARM', 'END:VEVENT']
+               'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + _esc(tx(sprache(), 'ics.alarm')), 'TRIGGER:-PT10M', 'END:VALARM', 'END:VEVENT']
     return zeilen
 
 
@@ -161,7 +164,7 @@ def abo_kalender(name, termine):
     """Abo-Feed (webcal): alle anstehenden Meetings einer Person. termine = [dict mit den Argumenten von _vevent].
     Ohne METHOD (Abo, keine Einladung); Kalender-Apps fragen laut REFRESH-INTERVAL stündlich nach."""
     zeilen = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//slxt//Agora//DE', 'CALSCALE:GREGORIAN',
-              f'X-WR-CALNAME:{_esc(name)}', 'X-WR-CALDESC:Meetings aus Agora', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+              f'X-WR-CALNAME:{_esc(name)}', 'X-WR-CALDESC:' + _esc(tx(sprache(), 'ics.abo')), 'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
               'X-PUBLISHED-TTL:PT1H']
     zonen = {}
     for e in termine:
@@ -193,8 +196,9 @@ def kalender_links(code, titel, beschreibung, link, start, dauer_min, zeitzone, 
     einzeln = naechster if naechster is not None else start
     o_text = text
     if wiederkehrend:
-        o_text += '\n\nWiederholt sich ' + ('täglich' if wiederholung == 'taeglich' else 'wöchentlich') + \
-            f' – alle Termine auf einmal: {ics_url}'
+        s = sprache()
+        wie = tx(s, 'termin.taeglich' if wiederholung == 'taeglich' else 'termin.woechentlich')
+        o_text += '\n\n' + tx(s, 'ics.wiederholt', wie=wie, url=ics_url)
     o = {'path': '/calendar/action/compose', 'rru': 'addevent', 'subject': titel, 'startdt': _iso_z(einzeln),
          'enddt': _iso_z(einzeln + dauer), 'body': o_text, 'location': link}
     q = lambda d: urlencode(d, quote_via=quote)   # noqa: E731  (Leerzeichen als %20 – Outlook mag kein +)

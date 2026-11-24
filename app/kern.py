@@ -1,5 +1,6 @@
 """Gemeinsame Einstellungen und Hilfen (Konfiguration, Begrenzer, Sitzungen, Passwörter, Zeit)."""
 import hashlib
+import ipaddress
 import json
 import os
 import secrets
@@ -51,8 +52,22 @@ def fehler(code, text):
 
 
 def client_ip(req: Request):
-    # Nur cloudflared erreicht die App (kein Host-Port) → CF-Connecting-IP ist vertrauenswürdig
-    return req.headers.get('cf-connecting-ip') or (req.client.host if req.client else '?')
+    """IP für Begrenzer und Sperren. Nur cloudflared erreicht die App (kein Host-Port) → CF-Connecting-IP ist vertrauenswürdig.
+    IPv6 als /64-Netz: Ein Anschluss bekommt meist eine ganze /64 (2^64 Adressen) – je Adresse zu zählen hieße, dass
+    jeder Begrenzer (Login, Passcode, Freigabe-Passwort …) mit wechselnden Adressen umgangen werden kann."""
+    return ip_gruppe(req.headers.get('cf-connecting-ip') or (req.client.host if req.client else '?'))
+
+
+def ip_gruppe(wert):
+    try:
+        a = ipaddress.ip_address(wert.strip().split('%')[0])
+    except ValueError:
+        return wert[:64]
+    if a.version == 6:
+        if a.ipv4_mapped:
+            return str(a.ipv4_mapped)
+        return str(ipaddress.ip_network(f'{a}/64', strict=False))
+    return str(a)
 
 
 def livekit_herkunft():
@@ -85,6 +100,15 @@ class Begrenzer:
                 for k in list(self.d)[:10000]:
                     del self.d[k]
             return True
+
+    def voll(self, schluessel, anzahl, sekunden):
+        """Ist das Fenster schon voll? Zählt selbst nicht mit (für „nur Fehlversuche zählen“)."""
+        if GRENZEN_AUS:
+            return False
+        t = time.monotonic()
+        with self.lock:
+            q = self.d.get(schluessel)
+            return bool(q) and sum(1 for x in q if t - x <= sekunden) >= anzahl
 
     def pruefen(self, schluessel, anzahl, sekunden):
         if not self.ok(schluessel, anzahl, sekunden):

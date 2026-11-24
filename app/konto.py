@@ -26,6 +26,7 @@ FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c8
 EXPORT = []                   # f(benutzer) → dict, wird in den Datenexport übernommen
 BESTAETIGEN_S = 48 * 3600
 PASSWORT_S = 3600
+KONTO_FEHL = 20                # Fehlversuche je Konto und 15 min (alle IPs zusammen)
 
 
 def ich_json(b):
@@ -147,11 +148,15 @@ async def anmelden(req: Request):
     e, pw = str(d.get('email', '')).strip().lower(), d.get('passwort')
     grenze.pruefen('login:' + ip, 50, 600)
     grenze.pruefen(f'login:{ip}:{e}', 10, 600)
+    # je Konto über alle IPs: höchstens KONTO_FEHL Fehlversuche je 15 min (verteiltes Raten von vielen Adressen)
+    if grenze.voll('login-fehl:' + e, KONTO_FEHL, 900):
+        fehler(429, 'Zu viele Versuche – bitte kurz warten.')
     if not MAIL_RE.match(e) or not isinstance(pw, str) or len(pw) > 200:
         fehler(400, 'E-Mail oder Passwort falsch.')
     c = db.verbindung()
     b = c.execute('SELECT * FROM benutzer WHERE email = ?', (e,)).fetchone()
     if not await run_in_threadpool(pw_ok, b['passwort_hash'] if b else None, pw) or not b:
+        grenze.ok('login-fehl:' + e, KONTO_FEHL, 900)
         db.protokollieren('Anmeldung: falsches Passwort', b['id'] if b else None)
         fehler(400, 'E-Mail oder Passwort falsch.')
     if not b['bestaetigt']:

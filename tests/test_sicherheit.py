@@ -115,3 +115,29 @@ def test_token_ohne_eigene_metadaten_und_hand_ueber_server():
     assert g.post(f'/api/raeume/{code}/hand', json={'an': 'ja'}, headers=T(gz)).status_code == 400
     assert g.post(f'/api/raeume/{code}/hand', json={'an': True, 'rolle': 'host'}, headers=T(gz)).status_code == 200
     assert aufrufe('aktualisieren')[-1]['attribute'] == {'hand': '1'}       # nichts außer hand
+
+
+# ---------------------------------------------------------------- Begrenzer: IPv6-/64 und Fehlversuche je Konto
+def test_ipv6_wird_als_64er_netz_gezaehlt():
+    from app.kern import ip_gruppe
+    assert ip_gruppe('2001:db8:1:2:3:4:5:6') == ip_gruppe('2001:db8:1:2:ffff::1') == '2001:db8:1:2::/64'
+    assert ip_gruppe('2001:db8:1:3::1') != ip_gruppe('2001:db8:1:2::1')
+    assert ip_gruppe('::ffff:192.0.2.7') == '192.0.2.7' and ip_gruppe('192.0.2.7') == '192.0.2.7'
+    assert ip_gruppe('fe80::1%eth0') == 'fe80::/64' and ip_gruppe('kaputt') == 'kaputt'
+    _c, email, _pw = konto()
+    st = [neu_client(f'2001:db8:7:7:{i:x}::{i + 1:x}').post('/api/konto/anmelden', json={'email': email, 'passwort': f'falsch-{i}-xxxx'}).status_code
+          for i in range(11)]
+    assert st == [400] * 10 + [429], st
+
+
+def test_fehlversuche_je_konto_ueber_alle_ips():
+    from app import konto as konto_modul
+    _c, email, pw = konto()
+    _c2, email2, pw2 = konto(name='Bea')
+    for i in range(konto_modul.KONTO_FEHL):     # jeder Versuch von einer anderen IP
+        assert neu_client().post('/api/konto/anmelden', json={'email': email, 'passwort': f'falsch-{i}-xxxx'}).status_code == 400
+    # jetzt gesperrt – auch mit richtigem Passwort (sonst ginge das Raten weiter) und auch in anderer Schreibweise
+    assert neu_client().post('/api/konto/anmelden', json={'email': email, 'passwort': pw}).status_code == 429
+    assert neu_client().post('/api/konto/anmelden', json={'email': email.upper(), 'passwort': pw}).status_code == 429
+    # andere Konten sind nicht betroffen
+    assert neu_client().post('/api/konto/anmelden', json={'email': email2, 'passwort': pw2}).status_code == 200

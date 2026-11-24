@@ -40,7 +40,7 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | DELETE `/api/konto` | `{passwort}` | `{ok:true}` – löscht Konto, Räume, Aufnahmen |
 
 `ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor, admin}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool).
-Grenzen: Anmelden 10/10 min je IP+Mail, Registrieren 5/h je IP, Mails 3/h je Adresse.
+Grenzen: Anmelden 10/10 min je IP+Mail und 20 Fehlversuche/15 min je Konto (alle IPs zusammen; danach 429 auch mit richtigem Passwort), Registrieren 5/h je IP, Mails 3/h je Adresse. „Je IP“ heißt bei IPv6 immer je /64-Netz.
 
 ### Sicherheitsereignisse (angemeldet)
 GET `/api/konto/sicherheit` → `{ereignisse:[{zeit, art, ereignis}], tage: 30}` – nur eigene, neueste zuerst, höchstens 100.

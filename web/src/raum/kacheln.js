@@ -145,6 +145,7 @@ export class Buehne {
     const room = this.m.room;
     const soll = new Map();
     for (const p of [room.localParticipant, ...room.remoteParticipants.values()]) {
+      if (this.m.webinar && !this.m.webinar.aufBuehne(p)) continue;     // Webinar: nur das Panel auf der Bühne
       soll.set(`${p.identity}:kamera`, [p, 'kamera']);
       if (p.getTrackPublication(Track.Source.ScreenShare)) soll.set(`${p.identity}:bildschirm`, [p, 'bildschirm']);
     }

@@ -19,6 +19,7 @@ import asyncio
 import datetime
 import json
 import os
+import secrets
 import time
 
 import aiohttp
@@ -57,7 +58,10 @@ def alle_raeume(code):
 
 
 def quellen(rolle, rechte):
-    """Welche Quellen darf jemand senden? Bildschirm nur Host/Co-Host oder wenn Recht „bildschirm“ an ist."""
+    """Welche Quellen darf jemand senden? Bildschirm nur Host/Co-Host oder wenn Recht „bildschirm“ an ist.
+    Webinar-Zuschauer senden nichts (can_publish false)."""
+    if rolle == 'zuschauer':
+        return []
     q = ['kamera', 'mikrofon']
     if rolle in ('host', 'cohost') or rechte.get('bildschirm'):
         q += ['bildschirm', 'bildschirm_ton']
@@ -65,14 +69,14 @@ def quellen(rolle, rechte):
 
 
 def token(code, identity, name, rolle, farbe, rechte):
-    grants = api.VideoGrants(room_join=True, room=code, can_publish=True, can_subscribe=True, can_publish_data=True,
+    grants = api.VideoGrants(room_join=True, room=code, can_publish=bool(quellen(rolle, rechte)), can_subscribe=True, can_publish_data=True,
                              can_update_own_metadata=True, can_publish_sources=[QUELLEN_JWT[q] for q in quellen(rolle, rechte)])
     return (api.AccessToken(API_KEY, API_SECRET).with_identity(identity).with_name(name).with_grants(grants)
             .with_attributes({'rolle': rolle, 'farbe': farbe}).with_ttl(TOKEN_TTL).to_jwt())
 
 
 def berechtigung(rolle, rechte):
-    return api.ParticipantPermission(can_subscribe=True, can_publish=True, can_publish_data=True, can_update_metadata=True,
+    return api.ParticipantPermission(can_subscribe=True, can_publish=bool(quellen(rolle, rechte)), can_publish_data=True, can_update_metadata=True,
                                      can_publish_sources=[QUELLEN_PROTO[q] for q in quellen(rolle, rechte)])
 
 
@@ -233,6 +237,103 @@ async def raeume_liste():
     return await _aufruf('raeume_liste', f)
 
 
+# ======== Block „Egress“ (Server-Aufnahme + Livestream, app/egress.py) ========
+# RoomComposite-Egress (Chrome im Egress-Container rendert das LiveKit-Layout „grid“ oder „speaker“): als MP4-Datei
+# (EncodedFileOutput, Pfad aus Sicht des Egress-Containers) oder als RTMP(S)-Stream (StreamOutput). Stream-URLs
+# enthalten den Stream-Schlüssel: Sie werden nie protokolliert, Fehlermeldungen laufen durch `schwaerzen`.
+FAKE_EGRESS = {}        # Fälschung: egress_id → {status, fehler, datei, dauer, groesse}
+EGRESS_STATUS = {'EGRESS_STARTING': 'startet', 'EGRESS_ACTIVE': 'laeuft', 'EGRESS_ENDING': 'endet', 'EGRESS_COMPLETE': 'fertig',
+                 'EGRESS_FAILED': 'fehler', 'EGRESS_ABORTED': 'fehler', 'EGRESS_LIMIT_REACHED': 'fehler'}
+
+
+def schwaerzen(text, *geheim):
+    text = str(text or '')
+    for g in geheim:
+        if g:
+            text = text.replace(g, '***')
+    return text[:300]
+
+
+async def _egress(_name, _f, _geheim=(), **kw):
+    """Egress-Aufruf; (ergebnis, None) oder (None, Fehlertext ohne Geheimnisse)."""
+    try:
+        async with api.LiveKitAPI(url=API_HOST, api_key=API_KEY, api_secret=API_SECRET,
+                                  timeout=aiohttp.ClientTimeout(total=15), failover=False) as lk:
+            return await _f(lk, **kw), None
+    except Exception as e:   # noqa: BLE001
+        _fehler_zaehlen(_name)
+        text = schwaerzen(getattr(e, 'message', None) or str(e), *_geheim)
+        print(f'livekit-fehler {_name}: {type(e).__name__}: {text}', flush=True)
+        return None, text or type(e).__name__
+
+
+async def egress_datei(code, dateipfad, layout):
+    """Raum als MP4 aufzeichnen → (egress_id, fehler)."""
+    if FAKE:
+        eid = f'EG_fake{secrets.token_hex(6)}'
+        AUFRUFE.append(('egress_datei', {'code': code, 'datei': dateipfad, 'layout': layout}))
+        FAKE_EGRESS[eid] = {'status': 'laeuft'}
+        return eid, None
+
+    async def f(lk):
+        info = await lk.egress.start_room_composite_egress(api.RoomCompositeEgressRequest(
+            room_name=code, layout=layout, preset=api.EncodingOptionsPreset.H264_720P_30,
+            file_outputs=[api.EncodedFileOutput(file_type=api.EncodedFileType.MP4, filepath=dateipfad, disable_manifest=True)]))
+        return info.egress_id
+    return await _egress('egress_datei', f)
+
+
+async def egress_stream(code, url, layout, geheim=()):
+    """Raum als RTMP(S)-Stream senden → (egress_id, fehler). url enthält den Schlüssel."""
+    if FAKE:
+        eid = f'EG_fake{secrets.token_hex(6)}'
+        AUFRUFE.append(('egress_stream', {'code': code, 'url_laenge': len(url), 'layout': layout}))   # nie die URL selbst
+        FAKE_EGRESS[eid] = {'status': 'laeuft'}
+        return eid, None
+
+    async def f(lk):
+        info = await lk.egress.start_room_composite_egress(api.RoomCompositeEgressRequest(
+            room_name=code, layout=layout, preset=api.EncodingOptionsPreset.H264_720P_30,
+            stream_outputs=[api.StreamOutput(protocol=api.StreamProtocol.RTMP, urls=[url])]))
+        return info.egress_id
+    return await _egress('egress_stream', f, _geheim=(url, *geheim))
+
+
+async def egress_stoppen(egress_id):
+    if FAKE:
+        AUFRUFE.append(('egress_stoppen', {'egress_id': egress_id}))
+        if FAKE_EGRESS.get(egress_id, {}).get('status') in ('startet', 'laeuft'):
+            FAKE_EGRESS[egress_id]['status'] = 'endet'
+        return True, None
+
+    async def f(lk):
+        await lk.egress.stop_egress(api.StopEgressRequest(egress_id=egress_id))
+        return True
+    return await _egress('egress_stoppen', f)
+
+
+async def egress_info(egress_id, geheim=()):
+    """{status: startet|laeuft|endet|fertig|fehler, fehler, datei, dauer (s), groesse} oder None (nicht erreichbar)."""
+    if FAKE:
+        return dict(FAKE_EGRESS[egress_id]) if egress_id in FAKE_EGRESS else None
+
+    async def f(lk):
+        r = await lk.egress.list_egress(api.ListEgressRequest(egress_id=egress_id))
+        if not r.items:
+            return {'status': 'fehler', 'fehler': 'Egress unbekannt'}
+        e = r.items[0]
+        fehler = e.error or next((s.error for s in e.stream_results if s.error), '')
+        d = {'status': EGRESS_STATUS.get(api.EgressStatus.Name(e.status), 'laeuft'), 'fehler': schwaerzen(fehler, *geheim)}
+        if e.file_results:
+            fi = e.file_results[0]
+            d.update(datei=fi.filename, dauer=int(fi.duration / 1e9) if fi.duration else None, groesse=fi.size)
+        return d
+    erg, _f = await _egress('egress_info', f, _geheim=geheim)
+    return erg
+# ======== Ende Block „Egress“ ========
+
+
 def fake_zuruecksetzen():
     AUFRUFE.clear()
     FAKE_TEILNEHMER.clear()
+    FAKE_EGRESS.clear()

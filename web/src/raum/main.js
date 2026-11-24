@@ -33,6 +33,7 @@ async function start() {
   if (raum.passcode_noetig) merkmale.push(['', t('konto.passcode')]);
   if (raum.warteraum && !raum.ist_host) merkmale.push(['', t('konto.warteraum')]);
   if (raum.gesperrt) merkmale.push(['warn', t('meeting.gesperrtKurz')]);
+  if (raum.webinar) merkmale.push(['', t('webinar.marke')]);
   $('#raum-merkmale').replaceChildren(...merkmale.map(([k, text]) => h('span', { class: `marker ${k}` }, text)));
   if (raum.beendet && !raum.ist_host) status($('#beitritt-status'), t('raum.beendetHinweis'), 'warn');
   else if (raum.gesperrt && !raum.ist_host) status($('#beitritt-status'), t('raum.gesperrtHinweis'), 'warn');
@@ -50,6 +51,11 @@ async function start() {
   }
   if (pc) { params.delete('p'); params.delete('pwd'); history.replaceState(null, '', `/r/${code}${params.toString() ? `?${params}` : ''}`); }
   if (raum.ist_host) $('#beitreten-knopf').textContent = t('raum.starten');
+  // Webinar: Panel-Link (?panel=) oder persönlicher Anmeldelink (?anmeldung=) – Zuschauer senden nichts
+  if (raum.webinar && !raum.ist_host && !params.get('panel')) {
+    status($('#beitritt-status'), t('webinar.lobbyZuschauer'), '');
+    if (raum.webinar.registrierung && !params.get('anmeldung')) $('#beitritt-status').append(' ', h('a', { href: raum.webinar.anmelde_link || `/w/${code}` }, t('webinar.zurAnmeldung')));
+  }
 
   zeigen('lobby');
   lobby = new Lobby();
@@ -72,6 +78,7 @@ async function beitreten() {
   try {
     const body = { name };
     if (f.passcode.value.trim()) body.passcode = f.passcode.value.trim();
+    for (const k of ['panel', 'anmeldung']) if (params.get(k)) body[k] = params.get(k);
     const r = await api(`/api/raeume/${code}/beitreten`, { methode: 'POST', json: body });
     $('#beitritt-status').hidden = true;
     if (r.status === 'wartet') wartenStarten(r.anfrage, r.anfrage_geheim);
@@ -152,10 +159,24 @@ function ende(art, aufnahmeSichern, laufenderUpload, extra = {}) {
   if (laufenderUpload) { upload.hidden = false; upload.append(laufenderUpload); }
   if (aufnahmeSichern) { upload.hidden = false; aufnahmeSichern(upload); }
   if (art !== 'abgelehnt') feedbackZeigen(code, extra.feedback, upload);     // „Wie war die Qualität?“
+  if (raum?.ist_host && ich) transkriptAmEnde(upload);   // Untertitel-Transkript für den Besitzer
   zeigen('ende');
   $('#ende-titel').setAttribute('tabindex', '-1');
   $('#ende-titel').focus();
   document.title = `${t(texte[0])} – Agora`;
+}
+
+/** Ende-Bildschirm (Besitzer): Transkript dieses Meetings als .txt/.vtt, falls etwas gespeichert wurde. */
+async function transkriptAmEnde(box) {
+  try {
+    const r = await api(`/api/raeume/${code}/transkripte`);
+    const x = r.transkripte?.[0];
+    if (!x) return;
+    box.hidden = false;
+    box.append(h('div', { class: 'knoepfe oben ende-transkript' }, h('span', { class: 'sec' }, t('tk.amEnde', { n: x.abschnitte })),
+      h('a', { class: 'btn klein', href: `/api/raeume/${code}/transkript?sitzung=${x.sitzung}&format=txt`, download: '' }, '.txt'),
+      h('a', { class: 'btn klein', href: `/api/raeume/${code}/transkript?sitzung=${x.sitzung}&format=vtt`, download: '' }, '.vtt')));
+  } catch { /* kein Transkript */ }
 }
 
 start();

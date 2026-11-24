@@ -14,6 +14,7 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | `/r/{code}` | raum.html | Pre-Join-Lobby → (Passcode) → Warteraum → Meeting |
 | `/passwort?t=` | passwort.html | Neues Passwort setzen |
 | `/a/{token}` | a.html | Freigegebene Aufzeichnung ansehen |
+| `/w/{code}` | webinar.html | Anmeldung zu einem Webinar (`?abmelden=<token>`: Anmeldung löschen) |
 | `/admin` | admin.html | Admin-Bereich – nur für Admins, sonst 404 (`/admin.html` immer 404) |
 | `/api/konto/bestaetigen?t=` | – | E-Mail bestätigen → Weiterleitung `/?bestaetigt=1` bzw. `/?bestaetigt=0` |
 
@@ -412,3 +413,57 @@ Der Typ kommt nur aus der Endung. Erlaubte Endungen: `AGORA_DATEI_ENDUNGEN` (Kom
 erlaubt, gibt es sie trotzdem nur als Anhang mit `octet-stream`. Virenprüfung: `AGORA_CLAMAV=host:port` → clamd INSTREAM vor der
 Annahme; Fund 422, Fehler 503 (nichts ungeprüft). Der Download geht per `fetch` mit X-Teilnahme (Blob), Bildvorschau ebenso.
 Ereignis (Topic `agora`): `{typ:"datei", aktion: neu|geloescht, datei}`.
+## Webinar + Registrierung (app/webinar.py)
+Raum-Feld `webinar` (in `raum_json`): `false` oder `{registrierung, anmelde_link}`. Raum-Metadaten bekommen `webinar: true`.
+Rollen im Webinar: `host`, `cohost`, `panelist` (senden) und `zuschauer` (LiveKit-Token mit `canPublish: false`, keine Quellen).
+`RANG`: panelist 1, zuschauer 0. Wer nicht Besitzer ist und ohne Panel-Link kommt, wird `zuschauer`. Co-Host abgeben bzw.
+Host übertragen im Webinar → `panelist`.
+
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/webinar` | Besitzer | `{webinar: {an, chat, fragen_an, registrierung, kapazitaet, fragen[], anmelde_link, angemeldet, panel:[{id,name,link,erstellt}]}}` |
+| PATCH `/api/raeume/{code}/webinar` | Besitzer | `{an?, chat?: "alle"\|"panel"\|"aus", fragen_an?, registrierung?, kapazitaet?: 1–100000\|null, fragen?: [≤5 × ≤200 Zeichen]}`. `an` umschalten nur ohne laufendes Meeting (409) |
+| POST `/api/raeume/{code}/webinar/panel` | Besitzer | `{name}` → `{panel}`; Link `/r/{code}?panel=<token>` (höchstens 20) |
+| DELETE `/api/raeume/{code}/webinar/panel/{id}` | Besitzer | Link ungültig |
+| GET `/api/raeume/{code}/webinar/anmeldungen` | Besitzer | `{anmeldungen:[{id,name,email,antworten[],angemeldet,beigetreten}], fragen, kapazitaet}` |
+| GET `/api/raeume/{code}/webinar/anmeldungen.csv` | Besitzer | CSV (`;`, UTF-8 mit BOM, Formeln entschärft) |
+| DELETE `/api/raeume/{code}/webinar/anmeldungen/{id}` | Besitzer | einzelne Anmeldung löschen |
+| GET `/api/webinare/{code}` | öffentlich | `{code,titel,besitzer_name,geplant,naechster_termin,kalender,fragen,frei,offen}`; 404 ohne Registrierung |
+| POST `/api/webinare/{code}/anmelden` | öffentlich | `{name, email, antworten?:[]}` → `{ok}`; Mail mit `/r/{code}?anmeldung=<token>` (+ .ics bei Termin). Gleiche Adresse erneut → neuer Link, alter ungültig. 409 ausgebucht/beendet |
+| POST `/api/webinare/{code}/abmelden` | öffentlich | `{token}` → Anmeldung gelöscht |
+| POST `/api/raeume/{code}/beitreten` | – | zusätzlich `panel` oder `anmeldung` (Token). Panel-Link überspringt den Warteraum. Mit Registrierung ohne gültigen Link: 403 |
+| POST `/api/raeume/{code}/webinar/rolle` | Host/Co-Host (X-Teilnahme) | `{ziel, rolle: "panelist"\|"zuschauer"}` – aufs Podium holen / zurück; Ereignis `rolle` an alle |
+| GET `/api/raeume/{code}/webinar/zustand` | X-Teilnahme | `{webinar:false}` oder `{webinar:true, chat, fragen_an}`; fürs Panel zusätzlich `zuschauer`, `panel` (verbunden), `angemeldet` |
+
+Chat der Zuschauer (`chat`): `alle`; `panel` = nur private Nachrichten an Host/Co-Host/Panel; `aus`. `fragen_an` ist der
+Schalter für das Q&A-Modul (`webinar.einstellungen(raum)['fragen_an']`).
+Hooks in `raeume.py` (für andere Module): `BEITRITT_ROLLE`, `ROLLE_STANDARD`, `META_EXTRA`, `RAUM_JSON_EXTRA`, `grundrolle()`.
+
+## Server-Aufnahme + Livestream (LiveKit Egress, app/egress.py – nur mit `AGORA_EGRESS=1`)
+Ohne Feature-Flag: GET liefert `{verfuegbar:false}`, POST 404 – die Oberfläche blendet die Einträge aus.
+
+| Methode + Pfad | Wer (X-Teilnahme) | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/egress` | alle | `{verfuegbar}`; Host/Co-Host zusätzlich `aufnahme`, `stream`: `null` oder `{id, art, status: startet\|laeuft\|endet\|fertig\|fehler, fehler, von_name, layout, gestartet, aufnahme_id}` (gleicht dabei mit LiveKit ab) |
+| POST `/api/raeume/{code}/egress/aufnahme` | Host/Co-Host | `{aktion:"start", layout?: "galerie"\|"sprecher"}` → `{ok, id}`; `{aktion:"stopp"}`. 409 läuft schon / Browser-Aufnahme läuft, 507 Kontingent des Besitzers voll, 502 Egress-Fehler |
+| POST `/api/raeume/{code}/egress/stream` | Host/Co-Host | `{aktion:"start", url: "rtmp(s)://…", schluessel, layout?}` → `{ok, id}`; `{aktion:"stopp"}`. 400 bei anderem Schema, Zugangsdaten in der URL, Leerzeichen oder Zielen im eigenen Netz (Loopback/privat/nicht global) |
+
+Raum-Metadaten: `aufnahme: {von_name, server: true}` während der Server-Aufnahme, `livestream: {von_name}` während des
+Streams. Ereignis (Topic `agora`, nur an Host/Co-Hosts): `{typ:"egress", art, status, fehler}`; beim Start zusätzlich
+`{typ:"aufnahme", aktiv:true, von_name, server:true}` an alle. Fertige Aufnahmen erscheinen in `GET /api/aufnahmen`
+(`typ: video/mp4`). Fehlertexte sind von Stream-URL und Schlüssel bereinigt (`***`).
+
+## Live-Untertitel + Transkript (app/untertitel.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| POST `/api/raeume/{code}/untertitel` | X-Teilnahme (nicht `zuschauer`) | `{text ≤500, final: bool, dauer_ms?: 0–120000}` → `{ok}`; verteilt `{identity, name, text, final, zeit}` über Topic `untertitel` (nur vom Server angenommen). Gespeichert nur `final` und nur mit `transkript_speichern`. Grenze 60 je 30 s |
+| PATCH `/api/raeume/{code}/transkript` | Besitzer (Cookie) | `{speichern: bool}`; Metadaten `transkript: true`, Ereignis `{typ:"transkript", an}` |
+| GET `/api/raeume/{code}/transkripte` | Besitzer | `{speichern, aktuelle_sitzung, transkripte:[{sitzung, abschnitte, beginn, ende}]}` |
+| GET `/api/raeume/{code}/transkript?sitzung=&format=txt\|vtt` | Besitzer | Datei (ohne `sitzung`: neuestes Meeting); 404 wenn leer |
+| DELETE `/api/raeume/{code}/transkript?sitzung=` | Besitzer | ein Meeting oder alle |
+| POST `/api/aufnahmen/{id}/transkript` | Besitzer der Aufnahme | nur mit `AGORA_WHISPER_URL` (sonst 404); startet Hintergrund-Job → `{transkript:{status:"laeuft"}}`; 409 läuft schon |
+| GET `/api/aufnahmen/{id}/transkript[?format=vtt\|txt]` | Besitzer | ohne `format`: `{transkript: null\|{status, fehler}, verfuegbar}`; sonst die Datei |
+
+`raum_json` hat zusätzlich `transkript_speichern`; `aufnahme_json` hat `transkript` (Status oder `null`) und `transkript_moeglich`.
+Hooks in `aufnahmen.py`: `BEIM_ENTFERNEN`, `JSON_EXTRA`.
+

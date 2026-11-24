@@ -398,6 +398,80 @@ SCHEMA = [
     );
     CREATE INDEX dateien_raum ON dateien(raum_id, sitzung);
     """,
+    # ======== Block „Webinar + Registrierung“ (app/webinar.py) – Version 18 ========
+    # (Die Version ergibt sich aus der Position in dieser Liste.)
+    """
+    ALTER TABLE raeume ADD COLUMN webinar INTEGER NOT NULL DEFAULT 0;    -- 1 = Webinar: nur Panel sendet, Zuschauer sehen zu
+    ALTER TABLE raeume ADD COLUMN webinar_einst TEXT;                     -- JSON: chat, fragen_an, registrierung, kapazitaet, fragen
+    CREATE TABLE webinar_panel (       -- Einladungslinks für Panelisten (Token = HMAC aus AGORA_GEHEIM + salz, nur Hash gespeichert)
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,              -- Bezeichnung für den Besitzer (z. B. „Referentin“)
+      salz TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      erstellt INTEGER NOT NULL
+    );
+    CREATE TABLE webinar_anmeldungen ( -- Registrierungen; gelöscht 30 Tage nach dem Webinar (loeschen_ab)
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL COLLATE NOCASE,
+      antworten TEXT NOT NULL DEFAULT '[]',   -- JSON-Liste der Antworten auf die Zusatzfragen
+      token_hash TEXT NOT NULL UNIQUE,         -- persönlicher Beitrittslink (nur Hash)
+      erstellt INTEGER NOT NULL,
+      beigetreten INTEGER,                     -- erster Beitritt mit dem Link
+      loeschen_ab INTEGER NOT NULL,
+      UNIQUE (raum_id, email)
+    );
+    CREATE INDEX webinar_anmeldungen_ablauf ON webinar_anmeldungen(loeschen_ab);
+    """,
+    # ======== Ende Block „Webinar + Registrierung“ ========
+    # ======== Block „Server-Aufnahme + Livestream (Egress)“ (app/egress.py) – Version 19 ========
+    """
+    CREATE TABLE egress_laeufe (       -- laufende und abgeschlossene Egress-Aufträge (fertige: 7 Tage, dann gelöscht)
+      egress_id TEXT PRIMARY KEY,
+      raum_id INTEGER REFERENCES raeume(id) ON DELETE SET NULL,
+      sitzung INTEGER NOT NULL,
+      art TEXT NOT NULL,               -- aufnahme | stream
+      benutzer_id INTEGER REFERENCES benutzer(id) ON DELETE CASCADE,   -- Besitzer (Bibliothek)
+      von_name TEXT NOT NULL,
+      titel TEXT NOT NULL DEFAULT '',
+      raum_code TEXT NOT NULL,
+      layout TEXT NOT NULL,
+      datei TEXT,                      -- Dateiname im Ausgabeordner (nur aufnahme)
+      ziel_verschluesselt TEXT,        -- nur stream, nur solange er läuft: RTMP-URL mit Schlüssel (zwei_faktor.verschluesseln)
+      status TEXT NOT NULL DEFAULT 'startet',   -- startet | laeuft | endet | fertig | fehler
+      fehler TEXT,
+      aufnahme_id TEXT,                -- Eintrag in der Bibliothek nach dem Abschluss
+      gestartet INTEGER NOT NULL,
+      beendet INTEGER
+    );
+    CREATE INDEX egress_laeufe_raum ON egress_laeufe(raum_id, status);
+    """,
+    # ======== Ende Block „Server-Aufnahme + Livestream (Egress)“ ========
+    # ======== Block „Live-Untertitel + Transkript“ (app/untertitel.py) – Version 20 ========
+    """
+    ALTER TABLE raeume ADD COLUMN transkript_speichern INTEGER NOT NULL DEFAULT 0;   -- Besitzer: Untertitel als Transkript speichern
+    CREATE TABLE transkript (          -- fertige Untertitel-Abschnitte (nur mit transkript_speichern), 90 Tage
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      name TEXT NOT NULL,
+      text TEXT NOT NULL,
+      beginn_ms INTEGER NOT NULL, ende_ms INTEGER NOT NULL,   -- Unix-Zeit in ms (Server-Uhr, Beginn = Ende − gemeldete Dauer)
+      zeit INTEGER NOT NULL
+    );
+    CREATE INDEX transkript_raum ON transkript(raum_id, sitzung);
+    CREATE TABLE aufnahme_transkript ( -- Whisper-Job je Aufnahme; Ergebnis als Datei <aufnahme>.vtt daneben
+      aufnahme_id TEXT PRIMARY KEY REFERENCES aufnahmen(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,            -- laeuft | fertig | fehler
+      fehler TEXT,
+      erstellt INTEGER NOT NULL,
+      fertig INTEGER
+    );
+    """,
+    # ======== Ende Block „Live-Untertitel + Transkript“ ========
 ]
 
 

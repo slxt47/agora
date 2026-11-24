@@ -86,6 +86,10 @@ async def stellen(code: str, req: Request):
     r, t = teilnahme(req, code)
     d = await json_body(req)
     grenze.pruefen('frage:' + t['identity'], 10, 60)
+    if r['webinar'] and t['rolle'] == 'zuschauer':      # Webinar: Zuschauer dürfen nur fragen, wenn das Panel es erlaubt
+        from .webinar import einstellungen
+        if not einstellungen(r)['fragen_an']:
+            fehler(403, 'In diesem Webinar sind Fragen ausgeschaltet.')
     text = text_feld(d, 'text', 500, pflicht=True)
     if 'anonym' in d and not isinstance(d['anonym'], bool):
         fehler(400, 'Ungültige Anfrage')

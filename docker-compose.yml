@@ -41,6 +41,48 @@ services:
     mem_limit: 768m
     depends_on: [livekit]
 
+  # ---- Server-Aufnahme + Livestream (LiveKit Egress) – NUR mit Profil „egress“, siehe docs/BETRIEB.md ----
+  # Ein normales `docker compose up -d` startet beide nicht. Einschalten erst nach den Schritten in BETRIEB.md.
+  redis:
+    profiles: [egress]
+    image: redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    restart: unless-stopped
+    network_mode: host                     # nur 127.0.0.1:6390, Passwort REDIS_PASSWORD aus livekit.env
+    env_file: livekit.env
+    command: ["sh", "-c", "exec redis-server --bind 127.0.0.1 --port 6390 --requirepass \"$$REDIS_PASSWORD\" --save '' --appendonly no --maxmemory 64mb --maxmemory-policy noeviction"]
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+
+  egress:
+    profiles: [egress]
+    image: livekit/egress:v1.15.0@sha256:ac244a40268ce1dd1510fbff6eb529609ec68aceff1602343f79be8ca08c355b   # Index mit linux/amd64 + linux/arm64
+    restart: unless-stopped
+    network_mode: host                     # Chrome spricht LiveKit über 127.0.0.1:7880 und dessen Medienport an
+    env_file: livekit.env                  # LIVEKIT_KEYS, REDIS_HOST, REDIS_PASSWORD → Konfiguration (scripts/egress-start.sh)
+    entrypoint: ["/tini", "--", "/agora/egress-start.sh"]
+    volumes:
+      - ./scripts/egress-start.sh:/agora/egress-start.sh:ro
+      - ./daten/egress:/out                # MP4 → die App verschiebt sie in die Bibliothek (Ordner 2770, Gruppe 1000)
+    user: "1001:1000"
+    read_only: true
+    tmpfs:
+      - /home/egress/tmp:uid=1001,gid=1000,mode=0700
+      - /home/egress/.cache:uid=1001,gid=1000,mode=0700
+      - /home/egress/.config:uid=1001,gid=1000,mode=0700
+      - /home/egress/.pki:uid=1001,gid=1000,mode=0700
+      - /tmp:mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 512m
+    mem_limit: 2g                          # Messwerte einer 720p-Aufnahme: docs/BETRIEB.md
+    cpus: 4
+    depends_on: [redis, livekit]
+
   cloudflared:
     image: cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
     restart: unless-stopped

@@ -1,0 +1,17 @@
+# Test-LiveKit für den Egress-Test (nur 127.0.0.1). Redis kommt aus REDIS_HOST/REDIS_PASSWORD (Umgebung).
+port: 7760
+bind_addresses: ["127.0.0.1"]
+rtc:
+  tcp_port: 7761
+  udp_port: 7762
+  node_ip: 127.0.0.1
+  use_external_ip: false
+  enable_loopback_candidate: true
+  interfaces:
+    includes: [lo]
+keys:
+  testschluessel: testgeheimnis-testgeheimnis-testgeheimnis-123
+room:
+  empty_timeout: 60
+logging:
+  level: warn

@@ -95,12 +95,22 @@ grenze = Begrenzer()
 
 
 async def json_body(req: Request, maximal=16384):
-    roh = await req.body()
-    if len(roh) > maximal:
-        fehler(413, 'Anfrage zu groß')
+    """JSON-Objekt aus dem Body. Größe zuerst am Content-Length, dann beim Lesen prüfen: nie mehr als `maximal` Bytes im
+    Speicher (sonst könnte jeder ohne Anmeldung mit ein paar 100-MB-Anfragen den Speicher füllen)."""
+    laenge = req.headers.get('content-length')
+    if laenge is not None:
+        if not laenge.isdigit():
+            fehler(400, 'Ungültige Anfrage')
+        if int(laenge) > maximal:
+            fehler(413, 'Anfrage zu groß')
+    roh = bytearray()
+    async for teil in req.stream():
+        roh += teil
+        if len(roh) > maximal:
+            fehler(413, 'Anfrage zu groß')
     try:
-        d = json.loads(roh or b'{}')
-    except ValueError:
+        d = json.loads(bytes(roh) or b'{}')
+    except (ValueError, RecursionError):
         fehler(400, 'Ungültige Anfrage')
     if not isinstance(d, dict):
         fehler(400, 'Ungültige Anfrage')

@@ -3,7 +3,7 @@
 // Geräte im Gespräch, Wiederverbinden, Datensparmodus, Bild-im-Bild, Aufzeichnung, Verlassen / für alle beenden.
 import {
   Room, RoomEvent, Track, VideoPresets, ScreenSharePresets, VideoQuality, DisconnectReason, ConnectionState,
-  supportsAudioOutputSelection, Encryption_Type,
+  supportsAudioOutputSelection,
 } from 'livekit-client';
 import { $, h, api, toast, blatt, bestaetigen, kopieren, wachBleiben, ruhe, ApiFehler } from '../common.js';
 import { t } from '../i18n.js';
@@ -27,6 +27,8 @@ import { ServerAufnahme } from './egress.js';     // Server-Aufnahme + Livestrea
 import { Untertitel } from './untertitel.js';     // Live-Untertitel (Web Speech, nur mit Zustimmung)
 import { e2eeVorbereiten, E2eeAnzeige } from './e2ee.js';
 import { AudioModi } from './audio-modi.js';
+import { Anmerkungen } from './anmerkungen.js';
+import './anmerkungen.css';
 import { linkMitSchluessel } from '../e2ee-schluessel.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
@@ -109,6 +111,7 @@ export class Meeting {
     this.webinar = new Webinar(this);
     this.egress = new ServerAufnahme(this);
     this.untertitel = new Untertitel(this);
+    this.anmerkungen = new Anmerkungen(this);   // Anmerkungen auf geteilten Bildschirmen
     this.audioModi = new AudioModi(this);     // Musik-Modus, RNNoise (setzt Raum-Optionen vor dem Veröffentlichen)
     await e2ee.aktivieren(this.room);
     if (this.schluessel) this.e2eeAnzeige = new E2eeAnzeige(this);
@@ -181,6 +184,7 @@ export class Meeting {
     if ('aufnahme' in md) this.aufnahmeSetzen(md.aufnahme || null);
     this.egress?.metadaten(md);
     this.untertitel?.metadaten(md);
+    if ('anmerkungen' in md) this.anmerkungen?.erlaubtSetzen(md.anmerkungen, false);
   }
 
   // ---------------------------------------------------------------- LiveKit-Ereignisse
@@ -219,10 +223,9 @@ export class Meeting {
         if (p.isLocal && 'hand' in geaendert) { this.hand = geaendert.hand === '1'; this.steuerAktualisieren(); }
       })
       .on(RoomEvent.RoomMetadataChanged, (md) => this.metadatenLesen(md))
-      .on(RoomEvent.DataReceived, (daten, p, _kind, topic, verschl) => {
-        // E2EE: Nachrichten anderer Browser nur verschlüsselt annehmen (sonst könnte der Medienserver sie fälschen)
-        if (aktiv() && !(this.schluessel && p && verschl === Encryption_Type.NONE)) this.datenEmpfangen(daten, p, topic);
-      })
+      // E2EE: livekit-client 2.25 meldet auch entschlüsselte Pakete als Encryption_Type.NONE (der Sender setzt das Feld
+      // nicht) – eine Prüfung „nur verschlüsselt annehmen“ würde alle Nachrichten anderer Browser verwerfen.
+      .on(RoomEvent.DataReceived, (daten, p, _kind, topic) => aktiv() && this.datenEmpfangen(daten, p, topic))
       .on(RoomEvent.AudioPlaybackStatusChanged, () => {
         if (r.canPlaybackAudio) this.bannerSetzen('audio');
         else this.bannerSetzen('audio', 'warn', t('meeting.tonBlockiert'), { text: t('meeting.tonEinschalten'), fn: () => r.startAudio().then(() => this.bannerSetzen('audio')) });
@@ -254,6 +257,8 @@ export class Meeting {
       if (jetzt - (this.reaktionZeit.get(p.identity) || 0) < 400) return;   // Flut bremsen
       this.reaktionZeit.set(p.identity, jetzt);
       this.reaktionZeigen(p, d.emoji);
+    } else if (topic === 'anmerkung') {
+      this.anmerkungen?.empfangen(daten, p);
     } else if (topic === 'spotlight') {
       const r = this.rolleVon(p);
       if (r !== 'host' && r !== 'cohost') return;
@@ -310,6 +315,7 @@ export class Meeting {
       case 'meldung': this.melden?.ereignis(d); break;
       case 'egress': this.egress?.ereignis(d); break;
       case 'transkript': this.untertitel?.metadaten({ transkript: !!d.an }); break;
+      case 'anmerkungen': this.anmerkungen?.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
         lp.setMicrophoneEnabled(false).catch(() => {});

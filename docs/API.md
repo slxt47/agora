@@ -72,6 +72,18 @@ naechster_termin (ISO|null), link}`
 | POST `/api/raeume/{code}/einladen` (Besitzer) | `{emails:[…≤20], passcode?}` (passcode wird nur in die Mail geschrieben, wenn er stimmt, sonst 400) | `{ok:true, gesendet:n}` – Mail mit `.ics` |
 | GET `/api/raeume/{code}/ics` | – | `text/calendar` |
 
+### Anmerkungen auf geteilten Bildschirmen
+POST `/api/raeume/{code}/anmerkungen` (X-Teilnahme) Body `{erlaubt: bool}` → `{ok:true, erlaubt}`. Dürfen: Host, Co-Host
+und wer laut LiveKit gerade den Bildschirm teilt (sonst 403; 503, wenn LiveKit nicht antwortet); 30/min je Teilnahme.
+Das Recht steht in den Raum-Metadaten (`anmerkungen: bool`, Standard `true`, beim Meeting-Ende wieder `true`), dazu
+Ereignis `{typ:"anmerkungen", erlaubt, von_name}`. Ohne Recht zeichnen nur Host, Co-Hosts und die teilende Person.
+Die Striche gehen direkt zwischen den Browsern (Datenkanal, Topic `anmerkung`, `reliable`, Koordinaten 0…1 relativ zum
+Videobild, in E2EE-Meetings verschlüsselt) und werden nicht gespeichert:
+`{t:"strich", s:<identity der teilenden Person>, id, w:"stift"|"marker"|"pfeil", f:<Farbindex 0–5>, i:<Startindex>, p:[[x,y]…≤200]}`,
+`{t:"text", s, id, f, x, y, text≤200}`, `{t:"weg", s, id, von}`, `{t:"leeren", s, nur?}`. Empfänger nehmen sie nur von
+Teilnehmenden im Raum an, prüfen Format, Recht und Rate (30/s je Absender, Stoß 60) und verwerfen sie, wenn `s` nicht
+(mehr) teilt. Wer später beitritt, sieht nur neue Anmerkungen.
+
 ### Ende-zu-Ende-Verschlüsselung (E2EE)
 `raum` enthält zusätzlich `e2ee` (bool) und `e2ee_pruef` (32 Hex-Zeichen oder `null`). POST/PATCH nehmen
 `{e2ee: true, e2ee_pruef}` bzw. `{e2ee: false}` (400 ohne gültigen Prüfwert). Der Schlüssel selbst geht nie an den

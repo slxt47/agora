@@ -291,6 +291,7 @@ export class Buehne {
     }
     for (const key of neu) this.kacheln.get(key)?.aktualisieren();
     m.ansichtKnopf();
+    m.anmerkungen?.kachelnAktualisiert();      // Zeichenebenen über Bildschirm-Kacheln
   }
 
   reaktion(identity, emoji) {

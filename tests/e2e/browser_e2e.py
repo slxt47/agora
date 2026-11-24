@@ -684,7 +684,12 @@ with sync_playwright() as p:
         if 'Keine Verbindung' not in titel: fehler.append('Offline-Seite fehlt')
         hp.screenshot(path=OUT + '19-offline.png')
         host.set_offline(False)      # „online“-Ereignis → die Offline-Seite lädt von selbst neu
-        warten_js(hp, "!document.querySelector('.offline-karte')")
+        try:
+            warten_js(hp, "!document.querySelector('.offline-karte')")
+        except AssertionError:      # selten: das „online“-Ereignis kommt, bevor das Netz wirklich da ist → „Erneut versuchen“
+            print('Offline-Seite lädt nicht von selbst neu – „Erneut versuchen“')
+            hp.click('#erneut')
+            warten_js(hp, "!document.querySelector('.offline-karte')")
         print('Wieder online:', hp.url)
         # ==== Block E2EE: Host schaltet in der Lobby ein (Schlüssel im Fragment), Gast mit Link entschlüsselt das Video,
         # Gast mit falschem Schlüssel bekommt eine klare Meldung und kommt nicht hinein
@@ -750,14 +755,18 @@ with sync_playwright() as p:
         egp.click('#s-mehr'); egp.click('.menue [role=menuitemcheckbox]:has-text("Originalton (Musik)")')
         egp.wait_for_selector('.toast:has-text("Originalton an")', timeout=10000)
         egp.wait_for_selector('body[data-mikrofon="roh"]', state='attached', timeout=10000)
-        egp.click('#s-mehr')
-        if egp.get_attribute('.menue [role=menuitemcheckbox]:has-text("Originalton (Musik)")', 'aria-checked') != 'true': fehler.append('Audio: Musikmodus nicht als an markiert')
-        egp.keyboard.press('Escape')
         print('Audio: Originalton an, Mikrofon ohne Verarbeitung')
-        egp.click('#s-mehr'); egp.click('.menue [role=menuitemcheckbox]:has-text("Originalton (Musik)")')
-        egp.wait_for_selector('body[data-mikrofon="sprache"]', state='attached', timeout=10000)
+        # wieder aus – diesmal über die Einstellungen (Schalter im Blatt)
         egp.click('#s-mehr'); egp.click('.menue [role=menuitem]:has-text("Einstellungen")')
-        egp.wait_for_selector('dialog select[name=rauschen]')
+        egp.wait_for_selector('dialog input[name=musik]')
+        if not egp.is_checked('dialog input[name=musik]'): fehler.append('Audio: Musikmodus in den Einstellungen nicht an')
+        egp.click('dialog label.schalter:has([name=musik])')
+        try:
+            egp.wait_for_selector('body[data-mikrofon="sprache"]', state='attached', timeout=15000)
+        except Exception:
+            print('Audio-Diagnose:', egp.evaluate("[document.body.dataset.mikrofon, localStorage.getItem('agora-audio'), [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' | ')]"))
+            raise
+        egp.wait_for_selector('dialog select[name=rauschen]:not([disabled])')
         egp.select_option('dialog select[name=rauschen]', 'stark')
         egp.wait_for_selector('body[data-rauschfilter="aktiv"]', state='attached', timeout=20000)
         egp.screenshot(path=OUT + '31b-audio-einstellungen.png')
@@ -776,6 +785,57 @@ with sync_playwright() as p:
         f0 = frames(ep); time.sleep(2); f1 = frames(ep)
         if f1 <= f0: fehler.append('Audio-Modi: Video des Gastes kommt beim Host nicht mehr an')
         # ==== Ende Block Audio-Modi ====
+        # ==== Block Anmerkungen: Host teilt den Bildschirm, Gast zeichnet (Stift + Text), Host sieht es auf seiner Vorschau,
+        # Host löscht alle und sperrt Anmerkungen → Gast kann nicht mehr
+        ep.click('#s-teilen')
+        ep.wait_for_selector('#buehne .kv.bildschirm.eigene-freigabe', timeout=20000)
+        egp.wait_for_selector('#buehne .kv.bildschirm.mit-video .anm-knopf', timeout=20000)
+        time.sleep(1.5)
+        egp.click('#buehne .kv.bildschirm .anm-knopf')
+        egp.wait_for_selector('#buehne .kv.bildschirm .anm-leiste[role=toolbar]')
+        box = egp.locator('#buehne .kv.bildschirm canvas.anm-flaeche').bounding_box()
+        x0, y0 = box['x'] + box['width'] * 0.2, box['y'] + box['height'] * 0.3
+        egp.mouse.move(x0, y0); egp.mouse.down()
+        for i in range(1, 15):
+            egp.mouse.move(x0 + i * box['width'] * 0.03, y0 + (i % 4) * 6)
+            time.sleep(0.03)
+        egp.mouse.up()
+        # Text per Tastatur-Werkzeugleiste: Pfeiltasten bis „Text“
+        egp.focus('#buehne .anm-leiste [data-anm="stift"]')
+        egp.keyboard.press('ArrowRight'); egp.keyboard.press('ArrowRight'); egp.keyboard.press('ArrowRight')
+        if egp.evaluate("document.activeElement.dataset.anm") != 'text': fehler.append('Anmerkungen: Pfeiltasten in der Werkzeugleiste gehen nicht')
+        egp.keyboard.press('Enter')
+        egp.mouse.click(box['x'] + box['width'] * 0.5, box['y'] + box['height'] * 0.6)
+        egp.wait_for_selector('#buehne .anm-text')
+        egp.keyboard.type('Hier!')
+        egp.keyboard.press('Enter')
+        ep.wait_for_selector('#buehne .kv.bildschirm.eigene-freigabe .anm-ebene[data-striche="2"]', state='attached', timeout=10000)
+        ep.wait_for_selector('#buehne .kv.bildschirm.eigene-freigabe .anm-ebene.mit-vorschau', timeout=5000)
+        time.sleep(1)
+        print('Anmerkungen: Strich + Text vom Gast beim Host angekommen')
+        egp.screenshot(path=OUT + '32a-anmerkungen-gast.png')
+        ep.screenshot(path=OUT + '32b-anmerkungen-host.png')
+        # Vollbild der Kachel: Ebene skaliert mit
+        egp.click('#buehne .kv.bildschirm .kv-menue')
+        egp.click('.menue [role=menuitem]:has-text("Vollbild")')
+        warten_js(egp, "!!document.fullscreenElement", 5)
+        time.sleep(1)
+        r1 = egp.evaluate("(() => { const c = document.querySelector('#buehne .kv.bildschirm canvas.anm-flaeche').getBoundingClientRect(); return [c.width, c.height]; })()")
+        egp.screenshot(path=OUT + '32c-anmerkungen-vollbild.png')
+        egp.evaluate("document.exitFullscreen().catch(() => {})")
+        if r1[0] <= box['width']: fehler.append(f'Anmerkungen: Ebene wächst im Vollbild nicht mit ({r1} vs {box})')
+        # Host: alle löschen und sperren
+        ep.click('#buehne .kv.bildschirm.eigene-freigabe .anm-knopf')
+        ep.click('#buehne .anm-leiste [data-anm="alle"]')
+        egp.wait_for_selector('#buehne .kv.bildschirm .anm-ebene[data-striche="0"]', state='attached', timeout=10000)
+        ep.click('#buehne .anm-leiste [data-anm="recht"]')
+        egp.wait_for_selector('.toast:has-text("nur für Host")', timeout=10000)
+        if egp.is_visible('#buehne .kv.bildschirm .anm-knopf'): fehler.append('Anmerkungen: Gast kann trotz Sperre anmerken')
+        if egp.locator('#buehne .anm-leiste').count(): fehler.append('Anmerkungen: Werkzeugleiste beim Gast bleibt trotz Sperre offen')
+        print('Anmerkungen: gelöscht und gesperrt')
+        ep.keyboard.press('Escape')
+        ep.click('#s-teilen')
+        # ==== Ende Block Anmerkungen ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

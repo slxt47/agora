@@ -494,4 +494,14 @@ export const de = {
   'audio.musikAn': 'Originalton an – bitte Kopfhörer verwenden, sonst gibt es Echo.', 'audio.musikAus': 'Originalton aus – Sprache wird wieder gefiltert.',
   'audio.rnnoiseFehler': 'Die starke Rauschunterdrückung lässt sich hier nicht starten. Der Ton läuft ohne sie weiter.',
   // ==== Ende Block Audio-Modi ====
+  // ==== Block Anmerkungen (web/src/raum/anmerkungen*.js) ====
+  'anm.starten': 'Auf dem Bildschirm anmerken', 'anm.beenden': 'Anmerken beenden', 'anm.leiste': 'Werkzeuge für Anmerkungen',
+  'anm.w.stift': 'Stift', 'anm.w.marker': 'Textmarker', 'anm.w.pfeil': 'Pfeil', 'anm.w.text': 'Text', 'anm.w.radierer': 'Radierer',
+  'anm.farbe.0': 'Farbe Rot', 'anm.farbe.1': 'Farbe Gelb', 'anm.farbe.2': 'Farbe Grün', 'anm.farbe.3': 'Farbe Blau', 'anm.farbe.4': 'Farbe Weiß', 'anm.farbe.5': 'Farbe Schwarz',
+  'anm.meineLoeschen': 'Meine Anmerkungen löschen', 'anm.alleLoeschen': 'Alle Anmerkungen löschen',
+  'anm.sperren': 'Anmerkungen für andere sperren', 'anm.erlauben': 'Anmerkungen für alle erlauben',
+  'anm.erlaubtAn': 'Alle dürfen jetzt auf geteilten Bildschirmen anmerken.', 'anm.erlaubtAus': 'Anmerkungen sind jetzt nur für Host, Co-Hosts und die teilende Person möglich.',
+  'anm.nichtErlaubt': 'Anmerkungen sind in diesem Meeting gerade gesperrt.', 'anm.zuSchnell': 'Etwas langsamer, bitte – zu viele Anmerkungen auf einmal.',
+  'anm.textEingeben': 'Text eingeben, Enter zum Setzen',
+  // ==== Ende Block Anmerkungen ====
 };

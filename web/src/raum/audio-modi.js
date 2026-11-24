@@ -117,7 +117,15 @@ export class AudioModi {
   }
 
   /** Neue Wahl übernehmen: Optionen setzen und das Mikrofon mit den neuen Einstellungen neu veröffentlichen. */
-  async setzen(neu) {
+  setzen(neu) {      // nacheinander: ein Wechsel veröffentlicht das Mikrofon neu, das darf sich nicht überholen
+    // … aber höchstens 5 s auf den vorigen warten (hängt ein Veröffentlichen, bleibt die Wahl trotzdem bedienbar)
+    const vorher = this.kette || Promise.resolve();
+    const grenze = new Promise((ok) => setTimeout(() => ok('zeit'), 5000));
+    this.kette = Promise.race([vorher, grenze]).then((r) => { if (r === 'zeit') console.warn('Audio-Modus: voriger Wechsel hängt'); return this.wechseln(neu); });
+    return this.kette;
+  }
+
+  async wechseln(neu) {
     const vorher = this.wahl;
     this.wahl = audioPruefen({ ...this.wahl, ...neu });
     audioMerken(this.wahl);

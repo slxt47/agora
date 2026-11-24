@@ -478,7 +478,13 @@ SCHEMA = [
     ALTER TABLE raeume ADD COLUMN e2ee INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE raeume ADD COLUMN e2ee_pruef TEXT;      -- 32 Hex-Zeichen oder NULL
     """,
-    # ==== Ende Block E2EE ====
+    # ======== Ende Block „E2EE“ ========
+    # ======== Block „Anmerkungen“ (app/anmerkungen.py) – Version 22 ========
+    # Version 22: Recht „Anmerkungen auf geteilten Bildschirmen erlaubt“ je laufendem Meeting (beim Ende wieder 1)
+    """
+    ALTER TABLE raeume ADD COLUMN anmerkungen INTEGER NOT NULL DEFAULT 1;
+    """,
+    # ======== Ende Block „Anmerkungen“ ========
 ]
 
 

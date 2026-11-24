@@ -1,0 +1,35 @@
+/* Anmerkungen auf geteilten Bildschirmen: Ebene über dem Video, Werkzeugleiste, Knopf in der Kachel */
+.anm-ebene { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.anm-flaeche, .anm-vorschau { position: absolute; left: 0; top: 0; }
+.anm-vorschau { display: none; object-fit: fill; background: #000; }
+.anm-ebene.mit-vorschau .anm-vorschau { display: block; visibility: visible; }      /* .kv:not(.mit-video) video blendet sonst aus */
+.anm-ebene.zeichnet .anm-flaeche { pointer-events: auto; cursor: crosshair; touch-action: none; }
+.anm-flaeche[data-werkzeug="text"] { cursor: text; }
+.anm-flaeche[data-werkzeug="radierer"] { cursor: cell; }
+.anm-ebene.zeichnet { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: inherit; }
+
+.anm-knopf { position: absolute; right: 6px; top: 6px; width: 44px; height: 44px; border: 0; border-radius: 12px; display: grid; place-items: center;
+  color: #fff; background: rgba(8, 9, 20, .72); pointer-events: auto; cursor: pointer; opacity: .85; }
+.anm-knopf:hover, .anm-knopf:focus-visible, .anm-knopf[aria-pressed="true"] { opacity: 1; }
+.anm-knopf[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.anm-knopf svg { width: 18px; height: 18px; }
+.anm-knopf:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.anm-leiste { position: absolute; left: 56px; right: 56px; top: 8px; width: fit-content; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 4px; align-items: center; padding: 4px; border-radius: 14px; background: rgba(8, 9, 20, .86); pointer-events: auto;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.anm-werkzeug, .anm-farbe { min-width: 36px; height: 36px; border: 0; border-radius: 10px; display: grid; place-items: center; cursor: pointer;
+  color: #fff; background: transparent; }
+.anm-werkzeug svg { width: 18px; height: 18px; }
+.anm-werkzeug[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.anm-werkzeug:hover { background: rgba(255, 255, 255, .12); }
+.anm-farbe::before { content: ""; width: 20px; height: 20px; border-radius: 50%; background: var(--f); box-shadow: 0 0 0 2px rgba(255, 255, 255, .5); }
+.anm-farbe[aria-pressed="true"]::before { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--accent); }
+.anm-werkzeug:focus-visible, .anm-farbe:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+.anm-trenner { width: 1px; height: 24px; background: rgba(255, 255, 255, .25); margin: 0 2px; }
+.anm-text { position: absolute; z-index: 3; min-width: 160px; padding: 4px 8px; border-radius: 8px; border: 2px solid var(--accent);
+  background: rgba(8, 9, 20, .9); color: #fff; font: 600 14px var(--font); pointer-events: auto; }
+.kv.klein .anm-leiste { top: 4px; left: 4px; right: 52px; }
+@media (max-width: 560px) { .anm-werkzeug, .anm-farbe { min-width: 44px; height: 44px; } }
+@media (forced-colors: active) { .anm-farbe::before { forced-color-adjust: none; } }
+.kv:has(.anm-ebene) .kv-menue { z-index: 3; }      /* Kachelmenü bleibt beim Zeichnen erreichbar */

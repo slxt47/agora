@@ -71,6 +71,11 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   geht über den Server an alle; jede Person blendet die Untertitel mit Namen selbst ein. Der Besitzer kann „Transkript
   speichern“ einschalten (alle sehen einen Hinweis) und lädt es als .txt/.vtt (Ende-Bildschirm oder Konto, 90 Tage).
   Optional „Transkript aus Aufnahme erstellen“ über einen Whisper-Dienst (`AGORA_WHISPER_URL`).
+- **Anmerkungen auf geteilten Bildschirmen:** Stift, Textmarker, Pfeil, Text, Radierer, sechs Farben, eigene oder (Host,
+  Co-Host, teilende Person) alle löschen. Die Ebene skaliert mit dem Videobild, auch im Vollbild; Werkzeugleiste mit
+  Pfeiltasten bedienbar, Esc beendet. Host, Co-Hosts und die teilende Person können Anmerkungen für andere sperren
+  (Recht vom Server in den Raum-Metadaten). Die teilende Person sieht die Anmerkungen auf einer Vorschau ihres Bildschirms.
+  Striche laufen direkt zwischen den Browsern (normiert, begrenzt) und werden nicht gespeichert.
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Whiteboard:** gemeinsame Tafel über der Bühne – Stift, Linie, Pfeil, Rechteck, Ellipse, Text, Notizzettel, Radierer,
   Auswählen/Verschieben, Rückgängig/Wiederholen (je Person), Farben, Strichstärke, Zoom/Verschieben, Export als PNG. Änderungen gehen als

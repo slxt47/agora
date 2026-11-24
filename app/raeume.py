@@ -36,7 +36,7 @@ BEI_ZAEHLUNG = []             # f(raum, anzahl) – minütliche Zahl der Verbund
 BEITRITT_PRUEFEN = []         # Module (Blockieren) hängen sich hier ein: f(raum, benutzer|None) wirft 403 zum Ablehnen
 BEITRITT_ROLLE = []           # Webinar: f(raum, benutzer|None, body) → {'rolle', 'warteraum_frei'} oder None; wirft 403 zum Ablehnen
 ROLLE_STANDARD = []           # Webinar: f(raum, podium) → Grundrolle (podium = war Host/Co-Host → 'panelist', sonst 'zuschauer') oder None
-META_EXTRA = []               # f(raum) → dict, wird in die LiveKit-Raum-Metadaten gemischt (Webinar, Server-Aufnahme, Transkript)
+META_EXTRA = []               # f(raum) → dict, wird in die LiveKit-Raum-Metadaten gemischt (Webinar, Server-Aufnahme, Transkript, Anmerkungen)
 RAUM_JSON_EXTRA = []          # f(raum, benutzer|None) → dict, wird in raum_json gemischt
 
 

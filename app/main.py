@@ -37,6 +37,7 @@ from . import dateien        # Zusammenarbeit: Dateien teilen
 from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
 from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur mit AGORA_EGRESS=1)
 from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnahme (Whisper)
+from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -124,6 +125,7 @@ app.include_router(dateien.router)
 app.include_router(webinar.router)
 app.include_router(egress.router)
 app.include_router(untertitel.router)
+app.include_router(anmerkungen.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 

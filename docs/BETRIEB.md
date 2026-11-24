@@ -49,6 +49,14 @@ Beide Endpunkte antworten nur auf 127.0.0.1 ohne `CF-Connecting-IP` (der Tunnel 
 `https://HOST` gibt es 404. Für einen Abruf von woanders `AGORA_METRIKEN_TOKEN` in `app.env` setzen und
 `Authorization: Bearer …` schicken. Prometheus kann `http://127.0.0.1:8110/api/metriken` direkt abfragen.
 
+## Dateien im Meeting und Virenprüfung
+
+Dateien liegen unter `daten/dateien/` (25 MB je Datei, 200 MB je Meeting). Erlaubte Endungen: `AGORA_DATEI_ENDUNGEN` in `app.env`
+(Vorgabe ohne ausführbare, HTML-, Skript- und SVG-Dateien). Optional prüft clamd jede Datei vor der Annahme:
+`AGORA_CLAMAV=host:port` (TCP, INSTREAM). clamd muss `StreamMaxLength` ≥ 25M haben (Vorgabe 25M passt knapp; besser 26M).
+Ist clamd nicht erreichbar, lehnt die App Uploads mit 503 ab (fail closed). Ohne die Variable steht in der Oberfläche
+„Nicht auf Viren geprüft“. Ein clamd-Container läuft wie die anderen gehärtet im Host-Netz, gebunden an 127.0.0.1.
+
 ## Kapazität
 
 Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/lasttest.sh`, nur gegen Wegwerf-Instanzen).
@@ -68,6 +76,7 @@ Kurz: CPU reicht für 2–3 Meetings mit je 25 Personen; LiveKit brauchte bei 50
 - Whiteboard (Operations-Log mit identity, Zeichnungen, Texte): wird beim Beenden gelöscht, außer der Raum hat „Chat speichern“ – dann bleibt es wie der Chat, solange der Raum besteht, und der Besitzer sieht es im Meeting-Verlauf. Sperre und Zähler werden immer gelöscht.
 - Notizen (Text, Name der Person, die zuletzt gespeichert hat): wie Chat – beim Beenden gelöscht, mit „Chat speichern“ im Meeting-Verlauf, solange der Raum besteht.
 - Fragen (Q&A) mit Stimmen: wie Chat. Auch anonyme Fragen speichern identity, Namen und Konto der fragenden Person (anonym nur gegenüber den anderen); im Meeting-Verlauf erscheinen anonyme Fragen ohne Namen.
+- Dateien aus Meetings (Inhalt unter `daten/dateien/`, Name, Größe, wer geteilt hat): werden beim Beenden gelöscht; mit „Chat speichern“ bleiben sie noch 30 Tage für den Besitzer (Meeting-Verlauf), danach löscht der Hintergrund sie. Wird der Raum gelöscht, verschwinden auch verwaiste Dateien (spätestens nach einer Stunde).
 - Breakout-Räume (Zuteilung, wer wo ist): werden beim Beenden des Meetings gelöscht.
 - Verbindungsqualität: Werte je Teilnahme werden beim Beenden gelöscht; der Schnitt je Meeting (ohne IPs und Namen) bleibt, solange der Raum besteht.
 - Rückmeldungen nach dem Meeting (Sterne, Probleme, Text, eigener Verbindungsschnitt): solange der Raum besteht; die gespeicherte identity dient nur gegen doppelte Bewertungen und wird nie angezeigt.

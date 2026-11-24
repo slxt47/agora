@@ -108,3 +108,28 @@
 .fragen-form-zeile .btn { min-height: 40px; padding: 0 18px; }
 .fragen-anonym { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: .875rem; color: var(--m-sec); cursor: pointer; }
 .fragen-anonym input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+
+/* ---------------------------------------------------------------- Dateien */
+.dateien-panel { grid-template-rows: auto minmax(0, 1fr) auto; }
+.dateien-panel.ziehen { outline: 3px dashed var(--accent); outline-offset: -6px; }
+.dateien-kopf { padding: 8px 12px 0; }
+.dateien-hinweis { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 8px 10px; border-radius: 12px; font-size: .8125rem;
+  background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--m-text); }
+.dateien-hinweis.warn { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.dateien-hinweis svg { width: 18px; height: 18px; flex: none; }
+.dateien-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.datei { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 4px 6px 6px; border-radius: 12px; background: var(--m-flaeche-2); }
+.dateien-bild { width: 48px; height: 48px; flex: none; object-fit: cover; border-radius: 8px; background: var(--m-flaeche); }
+.dateien-symbol { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--m-flaeche); color: var(--m-sec); }
+.dateien-symbol svg { width: 24px; height: 24px; }
+.datei-text { flex: 1; min-width: 0; display: grid; }
+.datei-name { font-weight: 600; font-size: .9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.datei-text small { color: var(--m-sec); font-size: .75rem; }
+.datei-text .datei-warnung { color: var(--warn); }
+.datei .icon-btn { color: var(--m-text); }
+.dateien-laufend { display: grid; gap: 6px; }
+.dateien-laufend:empty { display: none; }
+.dateien-zeile-laufend { display: grid; gap: 4px; font-size: .8125rem; }
+.dateien-zeile-laufend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dateien-zeile-laufend progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.dateien-belegt { color: var(--m-sec); font-size: .75rem; text-align: center; }

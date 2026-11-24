@@ -1,7 +1,8 @@
 // Meeting-Verlauf (Konto): gespeicherte Inhalte aus „Zusammenarbeit“ – Whiteboard als Bild (mit PNG-Download),
-// Notizen (Vorschau + .md), Fragen (Q&A, anonyme ohne Namen).
+// Notizen (Vorschau + .md), Fragen (Q&A, anonyme ohne Namen), Dateien (Download-Links, 30 Tage).
 // Nur bei Räumen mit „Chat speichern“; die Daten kommen aus GET /api/verlauf/{id}/inhalt.
 import { h } from './common.js';
+import { groesseText, datumText } from './helfer.js';
 import { t } from './i18n.js';
 import { exportCanvas } from './raum/whiteboard-zeichnen.js';
 import { bloeckeDom } from './raum/notizen.js';
@@ -38,5 +39,10 @@ export function zusammenarbeitVerlauf(inhalt, r, m) {
       h('b', {}, f.name || t('fragen.anonymWer')), `: ${f.text} `,
       h('span', { class: 'sec klein' }, `(${t('zv.stimmen', { n: f.stimmen })}${f.status === 'beantwortet' ? ` · ${t('fragen.beantwortet')}` : ''})`),
       f.antwort ? h('div', { class: 'sec klein' }, `${f.antwort_von || ''}: ${f.antwort}`) : null))));
+  }
+  if (r.dateien?.length) {
+    inhalt.append(h('h4', {}, t('zv.dateien', { datum: datumText(r.dateien[0].ablauf) })), h('ul', { class: 'verlauf-dateien' }, r.dateien.map((d) => h('li', {},
+      h('a', { href: `/api/verlauf/${m.id}/dateien/${encodeURIComponent(d.id)}`, download: d.name }, d.name),
+      h('span', { class: 'sec klein' }, ` · ${groesseText(d.groesse)} · ${d.von_name}`)))));
   }
 }

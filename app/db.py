@@ -383,6 +383,24 @@ SCHEMA = [
       PRIMARY KEY (frage_id, identity)
     );
     """,
+    # Version 19: Dateien im Meeting (Inhalt unter DATEN/dateien/<id>). ablauf NULL = läuft noch; beim Ende gelöscht oder
+    # (chat_speichern) ablauf = Ende + 30 Tage.
+    """
+    CREATE TABLE dateien (
+      id TEXT PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL, von_name TEXT NOT NULL,
+      name TEXT NOT NULL,              -- gesäuberter Dateiname
+      endung TEXT NOT NULL,
+      typ TEXT NOT NULL,               -- aus der Endung abgeleitet
+      groesse INTEGER NOT NULL,
+      geprueft INTEGER NOT NULL DEFAULT 0,      -- 1 = clamd hat geprüft
+      erstellt INTEGER NOT NULL,
+      ablauf INTEGER
+    );
+    CREATE INDEX dateien_raum ON dateien(raum_id, sitzung);
+    """,
 ]
 
 

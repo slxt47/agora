@@ -1,7 +1,7 @@
 # Browser-E2E (Playwright, Kamera/Mikro-Attrappe): Host + Gast, Warteraum, Video, Chat, Steuerung, Beenden.
 # Lauf: siehe tests/e2e/lauf.sh
 import re, json, time, traceback
-import base64, hashlib, hmac, struct
+import base64, hashlib, hmac, struct, zlib
 from playwright.sync_api import sync_playwright
 
 import os
@@ -316,8 +316,9 @@ with sync_playwright() as p:
         vorher = hp.evaluate(f'({TINTE})()')
         gbox = gp.locator('.wb .wb-tafel').bounding_box()
         gp.click('.wb-leiste [data-werkzeug=stift]')
-        gp.mouse.move(gbox['x'] + 40, gbox['y'] + 250); gp.mouse.down()
-        gp.mouse.move(gbox['x'] + 250, gbox['y'] + 320, steps=8); gp.mouse.up()
+        unten = gbox['y'] + gbox['height'] - 110          # unterhalb der Hinweise (Toasts oben), oberhalb der Werkzeugleiste
+        gp.mouse.move(gbox['x'] + 40, unten - 60); gp.mouse.down()
+        gp.mouse.move(gbox['x'] + 250, unten, steps=8); gp.mouse.up()
         hp.wait_for_function(f'(n) => ({TINTE})() > n', arg=vorher, timeout=10000)
         hp.screenshot(path=OUT + '17h-host-whiteboard-gast.png')
         gp.click('.wb [data-aktion=schliessen]'); hp.click('.wb [data-aktion=schliessen]')
@@ -359,6 +360,33 @@ with sync_playwright() as p:
         time.sleep(0.3)
         hp.screenshot(path=OUT + '17k-host-fragen.png')
         gp.screenshot(path=OUT + '17l-gast-fragen.png')
+        # ==== Zusammenarbeit: Dateien – Host teilt PDF und Bild, Gast sieht Vorschau und lädt herunter ====
+        def png(b, hh, farbe):
+            roh = b''.join(b'\x00' + bytes(farbe) * b for _ in range(hh))
+            teil = lambda k, d: struct.pack('>I', len(d)) + k + d + struct.pack('>I', zlib.crc32(k + d) & 0xffffffff)
+            return b'\x89PNG\r\n\x1a\n' + teil(b'IHDR', struct.pack('>IIBBBBB', b, hh, 8, 2, 0, 0, 0)) + teil(b'IDAT', zlib.compress(roh)) + teil(b'IEND', b'')
+        pdf = b'%PDF-1.4\n% Agora E2E\n'
+        hp.click('#tab-dateien')
+        hinweis = hp.inner_text('#panel-dateien .dateien-hinweis')
+        if 'Nicht auf Viren geprüft' not in hinweis: fehler.append(f'Dateien: Hinweis fehlt ({hinweis})')
+        hp.set_input_files('#panel-dateien input[type=file]', files=[
+            {'name': 'Folien Q4.pdf', 'mimeType': 'application/pdf', 'buffer': pdf},
+            {'name': 'skizze.png', 'mimeType': 'image/png', 'buffer': png(64, 40, (109, 74, 255))}])
+        hp.wait_for_selector('#panel-dateien .datei:has-text("skizze.png")', timeout=15000)
+        gp.click('#tab-dateien')
+        gp.wait_for_selector('#panel-dateien .datei:has-text("Folien Q4.pdf")', timeout=10000)
+        gp.wait_for_function("() => { const i = document.querySelector('#panel-dateien .dateien-bild'); return !!i && i.complete && i.naturalWidth === 64; }", timeout=10000)
+        with gp.expect_download() as dl:
+            gp.click('#panel-dateien .datei:has-text("Folien Q4.pdf") [data-aktion=laden]')
+        datei = dl.value
+        inhalt = open(datei.path(), 'rb').read()
+        print('Datei beim Gast:', datei.suggested_filename, len(inhalt), 'Bytes')
+        if inhalt != pdf or datei.suggested_filename != 'Folien Q4.pdf': fehler.append(f'Download falsch: {datei.suggested_filename} {inhalt[:20]!r}')
+        ohne = gast.request.get(f'{B}/api/raeume/{code}/dateien')
+        if ohne.status != 403: fehler.append(f'Dateiliste ohne Teilnahme: {ohne.status}')
+        time.sleep(0.3)
+        hp.screenshot(path=OUT + '17m-host-dateien.png')
+        gp.screenshot(path=OUT + '17n-gast-dateien.png')
         gp.click('#leiste-zu')
         # Breakout-Räume: Host legt 2 Räume an (automatisch, Timer), öffnet; Gast landet im Breakout-Raum und ruft Hilfe;
         # Host besucht ihn über den Hinweis, schickt eine Nachricht an alle Räume und schließt (60 s Countdown) → alle zurück

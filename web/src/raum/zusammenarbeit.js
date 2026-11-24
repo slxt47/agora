@@ -6,6 +6,7 @@ import { t } from '../i18n.js';
 import { Whiteboard } from './whiteboard.js';
 import { Notizen } from './notizen.js';
 import { Fragen } from './fragen.js';
+import { Dateien } from './dateien.js';
 import './zusammenarbeit.css';
 
 export class Zusammenarbeit {
@@ -15,6 +16,7 @@ export class Zusammenarbeit {
     this.whiteboard = new Whiteboard(m);
     this.anmelden('fragen', new Fragen(m, this.panelAnlegen('fragen', t('fragen.tab'), 'chat')));     // Q&A direkt neben dem Chat
     this.anmelden('notizen', new Notizen(m, this.panelAnlegen('notizen', t('notizen.tab'))));
+    this.anmelden('dateien', new Dateien(m, this.panelAnlegen('dateien', t('dateien.tab'))));
   }
 
   get panels() { return [...this.module.keys()]; }

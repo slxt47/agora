@@ -33,6 +33,7 @@ from . import metriken
 from . import whiteboard     # Zusammenarbeit: Whiteboard
 from . import notizen        # Zusammenarbeit: gemeinsame Notizen
 from . import fragen         # Zusammenarbeit: Q&A
+from . import dateien        # Zusammenarbeit: Dateien teilen
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -116,6 +117,7 @@ app.include_router(metriken.router)
 app.include_router(whiteboard.router)
 app.include_router(notizen.router)
 app.include_router(fragen.router)
+app.include_router(dateien.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -157,6 +159,7 @@ def aufraeumen():
     verlauf.aufraeumen(t)
     dauerchat.aufraeumen()
     melden.aufraeumen(t)
+    dateien.aufraeumen(t)      # abgelaufene und verwaiste Dateien aus Meetings
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

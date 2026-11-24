@@ -329,7 +329,7 @@ Verbundener (Haupt- und Breakout-Räume, minütlich und bei jedem Beitritt gemes
 | Methode + Pfad | Antwort |
 |---|---|
 | GET `/api/verlauf` | `{meetings:[eintrag]}` – nur beendete, neueste zuerst, max. 100 |
-| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt], notizen, fragen:[frage]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
+| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt], notizen, fragen:[frage], dateien:[datei + ablauf]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
 | DELETE `/api/verlauf/{id}` | `{ok:true}` |
 
 Server-Haken in `raeume.py` für Module: `BEIM_START`, `BEIM_BEITRITT`, `BEI_ZAEHLUNG(raum, anzahl)` (neben `BEIM_ENDE`).
@@ -394,3 +394,21 @@ Der Server speichert identity, Name und Konto auch bei anonymen Fragen (Missbrau
 
 Ereignis (Topic `agora`): `{typ:"frage", aktion: neu|aktualisiert|geloescht, frage}` (ohne `meins`/`ich_gestimmt`). Verworfene gehen
 mit Inhalt nur an Moderation und fragende Person, alle anderen bekommen `geloescht`; „Wieder öffnen“ schickt `neu` an alle.
+
+### Dateien
+`datei` = `{id, name, groesse, typ, von_name, erstellt, geprueft (clamd hat geprüft), bild (png/jpg/gif/webp), gefaehrlich}`, an die
+Person selbst zusätzlich `meins`.
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| GET `/api/raeume/{code}/dateien` | alle | – | `{dateien:[datei], belegt, grenze_meeting, grenze_datei, virenpruefung, endungen:[…]}` |
+| POST `/api/raeume/{code}/dateien` | alle (Recht `chat` aus: nur host/cohost) | roher Body, Header `X-Dateiname` (URL-kodiert) | `{datei}`; 400 leer/ohne Namen, 413 > 25 MB, 415 Endung nicht erlaubt, 422 Virus gefunden, 503 Virenprüfung nicht erreichbar, 507 Meeting voll (200 MB); 20 Uploads je 10 min |
+| GET `/api/raeume/{code}/dateien/{id}` | alle (X-Teilnahme) | `?vorschau=1` | Datei; immer `nosniff`, `Content-Security-Policy: sandbox`, `no-store`; Anhang, nur Bilder mit `vorschau=1` inline; gefährliche Typen als `application/octet-stream`; 120/min |
+| DELETE `/api/raeume/{code}/dateien/{id}` | wer sie geteilt hat oder host/cohost | – | `{ok:true}` |
+| GET `/api/verlauf/{vid}/dateien/{id}` | Besitzer (Cookie) | – | gespeicherte Datei (nur `chat_speichern`, bis 30 Tage nach dem Meeting), immer als Anhang |
+
+Der Typ kommt nur aus der Endung. Erlaubte Endungen: `AGORA_DATEI_ENDUNGEN` (Komma-Liste) oder die Vorgabe in `app/dateien.py`
+(Dokumente, Bilder, Archive, Audio/Video – keine ausführbaren, HTML-, Skript- oder SVG-Dateien). Werden gefährliche Typen
+erlaubt, gibt es sie trotzdem nur als Anhang mit `octet-stream`. Virenprüfung: `AGORA_CLAMAV=host:port` → clamd INSTREAM vor der
+Annahme; Fund 422, Fehler 503 (nichts ungeprüft). Der Download geht per `fetch` mit X-Teilnahme (Blob), Bildvorschau ebenso.
+Ereignis (Topic `agora`): `{typ:"datei", aktion: neu|geloescht, datei}`.

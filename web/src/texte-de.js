@@ -385,5 +385,17 @@ export const de = {
   'fragen.verwerfen': 'Verwerfen', 'fragen.wiederOffen': 'Wieder öffnen', 'fragen.zurueckziehen': 'Zurückziehen',
   'fragen.antwortOptional': 'Antwort (optional, für alle sichtbar)', 'fragen.antwortPlatzhalter': 'Kurz schriftlich antworten …',
   'fragen.neuN': '{n} neue Fragen', 'zv.fragen': 'Fragen', 'zv.stimmen': '{n} Stimmen',
+  'dateien.tab': 'Dateien', 'dateien.liste': 'Geteilte Dateien', 'dateien.leer': 'Noch keine Dateien. Zum Teilen hier ablegen oder „Datei teilen“.',
+  'dateien.hochladen': 'Datei teilen', 'dateien.laedtHoch': '{name} wird hochgeladen',
+  'dateien.geteilt': '„{name}“ ist geteilt.', 'dateien.neuToast': '{name} hat „{datei}“ geteilt.', 'dateien.ansehen': 'Ansehen',
+  'dateien.herunterladen': 'Herunterladen', 'dateien.herunterladenName': '{name} herunterladen', 'dateien.loeschen': 'Löschen',
+  'dateien.loeschenName': '{name} löschen', 'dateien.loeschenTitel': 'Datei für alle löschen?',
+  'dateien.geprueft': 'Dateien werden vor dem Teilen auf Viren geprüft.',
+  'dateien.ungeprueft': 'Nicht auf Viren geprüft – öffne nur Dateien von Personen, denen du vertraust.',
+  'dateien.gefaehrlich': 'Kann Programmcode enthalten – nur öffnen, wenn du der Quelle vertraust.',
+  'dateien.belegt': '{belegt} von {grenze} belegt · höchstens 25 MB je Datei',
+  'dateien.fehlerLeer': '„{name}“ ist leer.', 'dateien.fehlerTyp': '„{name}“: Dateien vom Typ .{endung} sind hier nicht erlaubt.',
+  'dateien.fehlerGross': '„{name}“ ist größer als 25 MB.', 'dateien.fehlerVoll': '„{name}“ passt nicht mehr – der Speicher dieses Meetings ist voll.',
+  'zv.dateien': 'Dateien (noch bis {datum})',
   // ==== Ende Block „Zusammenarbeit“ ====
 };

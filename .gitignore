@@ -12,3 +12,4 @@ tests/e2e/bilder/
 .claude/
 web/public/vendor/
 web/src/raum/hintergruende/
+tests/egress/bilder/

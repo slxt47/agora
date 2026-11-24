@@ -6,6 +6,7 @@
 |---|---|---|
 | `app` | 127.0.0.1:8110 | Webseite und API, SQLite und Aufnahmen in `./daten` |
 | `livekit` | 127.0.0.1:7880 (Signalisierung), öffentlich UDP 7882 und TCP 7881 | SFU für Video und Ton |
+| `redis`, `egress` | 127.0.0.1:6390, 7884 | nur Profil `egress`: Server-Aufnahme + Livestream (siehe unten) |
 | `cloudflared` | – | Tunnel `agora`: `HOST/rtc` geht an 127.0.0.1:7880, alles andere an 127.0.0.1:8110 |
 
 Alle drei laufen im Host-Netz, damit LiveKit die öffentliche Schnittstelle sieht und der Tunnel beide lokalen Ports erreicht. LiveKit nutzt nur die Schnittstelle `eth0` (`rtc.interfaces.includes`), damit keine Docker-Brücken als Kandidaten auftauchen.
@@ -55,6 +56,34 @@ Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/last
 Kurz: CPU reicht für 2–3 Meetings mit je 25 Personen; LiveKit brauchte bei 50 + 50 bis zu 838 MiB – für Meetings über
 ~35 Personen `mem_limit` von `livekit` auf 2g erhöhen. Der erste echte Engpass ist die Bandbreite (~5 Mbit/s je Person in der Galerie).
 
+## Server-Aufnahme und Livestream (Egress) – optional, standardmäßig aus
+
+`redis` und `egress` stehen im Compose-Profil `egress`; ein normales `docker compose up -d` startet sie nicht, und ohne
+`AGORA_EGRESS=1` blendet die App die Funktion aus (API 404, Oberfläche ohne Einträge).
+
+**Getestet (24.11.2026, `sh tests/egress/lauf.sh`, eigener Wegwerf-Stapel):** `livekit/egress:v1.15.0` hat ein arm64-Image
+(Manifest-Index linux/amd64 + linux/arm64) und läuft gehärtet (read-only, cap_drop ALL, no-new-privileges, als 1001:1000,
+Chrome ohne SYS_ADMIN). RoomComposite 720p30 mit einer Person: Start bis „läuft“ ≈ 6 s, fertige MP4 in der Bibliothek
+≈ 6 s nach dem Stopp, 20 s ≈ 3,5 MB. Egress-Container dabei ≈ 1 Kern (docker stats ≈ 100 %) und 0,5–0,95 GB RAM (Spitze
+beim Chrome-Start). Mit vielen Kacheln steigt die CPU – je gleichzeitiger Aufnahme/Stream 2–4 Kerne und ~1–1,5 GB
+einplanen; `mem_limit: 2g`, `cpus: 4`. Egress nimmt nur so viele Aufträge an, wie seine CPU-Schätzung erlaubt.
+Redis: ~10 MB (`mem_limit: 128m`, ohne Persistenz). Leerlauf des Egress-Containers ≈ 130 MB.
+
+**Einschalten in Produktion (bewusst, nicht automatisch):**
+1. `livekit.env` ergänzen: `REDIS_HOST=127.0.0.1:6390` und `REDIS_PASSWORD=<zufällig, z. B. openssl rand -hex 24>`
+   (LiveKit liest beide als Umgebungsvariablen, `livekit.yaml` bleibt unverändert; Egress und Redis nutzen dieselbe Datei).
+2. Ausgabeordner: `mkdir -p daten/egress && chmod 2770 daten/egress` (Besitzer 1000:1000; Egress schreibt als 1001:1000).
+3. `app.env`: `AGORA_EGRESS=1` (optional `AGORA_EGRESS_AUSGABE`, Standard `/daten/egress`; `AGORA_EGRESS_ZIEL`, Standard `/out`).
+4. `docker compose --profile egress up -d redis egress && docker compose up -d --force-recreate livekit && docker compose up -d app`
+5. Prüfen: `docker logs agora-egress-1 | grep "service ready"`, dann im Meeting „Mehr → Auf dem Server aufzeichnen“.
+Ports: Redis 127.0.0.1:6390, Egress-Vorlagen-Server 7884 (Host-Netz – nicht in der Firewall freigeben). Ausschalten:
+`AGORA_EGRESS` entfernen, `docker compose --profile egress stop redis egress`, `REDIS_*` aus `livekit.env` nehmen, LiveKit neu erstellen.
+
+Datenschutz: Server-Aufnahmen landen wie Browser-Aufnahmen in der Bibliothek des Raum-Besitzers (90 Tage, 5-GB-Kontingent;
+die 500-MB-Grenze je Datei gilt nur für Uploads). Stream-URL und -Schlüssel werden nie protokolliert (Fehlertexte geschwärzt),
+nur verschlüsselt und nur bis zum Ende des Streams gespeichert. Ziele im eigenen Netz sind gesperrt (Schutz vor SSRF über den
+Egress-Container). Egress-Aufträge (ohne Ziel) bleiben 7 Tage für die Statusanzeige. HLS ist nicht umgesetzt (siehe ADR 0003).
+
 ## Aufbewahrung
 
 - Nicht bestätigte Konten: 48 h
@@ -68,7 +97,8 @@ Kurz: CPU reicht für 2–3 Meetings mit je 25 Personen; LiveKit brauchte bei 50
 - Breakout-Räume (Zuteilung, wer wo ist): werden beim Beenden des Meetings gelöscht.
 - Verbindungsqualität: Werte je Teilnahme werden beim Beenden gelöscht; der Schnitt je Meeting (ohne IPs und Namen) bleibt, solange der Raum besteht.
 - Rückmeldungen nach dem Meeting (Sterne, Probleme, Text, eigener Verbindungsschnitt): solange der Raum besteht; die gespeicherte identity dient nur gegen doppelte Bewertungen und wird nie angezeigt.
-- Aufnahmen: 90 Tage
+- Aufnahmen: 90 Tage (auch Server-Aufnahmen); Egress-Aufträge (Status, Fehler, ohne Stream-Ziel): 7 Tage; Stream-Ziel
+  (verschlüsselt): nur solange der Stream läuft; verwaiste Dateien im Egress-Ausgabeordner: 1 Tag
 - Dauer-Chat (persönlicher Raum, nur wenn der Besitzer ihn einschaltet): öffentliche Nachrichten bleiben, bis der Besitzer ihn leert oder ausschaltet (oder mit dem Konto), höchstens die neuesten 1000 Nachrichten.
 - Meeting-Verlauf (Titel, Code, Beginn, Ende, Spitzenzahl, Zahl der Beitritte – keine Namen, keine IPs): 90 Tage, einzeln löschbar, mit dem Konto weg. Wird der Raum gelöscht, bleibt der Eintrag ohne Chat-Verweis.
 - Erinnerungen: Einstellung im Profil, bis man sie ausschaltet (oder mit dem Konto). Adressen von Eingeladenen nur, wenn der Host „Erinnerung schicken“ ankreuzt – gelöscht nach dem Ende des Termins, zu dem eingeladen wurde (spätestens mit dem Meeting, Sicherheitsnetz 400 Tage). Versand-Merker (nur Hash aus Raum, Termin, Empfänger): 2 Tage.

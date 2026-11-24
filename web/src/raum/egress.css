@@ -1,0 +1,2 @@
+/* Agora – Livestream-Hinweis in der Kopfzeile (wie REC, aber eigene Farbe). */
+.m-pille.live { color: #fff; background: #7b2cf5; border-color: transparent; letter-spacing: .04em; }

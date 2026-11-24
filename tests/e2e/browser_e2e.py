@@ -191,6 +191,7 @@ with sync_playwright() as p:
         hp.screenshot(path=OUT + '13-sprecher.png')
         hp.click('#s-mehr'); time.sleep(0.3)
         hp.screenshot(path=OUT + '14-mehr.png')
+        if hp.locator('.menue [role=menuitem]:has-text("Auf dem Server aufzeichnen")').count(): fehler.append('Server-Aufnahme sichtbar ohne AGORA_EGRESS')
         hp.keyboard.press('Escape')
         # Effekt im Meeting umstellen: starke Unschärfe; das Video muss beim Gast weiter ankommen
         hp.click('#s-mehr'); hp.click('.menue [role=menuitem] >> text=Hintergrund und Effekte')
@@ -507,7 +508,7 @@ with sync_playwright() as p:
         hp.click('#s-verlassen'); hp.click('.menue [role=menuitem] >> text=Für alle beenden')
         hp.click('dialog .btn.gefahr')
         zp.wait_for_selector('#v-ende:not([hidden])', timeout=15000)
-        zuschauer.close()
+        time.sleep(1)                                     # Kontext offen lassen: Schließen mitten im Abbau meldet DataChannel-Fehler
         # PWA: im Cache nur App-Hülle/statische Dateien – nie API, Medien, MediaPipe
         gecacht = hp.evaluate("(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) out.push(new URL(r.url).pathname); return out; })()")
         print('Im Cache:', len(gecacht), 'Einträge')

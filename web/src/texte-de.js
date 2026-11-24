@@ -378,4 +378,20 @@ export const de = {
   'webinar.aufsPodium': 'Du bist jetzt auf dem Podium und darfst Bild und Ton senden.', 'webinar.micAn': 'Mikrofon an',
   'webinar.zurueckZuschauer': 'Du schaust wieder zu – Kamera und Mikrofon sind aus.',
   // ==== Ende Block Webinar ====
+  // ==== Block Server-Aufnahme + Livestream (web/src/raum/egress.js) ====
+  'egress.aufnahmeStarten': 'Auf dem Server aufzeichnen', 'egress.aufnahmeStoppen': 'Server-Aufnahme beenden',
+  'egress.streamStarten': 'Livestream starten', 'egress.streamStoppen': 'Livestream beenden',
+  'egress.aufnahmeTitel': 'Auf dem Server aufzeichnen',
+  'egress.aufnahmeText': 'Der Server zeichnet das Meeting auf – auch wenn dein Tab im Hintergrund ist. Die MP4-Datei landet danach in der Bibliothek von {name}. Alle sehen, dass aufgezeichnet wird.',
+  'egress.layout': 'Ansicht', 'egress.aufnahmeStartet': 'Aufnahme startet …', 'egress.aufnahmeLaeuft': 'Der Server zeichnet auf.',
+  'egress.aufnahmeGestoppt': 'Aufnahme beendet – sie wird gespeichert.', 'egress.inBibliothek': 'Die Server-Aufnahme liegt jetzt in der Bibliothek.',
+  'egress.aufnahmeFehler': 'Server-Aufnahme: {text}', 'egress.streamFehler': 'Livestream: {text}', 'egress.unbekannt': 'unbekannter Fehler',
+  'egress.streamTitel': 'Livestream starten',
+  'egress.streamText': 'Überträgt das Meeting live, z. B. zu YouTube oder Twitch. Adresse und Schlüssel findest du im Studio deiner Plattform. Alle im Meeting sehen „LIVE“.',
+  'egress.url': 'Stream-Adresse (RTMP oder RTMPS)', 'egress.schluessel': 'Stream-Schlüssel',
+  'egress.schluesselHinweis': 'Wird nie angezeigt oder protokolliert und nur verschlüsselt gespeichert, solange der Stream läuft.',
+  'egress.urlFalsch': 'Die Adresse muss mit rtmp:// oder rtmps:// beginnen.',
+  'egress.streamStartet': 'Livestream startet …', 'egress.streamLaeuft': 'Der Livestream läuft.', 'egress.streamGestoppt': 'Livestream beendet.',
+  'egress.liveVon': '{name} überträgt das Meeting live', 'egress.liveHinweis': 'Dieses Meeting wird jetzt live übertragen ({name}).',
+  // ==== Ende Block Server-Aufnahme ====
 };

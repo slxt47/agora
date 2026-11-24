@@ -22,6 +22,7 @@ import { dauerChatEinrichten, dauerChatGeleert } from './dauerchat.js';
 import { Melden } from './melden.js';
 import { Statistik } from './statistik.js';
 import { Webinar } from './webinar.js';          // Webinar: Bühne nur Panel, Zuschauer senden nichts
+import { ServerAufnahme } from './egress.js';     // Server-Aufnahme + Livestream (nur mit AGORA_EGRESS=1)
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -95,6 +96,7 @@ export class Meeting {
     this.melden = new Melden(this);
     this.statistik = new Statistik(this);
     this.webinar = new Webinar(this);
+    this.egress = new ServerAufnahme(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.statistik.starten();
@@ -111,6 +113,7 @@ export class Meeting {
     }
     this.webinar.rolleAnwenden(null, this.rolle);
     this.webinar.laden();
+    this.egress.laden();
     try {
       if (this.medien.audioTrack) {
         await lp.publishTrack(this.medien.audioTrack, { source: Track.Source.Microphone });
@@ -160,6 +163,7 @@ export class Meeting {
     if (md.rechte) this.rechteSetzen(md.rechte, false);
     if ('gesperrt' in md) { this.gesperrt = !!md.gesperrt; this.kopfAktualisieren(); }
     if ('aufnahme' in md) this.aufnahmeSetzen(md.aufnahme || null);
+    this.egress?.metadaten(md);
   }
 
   // ---------------------------------------------------------------- LiveKit-Ereignisse
@@ -260,7 +264,7 @@ export class Meeting {
           this.rolle = d.rolle;
           if (war !== d.rolle) toast(t(`meeting.rolleNeu.${d.rolle}`), 'ok');
           if (this.istMod()) this.leute.warteraumLaden();
-          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.breakout.laden(); this.webinar.rolleEreignis(d.identity, war, d.rolle); }
+          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.breakout.laden(); this.webinar.rolleEreignis(d.identity, war, d.rolle); this.egress.laden(); }
           this.chat.rechteAktualisieren();
           this.steuerAktualisieren();
         }
@@ -282,6 +286,7 @@ export class Meeting {
       case 'umfrage': this.umfragen.ereignis(d); break;
       case 'breakout': case 'breakout_hilfe': case 'breakout_nachricht': this.breakout.ereignis(d); break;
       case 'meldung': this.melden?.ereignis(d); break;
+      case 'egress': this.egress?.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
         lp.setMicrophoneEnabled(false).catch(() => {});
@@ -691,6 +696,7 @@ export class Meeting {
       '-',
       this.istMod() ? { text: this.rekorder?.laeuft ? t('aufnahme.stoppen') : t('aufnahme.starten'), symbol: this.rekorder?.laeuft ? 'stopp' : 'aufnahme',
         deaktiviert: !aufnahmeMoeglich || (!!this.aufnahmeInfo && !this.rekorder?.laeuft), aktion: () => this.aufnahmeUmschalten() } : null,
+      ...(this.egress?.menueEintraege() || []),
       { text: t('effekte.titel'), symbol: 'hintergrund', aktion: () => effektePanel(anker) },
       { text: t('meeting.bildImBild'), symbol: 'bildImBild', deaktiviert: !document.pictureInPictureEnabled, aktion: () => this.bildImBild() },
       { text: t('meeting.sprecheransicht'), symbol: 'sprecher', an: this.buehne.effektiveAnsicht() === 'sprecher', aktion: () => this.buehne.ansichtSetzen('sprecher') },

@@ -352,6 +352,29 @@ SCHEMA = [
     CREATE INDEX webinar_anmeldungen_ablauf ON webinar_anmeldungen(loeschen_ab);
     """,
     # ======== Ende Block „Webinar + Registrierung“ ========
+    # ======== Block „Server-Aufnahme + Livestream (Egress)“ (app/egress.py) – Version 21, beim Zusammenführen neu nummerieren ========
+    """
+    CREATE TABLE egress_laeufe (       -- laufende und abgeschlossene Egress-Aufträge (fertige: 7 Tage, dann gelöscht)
+      egress_id TEXT PRIMARY KEY,
+      raum_id INTEGER REFERENCES raeume(id) ON DELETE SET NULL,
+      sitzung INTEGER NOT NULL,
+      art TEXT NOT NULL,               -- aufnahme | stream
+      benutzer_id INTEGER REFERENCES benutzer(id) ON DELETE CASCADE,   -- Besitzer (Bibliothek)
+      von_name TEXT NOT NULL,
+      titel TEXT NOT NULL DEFAULT '',
+      raum_code TEXT NOT NULL,
+      layout TEXT NOT NULL,
+      datei TEXT,                      -- Dateiname im Ausgabeordner (nur aufnahme)
+      ziel_verschluesselt TEXT,        -- nur stream, nur solange er läuft: RTMP-URL mit Schlüssel (zwei_faktor.verschluesseln)
+      status TEXT NOT NULL DEFAULT 'startet',   -- startet | laeuft | endet | fertig | fehler
+      fehler TEXT,
+      aufnahme_id TEXT,                -- Eintrag in der Bibliothek nach dem Abschluss
+      gestartet INTEGER NOT NULL,
+      beendet INTEGER
+    );
+    CREATE INDEX egress_laeufe_raum ON egress_laeufe(raum_id, status);
+    """,
+    # ======== Ende Block „Server-Aufnahme + Livestream (Egress)“ ========
 ]
 
 

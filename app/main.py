@@ -31,6 +31,7 @@ from . import sicherheit
 from . import qualitaet
 from . import metriken
 from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
+from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur mit AGORA_EGRESS=1)
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -112,6 +113,7 @@ app.include_router(sicherheit.router)
 app.include_router(qualitaet.router)
 app.include_router(metriken.router)
 app.include_router(webinar.router)
+app.include_router(egress.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -168,6 +170,7 @@ def hintergrund():
             asyncio.run(raeume.leere_pruefen())
             asyncio.run(breakout.faellige_pruefen())     # Timer/Countdown, falls die geplante Aufgabe verloren ging
             erinnerungen.pruefen()                        # Erinnerungs-Mails (idempotent je Termin)
+            asyncio.run(egress.alle_abgleichen())         # Server-Aufnahmen in die Bibliothek, Livestream-Fehler
             if time.time() - letztes_aufraeumen > 300:
                 aufraeumen()
                 letztes_aufraeumen = time.time()

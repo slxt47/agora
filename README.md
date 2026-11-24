@@ -72,6 +72,9 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Der Host zeichnet im Browser auf. Alle sehen einen Hinweis.
   - Die Aufnahme wird in die Bibliothek hochgeladen (500 MB je Datei, 5 GB je Konto, 90 Tage).
   - Freigabelinks mit Ablauf und optionalem Passwort
+  - Optional (`AGORA_EGRESS=1` + Dienste `redis`/`egress`, Profil `egress`): **Aufnahme auf dem Server** (LiveKit Egress,
+    Galerie oder Sprecher, MP4 direkt in die Bibliothek des Besitzers) und **Livestream** zu YouTube/Twitch (RTMP/RTMPS,
+    Stream-Schlüssel nie im Log, nur verschlüsselt und nur während des Streams gespeichert). Alle sehen REC bzw. LIVE.
 
 ## Aufbau
 
@@ -80,7 +83,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 | `app/` | FastAPI + SQLite, argon2, LiveKit-Server-API (`livekit-api`), Mails über SMTP |
 | `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
-| `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges) |
+| `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges); `redis` + `egress` nur mit Profil `egress` |
 
 Für das Monitoring gibt es `/api/metriken` (Prometheus), `/api/gesund?tief=1` und `scripts/waechter.sh` (eine Zeile Status) – nur lokal, siehe [`docs/BETRIEB.md`](docs/BETRIEB.md).
 
@@ -101,6 +104,7 @@ docker compose up -d --build
 docker build --target test -t agora:test . && docker run --rm agora:test        # 41+ API-Tests
 docker run --rm -v "$PWD/web:/web" -w /web node:22.23.5-alpine sh -c "npm ci --ignore-scripts && npm test"
 sh tests/e2e/lauf.sh       # Browser-E2E: echte LiveKit, zwei Browser mit Kamera-Attrappe
+sh tests/egress/lauf.sh    # Server-Aufnahme + Livestream gegen eigenen Wegwerf-Stapel (Redis, LiveKit, Egress, App)
 sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```
 

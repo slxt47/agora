@@ -369,3 +369,17 @@ Chat der Zuschauer (`chat`): `alle`; `panel` = nur private Nachrichten an Host/C
 Schalter für das Q&A-Modul (`webinar.einstellungen(raum)['fragen_an']`).
 Hooks in `raeume.py` (für andere Module): `BEITRITT_ROLLE`, `ROLLE_STANDARD`, `META_EXTRA`, `RAUM_JSON_EXTRA`, `grundrolle()`.
 
+## Server-Aufnahme + Livestream (LiveKit Egress, app/egress.py – nur mit `AGORA_EGRESS=1`)
+Ohne Feature-Flag: GET liefert `{verfuegbar:false}`, POST 404 – die Oberfläche blendet die Einträge aus.
+
+| Methode + Pfad | Wer (X-Teilnahme) | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/egress` | alle | `{verfuegbar}`; Host/Co-Host zusätzlich `aufnahme`, `stream`: `null` oder `{id, art, status: startet\|laeuft\|endet\|fertig\|fehler, fehler, von_name, layout, gestartet, aufnahme_id}` (gleicht dabei mit LiveKit ab) |
+| POST `/api/raeume/{code}/egress/aufnahme` | Host/Co-Host | `{aktion:"start", layout?: "galerie"\|"sprecher"}` → `{ok, id}`; `{aktion:"stopp"}`. 409 läuft schon / Browser-Aufnahme läuft, 507 Kontingent des Besitzers voll, 502 Egress-Fehler |
+| POST `/api/raeume/{code}/egress/stream` | Host/Co-Host | `{aktion:"start", url: "rtmp(s)://…", schluessel, layout?}` → `{ok, id}`; `{aktion:"stopp"}`. 400 bei anderem Schema, Zugangsdaten in der URL, Leerzeichen oder Zielen im eigenen Netz (Loopback/privat/nicht global) |
+
+Raum-Metadaten: `aufnahme: {von_name, server: true}` während der Server-Aufnahme, `livestream: {von_name}` während des
+Streams. Ereignis (Topic `agora`, nur an Host/Co-Hosts): `{typ:"egress", art, status, fehler}`; beim Start zusätzlich
+`{typ:"aufnahme", aktiv:true, von_name, server:true}` an alle. Fertige Aufnahmen erscheinen in `GET /api/aufnahmen`
+(`typ: video/mp4`). Fehlertexte sind von Stream-URL und Schlüssel bereinigt (`***`).
+

@@ -168,7 +168,7 @@ export class Leute {
     }
     // Im Meeting
     const alle = [room.localParticipant, ...room.remoteParticipants.values()];
-    const rang = { host: 0, cohost: 1, teilnehmer: 2, gast: 3 };
+    const rang = { host: 0, cohost: 1, panelist: 2, teilnehmer: 2, gast: 3, zuschauer: 4 };
     alle.sort((a, b) => (b.isLocal - a.isLocal) || ((b.attributes?.hand === '1') - (a.attributes?.hand === '1'))
       || (rang[m.rolleVon(a)] ?? 9) - (rang[m.rolleVon(b)] ?? 9) || m.name(a).localeCompare(m.name(b), 'de'));
     teile.push(h('section', { class: 'leute-abschnitt', 'aria-label': t('leute.imMeeting') },
@@ -204,7 +204,7 @@ export class Leute {
   zeile(p) {
     const m = this.m;
     const rolle = m.rolleVon(p);
-    const rolleText = { host: t('rolle.host'), cohost: t('rolle.cohost'), gast: t('rolle.gast') }[rolle] || '';
+    const rolleText = { host: t('rolle.host'), cohost: t('rolle.cohost'), gast: t('rolle.gast'), panelist: t('rolle.panelist'), zuschauer: t('rolle.zuschauer') }[rolle] || '';
     const unter = [p.isLocal ? t('leute.du') : '', rolleText].filter(Boolean).join(' · ');
     const mic = p.isMicrophoneEnabled, cam = p.isCameraEnabled, hand = p.attributes?.hand === '1';
     const av = h('span', { class: 'mini-avatar', 'aria-hidden': 'true' }, initialen(m.name(p)));

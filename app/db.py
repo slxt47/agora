@@ -324,6 +324,34 @@ SCHEMA = [
     );
     """,
     # ==== Ende Block Verbindungsqualität ====
+    # ======== Block „Webinar + Registrierung“ (app/webinar.py) – Version 20, beim Zusammenführen neu nummerieren ========
+    # (Die Version ergibt sich aus der Position in dieser Liste; „20“ ist nur das Etikett für die Koordination.)
+    """
+    ALTER TABLE raeume ADD COLUMN webinar INTEGER NOT NULL DEFAULT 0;    -- 1 = Webinar: nur Panel sendet, Zuschauer sehen zu
+    ALTER TABLE raeume ADD COLUMN webinar_einst TEXT;                     -- JSON: chat, fragen_an, registrierung, kapazitaet, fragen
+    CREATE TABLE webinar_panel (       -- Einladungslinks für Panelisten (Token = HMAC aus AGORA_GEHEIM + salz, nur Hash gespeichert)
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,              -- Bezeichnung für den Besitzer (z. B. „Referentin“)
+      salz TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      erstellt INTEGER NOT NULL
+    );
+    CREATE TABLE webinar_anmeldungen ( -- Registrierungen; gelöscht 30 Tage nach dem Webinar (loeschen_ab)
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL COLLATE NOCASE,
+      antworten TEXT NOT NULL DEFAULT '[]',   -- JSON-Liste der Antworten auf die Zusatzfragen
+      token_hash TEXT NOT NULL UNIQUE,         -- persönlicher Beitrittslink (nur Hash)
+      erstellt INTEGER NOT NULL,
+      beigetreten INTEGER,                     -- erster Beitritt mit dem Link
+      loeschen_ab INTEGER NOT NULL,
+      UNIQUE (raum_id, email)
+    );
+    CREATE INDEX webinar_anmeldungen_ablauf ON webinar_anmeldungen(loeschen_ab);
+    """,
+    # ======== Ende Block „Webinar + Registrierung“ ========
 ]
 
 

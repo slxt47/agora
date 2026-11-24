@@ -56,7 +56,7 @@ export default defineConfig({
     outDir: 'dist', emptyOutDir: true, sourcemap: false, assetsInlineLimit: 0, modulePreload: { polyfill: false },
     target: 'es2022',
     chunkSizeWarningLimit: 700,   // livekit-client allein ist ~520 kB (nur auf der Raum-Seite)
-    rollupOptions: { input: { index: 'index.html', konto: 'konto.html', raum: 'raum.html', passwort: 'passwort.html', a: 'a.html', offline: 'offline.html', admin: 'admin.html' } },
+    rollupOptions: { input: { index: 'index.html', konto: 'konto.html', raum: 'raum.html', passwort: 'passwort.html', a: 'a.html', webinar: 'webinar.html', offline: 'offline.html', admin: 'admin.html' } },
   },
   server: { proxy: { '/api': process.env.AGORA_API || 'http://127.0.0.1:8000' } },
 });

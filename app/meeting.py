@@ -11,7 +11,7 @@ from fastapi import APIRouter, Request
 from . import db
 from . import livekit_dienst as lk
 from .kern import benutzer_aus_sitzung, fehler, grenze, h, iso, jetzt, json_body, text_feld
-from .raeume import (RANG, meeting_beenden, meta, nachricht_json, neu_laden, raum_laden, rechte, teilnahmen,
+from .raeume import (RANG, grundrolle, meeting_beenden, meta, nachricht_json, neu_laden, raum_laden, rechte, teilnahmen,
                      warteraum_melden, wartend)
 
 router = APIRouter()
@@ -166,7 +166,7 @@ async def steuerung(code: str, req: Request):
         await lk.senden(r['code'], {'typ': 'rechte', 'rechte': neu})
         if neu['bildschirm'] != alt['bildschirm']:       # erlaubte Quellen der Teilnehmer anpassen
             verbunden = {p['identity'] for p in (await lk.teilnehmer(r['code']) or [])}
-            for x in teilnahmen(r, ('teilnehmer', 'gast')):
+            for x in teilnahmen(r, ('teilnehmer', 'gast', 'panelist')):
                 if x['identity'] in verbunden:
                     await lk.aktualisieren(r['code'], x['identity'], rolle=x['rolle'], farbe=x['farbe'], rechte=neu)
     elif aktion == 'rolle':
@@ -174,12 +174,12 @@ async def steuerung(code: str, req: Request):
         rang_pruefen(t, z)
         if d.get('rolle') not in ('cohost', 'teilnehmer'):
             fehler(400, 'Rolle: cohost oder teilnehmer.')
-        await rolle_setzen(r, z, 'cohost' if d['rolle'] == 'cohost' else ('teilnehmer' if z['benutzer_id'] else 'gast'))
+        await rolle_setzen(r, z, 'cohost' if d['rolle'] == 'cohost' else grundrolle(r, z['benutzer_id'], podium=z['rolle'] in ('cohost', 'panelist')))
     elif aktion == 'host_uebertragen':
         z = ziel_laden(r, d.get('ziel'))
         rang_pruefen(t, z)
         await rolle_setzen(r, z, 'host')
-        await rolle_setzen(r, t, 'teilnehmer' if t['benutzer_id'] else 'gast')
+        await rolle_setzen(r, t, grundrolle(r, t['benutzer_id'], podium=True))
     elif aktion == 'beenden':
         protokoll(t, r, 'Steuerung: beenden')
         await meeting_beenden(r, 'host')

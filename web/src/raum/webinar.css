@@ -1,0 +1,3 @@
+/* Agora – Webinar im Meeting: Zuschauer sehen keine Sende-Knöpfe. */
+body.webinar-zuschauer #s-mic, body.webinar-zuschauer #s-cam, body.webinar-zuschauer #s-teilen { display: none; }
+.webinar-pille { color: var(--sec); }

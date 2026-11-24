@@ -48,6 +48,11 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
     ohne Netz erscheint „Keine Verbindung“; eine neue Version übernimmt erst nach „Neu laden“ (nie mitten im Meeting)
   - im Meeting: Bildschirm bleibt an (Wake Lock), Drehen ordnet neu, nach dem Zurückkommen aus dem Hintergrund (iOS)
     werden Kamera/Mikro und Ton wieder aufgenommen, Safe Areas, Bedienelemente mindestens 44 px
+- **Webinar:** Raum als Webinar: nur Host, Co-Hosts und Panelisten (eigener Einladungslink) senden, Zuschauer sehen
+  und hören zu (LiveKit-Token ohne Senderecht), Zuschauerzahl fürs Panel, „Aufs Podium holen“ und zurück, Chat der
+  Zuschauer an alle / nur ans Panel / aus. Optional mit **Anmeldung** auf `/w/<code>`: Name, E-Mail, bis zu 5 Zusatzfragen,
+  Kapazitätsgrenze, Bestätigungsmail mit persönlichem Beitrittslink (und .ics), Liste + CSV-Export für den Besitzer;
+  Anmeldedaten 30 Tage nach dem Webinar gelöscht.
 - **Bildschirmfreigabe:** Bildschirm, Fenster oder Tab, mit Systemton, wo der Browser es kann. Standardmäßig nur eine Person gleichzeitig.
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Umfragen:** Host und Co-Hosts stellen Fragen mit 2–10 Antworten (Einfach- oder Mehrfachwahl, anonym oder namentlich), sehen das Ergebnis live und teilen es mit allen. Eine Stimme je Person, vom Server geprüft.

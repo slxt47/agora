@@ -30,6 +30,7 @@ from . import admin
 from . import sicherheit
 from . import qualitaet
 from . import metriken
+from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -110,6 +111,7 @@ app.include_router(admin.router)
 app.include_router(sicherheit.router)
 app.include_router(qualitaet.router)
 app.include_router(metriken.router)
+app.include_router(webinar.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -151,6 +153,7 @@ def aufraeumen():
     verlauf.aufraeumen(t)
     dauerchat.aufraeumen()
     melden.aufraeumen(t)
+    webinar.aufraeumen(t)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)
@@ -190,5 +193,6 @@ if os.path.isdir(WEB):
     for pfad, datei in SEITEN.items():
         app.add_api_route(pfad, seite(datei), methods=['GET', 'HEAD'])
     app.add_api_route('/r/{code}', (lambda code: FileResponse(os.path.join(WEB, 'raum.html'), media_type='text/html')), methods=['GET', 'HEAD'])
+    app.add_api_route('/w/{code}', (lambda code: FileResponse(os.path.join(WEB, 'webinar.html'), media_type='text/html')), methods=['GET', 'HEAD'])
     app.add_api_route('/a/{token}', (lambda token: FileResponse(os.path.join(WEB, 'a.html'), media_type='text/html')), methods=['GET', 'HEAD'])
     app.mount('/', StaticFiles(directory=WEB, html=False), name='web')

@@ -21,6 +21,7 @@ import { Breakout } from './breakout.js';
 import { dauerChatEinrichten, dauerChatGeleert } from './dauerchat.js';
 import { Melden } from './melden.js';
 import { Statistik } from './statistik.js';
+import { Webinar } from './webinar.js';          // Webinar: Bühne nur Panel, Zuschauer senden nichts
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -48,7 +49,12 @@ export class Meeting {
   api(pfad, opts = {}) { return api(pfad, { ...opts, header: { 'X-Teilnahme': this.zugang.teilnahme, ...(opts.header || {}) } }); }
   istMod() { return this.rolle === 'host' || this.rolle === 'cohost'; }
   /** Rolle nur aus /zustand und Server-Ereignissen – das LiveKit-Attribut könnte der Client selbst setzen. */
-  rolleVon(p) { return p.isLocal ? this.rolle : (this.rollen[p.identity] || 'teilnehmer'); }
+  rolleVon(p) {
+    if (p.isLocal) return this.rolle;
+    // Webinar: Neu Hinzugekommene kennt /zustand noch nicht – das Attribut nur für Rollen ohne Rechte übernehmen
+    const a = p.attributes?.rolle;
+    return this.rollen[p.identity] || (a === 'zuschauer' || a === 'panelist' ? a : 'teilnehmer');
+  }
   name(p) { return (p.name || '').trim() || t('allg.unbekannt'); }
   farbe(p) { const f = p.attributes?.farbe; return /^#[0-9a-f]{6}$/i.test(f || '') ? f : farbeAusText(p.identity); }
   darfUmbenennen(p) { return p.isLocal ? (this.istMod() || this.rechte.umbenennen !== false) : this.istMod(); }
@@ -56,7 +62,7 @@ export class Meeting {
   darfModerieren(p) {
     if (p.isLocal || !this.istMod()) return false;
     const r = this.rolleVon(p);
-    return this.rolle === 'host' || r === 'teilnehmer' || r === 'gast';
+    return this.rolle === 'host' || r === 'teilnehmer' || r === 'gast' || r === 'panelist' || r === 'zuschauer';
   }
 
   // ---------------------------------------------------------------- Start
@@ -88,6 +94,7 @@ export class Meeting {
     this.breakout = new Breakout(this);
     this.melden = new Melden(this);
     this.statistik = new Statistik(this);
+    this.webinar = new Webinar(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.statistik.starten();
@@ -98,6 +105,12 @@ export class Meeting {
 
     // Tracks aus der Lobby veröffentlichen (kein zweiter Berechtigungsdialog)
     const lp = this.room.localParticipant;
+    if (this.rolle === 'zuschauer') {           // Webinar-Zuschauer: nichts veröffentlichen
+      this.medien.audioTrack?.stop(); this.medien.videoTrack?.stop();
+      this.medien = { ...this.medien, audioTrack: null, videoTrack: null };
+    }
+    this.webinar.rolleAnwenden(null, this.rolle);
+    this.webinar.laden();
     try {
       if (this.medien.audioTrack) {
         await lp.publishTrack(this.medien.audioTrack, { source: Track.Source.Microphone });
@@ -155,10 +168,12 @@ export class Meeting {
     const aktiv = () => r === this.room;     // nach einem Raumwechsel (Breakout) zählt nur der neue Raum
     const neuZeichnen = (p) => { this.buehne.aktualisieren(p); this.leute.planen(); };
     r.on(RoomEvent.ParticipantConnected, (p) => {
+      this.webinar?.kopf();
       this.buehne.sync(); this.chat.empfaengerAktualisieren(); this.leute.planen(); this.rekorder?.audioAbgleichen();
       if (this.istMod() && this.buehne.spotlightIdentity) r.localParticipant.publishData(kodieren({ identity: this.buehne.spotlightIdentity }), { reliable: true, topic: 'spotlight', destinationIdentities: [p.identity] }).catch(() => {});
     })
       .on(RoomEvent.ParticipantDisconnected, (p) => {
+        this.webinar?.kopf();
         this.buehne.sync(); this.chat.empfaengerAktualisieren(); this.leute.planen(); this.rekorder?.audioAbgleichen();
         if (this.buehne.spotlightIdentity === p.identity) this.buehne.spotlight(null);
       })
@@ -245,10 +260,11 @@ export class Meeting {
           this.rolle = d.rolle;
           if (war !== d.rolle) toast(t(`meeting.rolleNeu.${d.rolle}`), 'ok');
           if (this.istMod()) this.leute.warteraumLaden();
-          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.breakout.laden(); }
+          if (war !== d.rolle) { this.umfragen.rolleGeaendert(); this.breakout.laden(); this.webinar.rolleEreignis(d.identity, war, d.rolle); }
           this.chat.rechteAktualisieren();
           this.steuerAktualisieren();
         }
+        if (d.identity !== lp.identity) this.webinar.rolleEreignis(d.identity, null, d.rolle);
         this.buehne.aktualisieren();
         this.leute.planen();
         break;
@@ -462,6 +478,7 @@ export class Meeting {
   async micUmschalten() {
     const lp = this.room.localParticipant;
     const an = !lp.isMicrophoneEnabled;
+    if (this.rolle === 'zuschauer') return;
     if (an && !this.istMod() && this.rechte.selbst_unmute === false && this.vomHostStumm) { toast(t('meeting.entstummenGesperrt'), 'warn'); return; }
     try { await lp.setMicrophoneEnabled(an); geraeteMerken({ micAn: an }); } catch (e) { toast(geraeteFehler(e, 'mikrofon'), 'err', { dauer: 7000 }); }
     this.steuerAktualisieren();
@@ -470,6 +487,7 @@ export class Meeting {
   async kameraUmschalten() {
     const lp = this.room.localParticipant;
     const an = !lp.isCameraEnabled;
+    if (this.rolle === 'zuschauer') return;
     if (an && this.sparmodus === 'audio') toast(t('meeting.sparmodusKamera'), '', { dauer: 3000 });
     try { await lp.setCameraEnabled(an); geraeteMerken({ camAn: an }); } catch (e) { toast(geraeteFehler(e, 'kamera'), 'err', { dauer: 7000 }); }
     this.steuerAktualisieren();
@@ -527,6 +545,7 @@ export class Meeting {
   async teilenUmschalten() {
     const lp = this.room.localParticipant;
     if (lp.isScreenShareEnabled) { await lp.setScreenShareEnabled(false).catch(() => {}); this.steuerAktualisieren(); return; }
+    if (this.rolle === 'zuschauer') return;
     if (!this.istMod() && this.rechte.bildschirm === false) { toast(t('meeting.teilenAus'), 'warn'); return; }
     if (!this.rechte.mehrfach_freigabe) {
       const anderer = [...this.room.remoteParticipants.values()].find((p) => p.isScreenShareEnabled);
@@ -599,6 +618,7 @@ export class Meeting {
     const melden = this.melden?.eintraege(p) || [];      // Melden/Blockieren für alle anderen
     if (!this.darfModerieren(p)) return [...e, ...melden];
     const name = this.name(p);
+    e.push(...(this.webinar?.eintraege(p) || []));
     if (p.isMicrophoneEnabled) e.push({ text: t('mod.stumm'), symbol: 'micAus', aktion: () => this.steuern('stumm', { ziel: p.identity }, t('mod.stummOk', { name })) });
     if (p.isCameraEnabled) e.push({ text: t('mod.kameraAus'), symbol: 'kameraAus', aktion: () => this.steuern('kamera_aus', { ziel: p.identity }) });
     else e.push({ text: t('mod.kameraBitten'), symbol: 'kamera', aktion: () => this.steuern('kamera_bitten', { ziel: p.identity }, t('mod.gebeten', { name })) });

@@ -27,12 +27,16 @@ WIEDERHOLUNG = ('keine', 'taeglich', 'woechentlich')
 LEER_S = 600                  # Meeting endet nach 10 min ohne Teilnehmer
 ANFRAGE_S = 1800              # Warteraum-Anfragen verfallen nach 30 min
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
-RANG = {'host': 3, 'cohost': 2, 'teilnehmer': 1, 'gast': 1}
+RANG = {'host': 3, 'cohost': 2, 'teilnehmer': 1, 'gast': 1, 'panelist': 1, 'zuschauer': 0}   # panelist/zuschauer: Webinar
 BEIM_ENDE = []                # Module (Umfragen, Breakout) hängen sich hier ein: f(raum) räumt beim Meeting-Ende auf
 BEIM_START = []               # f(raum) nach dem Start eines neuen Meetings (Verlauf)
 BEIM_BEITRITT = []            # f(raum) bei jedem ausgegebenen Zugang (Verlauf)
 BEI_ZAEHLUNG = []             # f(raum, anzahl) – minütliche Zahl der Verbundenen aller Räume des Meetings (Verlauf)
 BEITRITT_PRUEFEN = []         # Module (Blockieren) hängen sich hier ein: f(raum, benutzer|None) wirft 403 zum Ablehnen
+BEITRITT_ROLLE = []           # Webinar: f(raum, benutzer|None, body) → {'rolle', 'warteraum_frei'} oder None; wirft 403 zum Ablehnen
+ROLLE_STANDARD = []           # Webinar: f(raum, podium) → Grundrolle (podium = war Host/Co-Host → 'panelist', sonst 'zuschauer') oder None
+META_EXTRA = []               # f(raum) → dict, wird in die LiveKit-Raum-Metadaten gemischt (Webinar, Server-Aufnahme, Transkript)
+RAUM_JSON_EXTRA = []          # f(raum, benutzer|None) → dict, wird in raum_json gemischt
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -62,7 +66,22 @@ def rechte(r):
 
 def meta(r):
     """Raum-Metadaten für LiveKit (nur der Server schreibt sie)."""
-    return {'rechte': rechte(r), 'gesperrt': bool(r['gesperrt']), 'aufnahme': {'von_name': r['aufnahme_von']} if r['aufnahme_von'] else False}
+    m = {'rechte': rechte(r), 'gesperrt': bool(r['gesperrt']), 'aufnahme': {'von_name': r['aufnahme_von']} if r['aufnahme_von'] else False}
+    for f in META_EXTRA:
+        m.update(f(r))
+    return m
+
+
+def grundrolle(r, benutzer_id, wunsch=None, podium=False):
+    """Rolle ohne Host-Rechte: Wunsch (z. B. aus einem Panel-Link), sonst Webinar-Standard, sonst teilnehmer/gast.
+    podium: die Person war Host/Co-Host (im Webinar bleibt sie dann auf dem Podium)."""
+    if wunsch:
+        return wunsch
+    for f in ROLLE_STANDARD:
+        x = f(r, podium)
+        if x:
+            return x
+    return 'teilnehmer' if benutzer_id else 'gast'
 
 
 def link(code):
@@ -87,7 +106,7 @@ def raum_json(r, b=None):
             'warteraum': bool(r['warteraum']), 'gesperrt': bool(r['gesperrt']), 'aktiv': bool(r['aktiv']),
             'persoenlich': r['art'] == 'persoenlich', 'chat_speichern': bool(r['chat_speichern']), 'dauer_chat': bool(r['dauer_chat']),
             'beendet': bool(r['beendet']), 'geplant': geplant, 'naechster_termin': iso(termin(r)), 'link': link(r['code']),
-            'kalender': kalender_links(r)}
+            'kalender': kalender_links(r)} | {k: v for f in RAUM_JSON_EXTRA for k, v in f(r, b).items()}
 
 
 def kalender_links(r):
@@ -255,7 +274,7 @@ async def voll(r):
     return liste is not None and len(liste) >= MAX_TEILNEHMER
 
 
-async def zugang_erstellen(r, name, benutzer_id, ip):
+async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None):
     """Neue Teilnahme + LiveKit-Token. Der Besitzer wird Host (ein anderer Host wird dann Co-Host)."""
     c = db.verbindung()
     b = c.execute('SELECT * FROM benutzer WHERE id = ?', (benutzer_id,)).fetchone() if benutzer_id else None
@@ -268,7 +287,7 @@ async def zugang_erstellen(r, name, benutzer_id, ip):
             await lk.aktualisieren(r['code'], t['identity'], rolle='cohost', farbe=t['farbe'], rechte=rechte(r))
             await lk.senden(r['code'], {'typ': 'rolle', 'identity': t['identity'], 'rolle': 'cohost'})
     else:
-        rolle = 'teilnehmer' if b else 'gast'
+        rolle = grundrolle(r, b['id'] if b else None, wunsch)
     farbe = b['farbe'] if b else secrets.choice(FARBEN)
     identity = f'u{b["id"]}-{secrets.token_hex(4)}' if b else f'g-{secrets.token_hex(5)}'
     geheim = secrets.token_urlsafe(24)
@@ -478,9 +497,12 @@ async def beitreten(code: str, req: Request):
     if not name:
         fehler(400, 'Bitte einen Namen eingeben.')
     besitzer = bool(b) and b['id'] == r['besitzer_id']
+    extra = {}
     if not besitzer:
         for f in BEITRITT_PRUEFEN:
             f(r, b)
+        for f in BEITRITT_ROLLE:
+            extra = f(r, b, d) or extra
         if r['beendet']:
             fehler(403, 'Meeting ist beendet')
         if r['passcode_hash']:
@@ -495,7 +517,7 @@ async def beitreten(code: str, req: Request):
         fehler(403, 'Du wurdest aus diesem Meeting entfernt.')
     if await voll(r):
         fehler(403, 'Meeting ist voll')
-    if r['warteraum'] and not besitzer:
+    if r['warteraum'] and not besitzer and not extra.get('warteraum_frei'):
         anfrage, geheim = secrets.token_urlsafe(12), secrets.token_urlsafe(24)
         db.verbindung().execute('INSERT INTO anfragen (id, geheim_hash, raum_id, sitzung, name, benutzer_id, ip, erstellt) '
                                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (anfrage, h(geheim), r['id'], r['sitzung'], name,
@@ -504,7 +526,7 @@ async def beitreten(code: str, req: Request):
         return {'status': 'wartet', 'anfrage': anfrage, 'anfrage_geheim': geheim}
     if besitzer:
         db.protokollieren('Meeting betreten (Host)', b['id'], code)
-    return {'status': 'zugelassen', 'zugang': await zugang_erstellen(r, name, b['id'] if b else None, ip)}
+    return {'status': 'zugelassen', 'zugang': await zugang_erstellen(r, name, b['id'] if b else None, ip, extra.get('rolle'))}
 
 
 @router.get('/api/raeume/{code}/warten/{anfrage}')

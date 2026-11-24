@@ -57,7 +57,10 @@ def alle_raeume(code):
 
 
 def quellen(rolle, rechte):
-    """Welche Quellen darf jemand senden? Bildschirm nur Host/Co-Host oder wenn Recht „bildschirm“ an ist."""
+    """Welche Quellen darf jemand senden? Bildschirm nur Host/Co-Host oder wenn Recht „bildschirm“ an ist.
+    Webinar-Zuschauer senden nichts (can_publish false)."""
+    if rolle == 'zuschauer':
+        return []
     q = ['kamera', 'mikrofon']
     if rolle in ('host', 'cohost') or rechte.get('bildschirm'):
         q += ['bildschirm', 'bildschirm_ton']
@@ -65,14 +68,14 @@ def quellen(rolle, rechte):
 
 
 def token(code, identity, name, rolle, farbe, rechte):
-    grants = api.VideoGrants(room_join=True, room=code, can_publish=True, can_subscribe=True, can_publish_data=True,
+    grants = api.VideoGrants(room_join=True, room=code, can_publish=bool(quellen(rolle, rechte)), can_subscribe=True, can_publish_data=True,
                              can_update_own_metadata=True, can_publish_sources=[QUELLEN_JWT[q] for q in quellen(rolle, rechte)])
     return (api.AccessToken(API_KEY, API_SECRET).with_identity(identity).with_name(name).with_grants(grants)
             .with_attributes({'rolle': rolle, 'farbe': farbe}).with_ttl(TOKEN_TTL).to_jwt())
 
 
 def berechtigung(rolle, rechte):
-    return api.ParticipantPermission(can_subscribe=True, can_publish=True, can_publish_data=True, can_update_metadata=True,
+    return api.ParticipantPermission(can_subscribe=True, can_publish=bool(quellen(rolle, rechte)), can_publish_data=True, can_update_metadata=True,
                                      can_publish_sources=[QUELLEN_PROTO[q] for q in quellen(rolle, rechte)])
 
 
@@ -231,6 +234,8 @@ async def raeume_liste():
         r = await lk.room.list_rooms(api.ListRoomsRequest())
         return [{'name': x.name, 'teilnehmer': x.num_participants, 'erstellt': x.creation_time} for x in r.rooms]
     return await _aufruf('raeume_liste', f)
+
+
 
 
 def fake_zuruecksetzen():

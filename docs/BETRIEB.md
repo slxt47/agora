@@ -75,6 +75,10 @@ Kurz: CPU reicht für 2–3 Meetings mit je 25 Personen; LiveKit brauchte bei 50
 - Meeting-Vorlagen: bis der Besitzer sie löscht (oder mit dem Konto); enthalten keine Passcodes, nur „Passcode an/aus“. Im Datenexport enthalten.
 - Kalender-Abo: Nur wer es im Profil einschaltet. Gespeichert werden Salz, Hash des Links, Zeitpunkt des Einschaltens und des letzten Abrufs (keine IP). Weg beim Ausschalten, bei „Neuer Link“ (ersetzt) und mit dem Konto.
 - Meldungen: 365 Tage nach „erledigt“; blockierte Konten bis zum Aufheben oder Löschen eines der Konten
+- Webinar-Anmeldungen (Name, E-Mail, Antworten, Zeitpunkt des Beitritts; Beitrittslink nur als Hash): 30 Tage nach dem
+  Webinar – bei geplanten Webinaren ab Termin + Dauer, außerdem beim Ende jedes Meetings im Raum auf höchstens +30 Tage
+  gekürzt; ohne Termin spätestens 90 Tage nach der Anmeldung. Selbst löschbar über den Link in der Mail, mit dem Raum weg.
+  Panel-Links: bis der Besitzer sie löscht (Token = HMAC aus `AGORA_GEHEIM`, nur Hash gespeichert).
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 
 ## Updates

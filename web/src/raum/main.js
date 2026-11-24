@@ -33,6 +33,7 @@ async function start() {
   if (raum.passcode_noetig) merkmale.push(['', t('konto.passcode')]);
   if (raum.warteraum && !raum.ist_host) merkmale.push(['', t('konto.warteraum')]);
   if (raum.gesperrt) merkmale.push(['warn', t('meeting.gesperrtKurz')]);
+  if (raum.webinar) merkmale.push(['', t('webinar.marke')]);
   $('#raum-merkmale').replaceChildren(...merkmale.map(([k, text]) => h('span', { class: `marker ${k}` }, text)));
   if (raum.beendet && !raum.ist_host) status($('#beitritt-status'), t('raum.beendetHinweis'), 'warn');
   else if (raum.gesperrt && !raum.ist_host) status($('#beitritt-status'), t('raum.gesperrtHinweis'), 'warn');
@@ -50,6 +51,11 @@ async function start() {
   }
   if (pc) { params.delete('p'); params.delete('pwd'); history.replaceState(null, '', `/r/${code}${params.toString() ? `?${params}` : ''}`); }
   if (raum.ist_host) $('#beitreten-knopf').textContent = t('raum.starten');
+  // Webinar: Panel-Link (?panel=) oder persönlicher Anmeldelink (?anmeldung=) – Zuschauer senden nichts
+  if (raum.webinar && !raum.ist_host && !params.get('panel')) {
+    status($('#beitritt-status'), t('webinar.lobbyZuschauer'), '');
+    if (raum.webinar.registrierung && !params.get('anmeldung')) $('#beitritt-status').append(' ', h('a', { href: raum.webinar.anmelde_link || `/w/${code}` }, t('webinar.zurAnmeldung')));
+  }
 
   zeigen('lobby');
   lobby = new Lobby();
@@ -72,6 +78,7 @@ async function beitreten() {
   try {
     const body = { name };
     if (f.passcode.value.trim()) body.passcode = f.passcode.value.trim();
+    for (const k of ['panel', 'anmeldung']) if (params.get(k)) body[k] = params.get(k);
     const r = await api(`/api/raeume/${code}/beitreten`, { methode: 'POST', json: body });
     $('#beitritt-status').hidden = true;
     if (r.status === 'wartet') wartenStarten(r.anfrage, r.anfrage_geheim);

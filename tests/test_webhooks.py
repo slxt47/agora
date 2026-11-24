@@ -67,7 +67,10 @@ def zustellen():
 @pytest.mark.parametrize('url', ['http://example.org/x', 'https://127.0.0.1/x', 'https://localhost/x', 'https://10.1.2.3/',
                                  'https://192.168.0.5/', 'https://169.254.169.254/latest', 'https://[::1]/', 'https://[fd00::1]/',
                                  'https://[::ffff:127.0.0.1]/', 'https://user:pw@93.184.215.14/', 'https://93.184.215.14/#frag',
-                                 'ftp://93.184.215.14/', 'https://0.0.0.0/', 'https://100.64.0.1/', 'x' * 600])
+                                 'ftp://93.184.215.14/', 'https://0.0.0.0/', 'https://100.64.0.1/', 'x' * 600,
+                                 # IPv6 mit eingebetteter privater IPv4 (NAT64, 6to4, IPv4-kompatibel) und Dezimal-/Hex-Schreibweisen
+                                 'https://[64:ff9b::7f00:1]/', 'https://[64:ff9b::a9fe:a9fe]/', 'https://[2002:7f00:1::1]/',
+                                 'https://[::127.0.0.1]/', 'https://2130706433/', 'https://0x7f000001/', 'https://127.1/'])
 def test_ziel_im_eigenen_netz_oder_ohne_https_abgelehnt(url):
     c, _e, _p = konto()
     r = c.post('/api/konto/webhooks', json={'url': url, 'ereignisse': ['meeting.gestartet']})

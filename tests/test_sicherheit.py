@@ -141,3 +141,28 @@ def test_fehlversuche_je_konto_ueber_alle_ips():
     assert neu_client().post('/api/konto/anmelden', json={'email': email.upper(), 'passwort': pw}).status_code == 429
     # andere Konten sind nicht betroffen
     assert neu_client().post('/api/konto/anmelden', json={'email': email2, 'passwort': pw2}).status_code == 200
+
+
+# ---------------------------------------------------------------- Ausgehende Ziele (Webhooks, Livestream)
+def test_oeffentlich_erkennt_eingebettete_ipv4():
+    from app.netz import oeffentlich
+    for a in ('93.184.215.14', '2606:4700::1111', '64:ff9b::5db8:d70e'):     # öffentlich (auch eingebettet)
+        assert oeffentlich(a), a
+    for a in ('127.0.0.1', '10.0.0.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '::1', '::', 'fe80::1%eth0', 'fd00::1',
+              '::ffff:127.0.0.1', '::127.0.0.1', '::5db8:d70e', '64:ff9b::7f00:1', '64:ff9b::a9fe:a9fe', '64:ff9b:1::a00:1',
+              '2002:7f00:1::1', '2002:a9fe:a9fe::', '2001:0:4136:e378:8000:63bf:80ff:fffe', 'kein-ip', ''):
+        assert not oeffentlich(a), a
+
+
+
+def test_livestream_ziel_mit_eingebetteter_privater_ipv4_abgelehnt():
+    import pytest
+    from fastapi import HTTPException
+
+    from app import egress
+    for url in ('rtmp://[::ffff:127.0.0.1]/x', 'rtmp://[64:ff9b::a9fe:a9fe]/x', 'rtmp://[::127.0.0.1]/x', 'rtmp://2130706433/live',
+                'rtmps://[2002:7f00:1::1]/x'):
+        with pytest.raises(HTTPException) as e:
+            egress.ziel_pruefen(url)
+        assert e.value.status_code == 400, url
+    egress.ziel_pruefen('rtmps://1.1.1.1:443/live')          # öffentlich: kein Fehler

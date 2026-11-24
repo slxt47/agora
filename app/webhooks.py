@@ -17,7 +17,6 @@
 import hashlib
 import hmac
 import http.client
-import ipaddress
 import json
 import os
 import secrets
@@ -34,6 +33,7 @@ from starlette.concurrency import run_in_threadpool
 from . import aufnahmen, db, konto, mail, raeume, webinar
 from .api_schluessel import pruefen
 from .kern import SEITE, TEST, benutzer_aus_sitzung, fehler, grenze, iso, jetzt, json_body
+from .netz import oeffentlich
 from .zwei_faktor import entschluesseln, verschluesseln
 
 router = APIRouter()
@@ -77,10 +77,7 @@ def ziel_pruefen(url):
     if not adressen:
         raise ZielFehler('Der Name lässt sich nicht auflösen.')
     for a in adressen:
-        ip = ipaddress.ip_address(a.split('%')[0])
-        if getattr(ip, 'ipv4_mapped', None):
-            ip = ip.ipv4_mapped
-        if not ip.is_global and not LOKAL_ERLAUBT:
+        if not oeffentlich(a) and not LOKAL_ERLAUBT:
             raise ZielFehler('Adressen im eigenen Netz (localhost, private IPs) sind nicht erlaubt.')
     return u, adressen
 

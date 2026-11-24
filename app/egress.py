@@ -12,7 +12,6 @@
 Der Zustand wird abgeglichen, wenn Host/Co-Host den Status abfragt (alle paar Sekunden, solange etwas läuft) und
 im Hintergrund jede Minute.
 """
-import ipaddress
 import os
 import re
 import secrets
@@ -27,6 +26,7 @@ from starlette.concurrency import run_in_threadpool
 from . import aufnahmen, db, meeting, raeume
 from . import livekit_dienst as lk
 from .kern import fehler, grenze, iso, jetzt, json_body, text_feld
+from .netz import oeffentlich
 from .zwei_faktor import entschluesseln, verschluesseln
 
 router = APIRouter()
@@ -91,8 +91,7 @@ def ziel_pruefen(url):
     except (socket.gaierror, UnicodeError):
         fehler(400, 'Der Stream-Server ist nicht erreichbar (Name unbekannt).')
     for a in adressen:
-        ip = ipaddress.ip_address(a.split('%')[0])
-        if not ip.is_global:
+        if not oeffentlich(a):
             fehler(400, 'Stream-Ziele im eigenen Netz sind nicht erlaubt.')
 
 

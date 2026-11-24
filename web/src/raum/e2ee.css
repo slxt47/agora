@@ -1,0 +1,5 @@
+/* Ende-zu-Ende-Verschlüsselung: Pille im Meeting-Kopf, Schalter und Hinweise in der Lobby */
+.m-pille.e2ee { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+#feld-e2ee .schalter { margin: 0; }
+#feld-e2ee .e2ee-aktionen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.e2ee-hinweis { font-size: .8125rem; color: var(--sec, inherit); }

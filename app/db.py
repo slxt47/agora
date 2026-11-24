@@ -472,6 +472,13 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Live-Untertitel + Transkript“ ========
+    # ======== Block „E2EE“ (Ende-zu-Ende-Verschlüsselung, app/e2ee.py) – Version 21 ========
+    # Version 21: E2EE je Raum: Schalter + Prüfwert (HKDF aus dem Geheimnis im Link-Fragment); der Schlüssel selbst nie
+    """
+    ALTER TABLE raeume ADD COLUMN e2ee INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE raeume ADD COLUMN e2ee_pruef TEXT;      -- 32 Hex-Zeichen oder NULL
+    """,
+    # ==== Ende Block E2EE ====
 ]
 
 

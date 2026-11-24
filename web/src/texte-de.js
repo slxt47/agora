@@ -463,4 +463,24 @@ export const de = {
   'tk.aufnahmeGestartet': 'Das Transkript wird im Hintergrund erstellt – das kann einige Minuten dauern.',
   'tk.aufnahmeVtt': 'Transkript (.vtt)', 'tk.aufnahmeTxt': 'Transkript (.txt)',
   // ==== Ende Block Live-Untertitel ====
+  // ==== Block E2EE (Ende-zu-Ende-Verschlüsselung: web/src/raum/e2ee*.js, web/src/e2ee-*.js) ====
+  'e2ee.kurz': 'Ende-zu-Ende verschlüsselt',
+  'e2ee.pilleTitel': 'Ende-zu-Ende verschlüsselt: Bild, Ton und Bildschirm kann nur entschlüsseln, wer den Schlüssel aus dem Link hat – auch der Server nicht.',
+  'e2ee.schalter': 'Ende-zu-Ende-verschlüsselt',
+  'e2ee.schalterHinweis': 'Bild, Ton und Bildschirm sind nur für Personen mit dem Schlüssel im Link lesbar – nicht für den Server. Chat und Umfragen laufen weiter über den Server. Aufnahmen werden nur heruntergeladen, nicht hochgeladen.',
+  'e2ee.angeschaltet': 'Ende-zu-Ende-Verschlüsselung ist an. Teile den Link aus der Adresszeile – er enthält den Schlüssel.',
+  'e2ee.neuerSchluessel': 'Neuen Schlüssel erzeugen',
+  'e2ee.neuerSchluesselOk': 'Neuer Schlüssel erzeugt. Alte Links funktionieren nicht mehr – teile den neuen Link.',
+  'e2ee.hostOhneSchluessel': 'Der Schlüssel ist auf diesem Gerät nicht gespeichert. Füge den Link mit Schlüssel ein oder erzeuge einen neuen.',
+  'e2ee.schluesselFehlt': 'Dieses Meeting ist Ende-zu-Ende-verschlüsselt. Bitte den Schlüssel aus dem Einladungslink eingeben.',
+  'e2ee.schluesselFormat': 'Das sieht nicht wie ein Schlüssel aus. Er steht im Link nach „#k=“ (43 Zeichen).',
+  'e2ee.falscherSchluessel': 'Der Schlüssel passt nicht zu diesem Meeting. Bitte den aktuellen Einladungslink verwenden.',
+  'e2ee.nichtUnterstuetzt': 'Dein Browser unterstützt keine Ende-zu-Ende-Verschlüsselung. Bitte einen aktuellen Chrome, Edge, Firefox oder Safari verwenden.',
+  'e2ee.fehlerAndere': 'Bild und Ton von {namen} lassen sich nicht entschlüsseln – vermutlich ein anderer Schlüssel. Bitte alle über denselben, aktuellen Link beitreten lassen.',
+  'e2ee.fehlerEigen': 'Die Verschlüsselung funktioniert in diesem Browser nicht richtig. Bitte neu beitreten.',
+  'e2ee.infoHinweis': 'Ende-zu-Ende verschlüsselt – der Link enthält den Schlüssel. Nur an Teilnehmende weitergeben.',
+  'e2ee.aufnahmeLokal': 'Das Meeting ist Ende-zu-Ende-verschlüsselt – die Aufnahme bleibt deshalb auf deinem Gerät und wird nicht hochgeladen.',
+  'e2ee.einladenHinweis': 'Ende-zu-Ende-verschlüsselt: Die Einladungs-Mail enthält den Schlüssel nicht (der Server kennt ihn nicht). Schicke den Link unten zusätzlich auf einem anderen Weg.',
+  'e2ee.einladenOhneSchluessel': 'Ende-zu-Ende-verschlüsselt, aber der Schlüssel ist auf diesem Gerät nicht gespeichert. Öffne das Meeting über den Link mit Schlüssel oder schalte die Verschlüsselung neu ein.',
+  // ==== Ende Block E2EE ====
 };

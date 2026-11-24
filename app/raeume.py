@@ -15,6 +15,7 @@ from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
 from . import db, ics, mail
+from . import e2ee        # Ende-zu-Ende-Verschlüsselung (nur Schalter + Prüfwert, nie der Schlüssel)
 from . import livekit_dienst as lk
 from .kern import (MAX_TEILNEHMER, SEITE, benutzer_aus_sitzung, client_ip, fehler, grenze, h, hash_pw, iso, jetzt,
                    json_body, pw_ok, text_feld)
@@ -106,7 +107,7 @@ def raum_json(r, b=None):
             'warteraum': bool(r['warteraum']), 'gesperrt': bool(r['gesperrt']), 'aktiv': bool(r['aktiv']),
             'persoenlich': r['art'] == 'persoenlich', 'chat_speichern': bool(r['chat_speichern']), 'dauer_chat': bool(r['dauer_chat']),
             'beendet': bool(r['beendet']), 'geplant': geplant, 'naechster_termin': iso(termin(r)), 'link': link(r['code']),
-            'kalender': kalender_links(r)} | {k: v for f in RAUM_JSON_EXTRA for k, v in f(r, b).items()}
+            'kalender': kalender_links(r)} | {k: v for f in RAUM_JSON_EXTRA for k, v in f(r, b).items()} | e2ee.json_teil(r)
 
 
 def kalender_links(r):
@@ -184,6 +185,7 @@ async def einstellungen_lesen(d, b, neu):
             f[k] = int(d[k])
     if d.get('geplant') is not None:
         f.update(geplant_lesen(d['geplant'], b))
+    f.update(e2ee.felder_lesen(d))
     return f
 
 
@@ -396,6 +398,7 @@ async def raum_aendern(code: str, req: Request):
         db.verbindung().execute('DELETE FROM nachrichten WHERE raum_id = ? AND dauer = 1', (r['id'],))
     if 'titel' in f and not f['titel']:
         del f['titel']
+    await e2ee.aenderung_pruefen(r, f)
     c = db.verbindung()
     for k, v in f.items():
         c.execute(f'UPDATE raeume SET {k} = ? WHERE id = ?', (v, r['id']))

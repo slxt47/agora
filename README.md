@@ -53,6 +53,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Zuschauer an alle / nur ans Panel / aus. Optional mit **Anmeldung** auf `/w/<code>`: Name, E-Mail, bis zu 5 Zusatzfragen,
   Kapazitätsgrenze, Bestätigungsmail mit persönlichem Beitrittslink (und .ics), Liste + CSV-Export für den Besitzer;
   Anmeldedaten 30 Tage nach dem Webinar gelöscht.
+- **Ende-zu-Ende-Verschlüsselung (optional je Meeting):** Bild, Ton und Bildschirm (und Reaktionen/Anmerkungen zwischen
+  den Browsern) verschlüsselt mit LiveKits E2EE (Insertable Streams, in Safari `RTCRtpScriptTransform`), Worker selbst
+  gehostet. Der Schlüssel steckt nur im Link-Fragment `#k=…` – der Server kennt ihn nie, er speichert nur einen Prüfwert,
+  mit dem die Lobby einen falschen Schlüssel sofort meldet. Schloss-Anzeige „Ende-zu-Ende verschlüsselt“, verständliche
+  Meldung bei Entschlüsselungsfehlern. Grenzen (Chat/Umfragen über den Server, Aufnahme nur lokal, Breakouts mit
+  demselben Schlüssel, keine Server-Aufzeichnung): [`docs/adr/0005-e2ee.md`](docs/adr/0005-e2ee.md).
 - **Bildschirmfreigabe:** Bildschirm, Fenster oder Tab, mit Systemton, wo der Browser es kann. Standardmäßig nur eine Person gleichzeitig.
 - **Live-Untertitel:** Wer will, lässt die eigene Sprache im Browser erkennen (Web Speech API – nur nach ausdrücklicher
   Zustimmung, weil Chrome/Edge den Ton an Google/Microsoft schicken; nie automatisch, nur bei offenem Mikrofon). Der Text

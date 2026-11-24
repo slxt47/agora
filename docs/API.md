@@ -72,6 +72,15 @@ naechster_termin (ISO|null), link}`
 | POST `/api/raeume/{code}/einladen` (Besitzer) | `{emails:[…≤20], passcode?}` (passcode wird nur in die Mail geschrieben, wenn er stimmt, sonst 400) | `{ok:true, gesendet:n}` – Mail mit `.ics` |
 | GET `/api/raeume/{code}/ics` | – | `text/calendar` |
 
+### Ende-zu-Ende-Verschlüsselung (E2EE)
+`raum` enthält zusätzlich `e2ee` (bool) und `e2ee_pruef` (32 Hex-Zeichen oder `null`). POST/PATCH nehmen
+`{e2ee: true, e2ee_pruef}` bzw. `{e2ee: false}` (400 ohne gültigen Prüfwert). Der Schlüssel selbst geht nie an den
+Server: Der Host-Browser erzeugt ein Geheimnis (32 Byte, base64url, im Link-Fragment `#k=…`) und schickt nur
+`e2ee_pruef = HKDF-SHA-256(geheimnis, salt "agora-e2ee-v1", info "pruefwert")[0:16]` (hex). Den Medienschlüssel leitet
+jeder Browser mit `info "medien"` selbst ab. Ändern (an/aus/neuer Schlüssel) nur, solange niemand verbunden ist, sonst
+409 `Die Verschlüsselung lässt sich nur ändern, solange niemand im Meeting ist.` Einladungs-Mails, Kalender und `.ics`
+enthalten den Schlüssel nicht. Siehe `docs/adr/0005-e2ee.md`.
+
 ### Beitreten
 POST `/api/raeume/{code}/beitreten` Body `{name?, passcode?}` (name Pflicht für Gäste; angemeldet → Kontoname, `name` überschreibt).
 - Besitzer, oder kein Warteraum: `{status:"zugelassen", zugang}`

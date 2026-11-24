@@ -3,6 +3,7 @@
 import { $, api, ApiFehler, ichLaden, status, toast, beschaeftigt } from './common.js';
 import { t } from './i18n.js';
 import { codeAusText, initialen } from './helfer.js';
+import { schluesselAusFragment } from './e2ee-schluessel.js';
 import './sicherheit.css';
 
 const params = new URLSearchParams(location.search);
@@ -118,6 +119,8 @@ senden('f-erneut', async (f) => {
 
 // ---------------------------------------------------------------- Beitreten per Code oder Link
 const codeFeld = $('#code-eingabe');
+let linkSchluessel = '';      // E2EE: #k=… aus einem eingefügten Link mitnehmen (bleibt im Fragment)
+const schluesselAus = (text) => schluesselAusFragment(String(text).slice(String(text).indexOf('#')));
 $('#f-beitreten').addEventListener('submit', (e) => {
   e.preventDefault();
   const code = codeAusText(codeFeld.value);
@@ -127,11 +130,15 @@ $('#f-beitreten').addEventListener('submit', (e) => {
     codeFeld.focus();
     return;
   }
-  location.href = `/r/${code}`;
+  const k = schluesselAus(codeFeld.value) || linkSchluessel;
+  location.href = `/r/${code}${k ? `#k=${k}` : ''}`;
 });
 codeFeld.addEventListener('input', () => { codeFeld.removeAttribute('aria-invalid'); $('#beitreten-status').hidden = true; });
 // Eingefügter Link → sofort normalisieren, damit man sieht, dass er erkannt wurde
-codeFeld.addEventListener('paste', () => setTimeout(() => { const c = codeAusText(codeFeld.value); if (c) codeFeld.value = c; }));
+codeFeld.addEventListener('paste', () => setTimeout(() => {
+  if (codeFeld.value.includes('#')) linkSchluessel = schluesselAus(codeFeld.value);
+  const c = codeAusText(codeFeld.value); if (c) codeFeld.value = c;
+}));
 
 // ---------------------------------------------------------------- Angemeldet
 function angemeldet(daten) {

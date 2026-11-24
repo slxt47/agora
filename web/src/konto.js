@@ -15,11 +15,12 @@ import { verlaufEinrichten } from './verlauf.js';
 import { qualitaetLaden, qualitaetMarke } from './qualitaet-konto.js';
 import { webinarKnopf, webinarMarke } from './webinar-konto.js';      // Webinar + Registrierung
 import { transkriptKnopf, aufnahmeTranskript } from './transkript-konto.js';   // Untertitel-Transkripte, Whisper
+import { e2eeLink, e2eeMarker, e2eeSchalter, e2eeNachSpeichern, e2eeEinladenHinweis } from './e2ee-konto.js';
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
 const zone = () => ich?.zeitzone || browserZone;
-const raumLink = (raum) => raum.link || `${location.origin}/r/${raum.code}`;
+const raumLink = (raum) => e2eeLink(raum, raum.link || `${location.origin}/r/${raum.code}`);
 
 // ---------------------------------------------------------------- Reiter (#meetings, #aufnahmen, #profil, #planen)
 const REITER = ['meetings', 'aufnahmen', 'profil'];
@@ -61,6 +62,7 @@ function merkmale(raum) {
   if (raum.chat_speichern) m.push(h('span', { class: 'marker' }, t('konto.chatGespeichert')));
   if (raum.dauer_chat) m.push(h('span', { class: 'marker' }, t('dauerchat.marker')));
   if (webinarMarke(raum)) m.push(webinarMarke(raum));
+  if (raum.e2ee) m.push(e2eeMarker(raum));
   return m.length ? h('div', { class: 'zeile' }, m) : null;
 }
 
@@ -207,6 +209,7 @@ function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {})
     schalter('warteraum', t('konto.feldWarteraum'), t('konto.warteraumHinweis'), raum ? !!raum.warteraum : !!ve?.warteraum),
     schalter('chat_speichern', t('konto.feldChatSpeichern'), t('konto.chatSpeichernHinweis'), raum ? !!raum.chat_speichern : !!ve?.chat_speichern),
     persoenlich ? schalter('dauer_chat', t('dauerchat.feld'), t('dauerchat.feldHinweis'), !!raum?.dauer_chat) : null,
+    e2eeSchalter(raum),
     statusEl,
     h('div', { class: 'knoepfe' },
       h('button', { type: 'button', class: 'btn', onclick: () => schliessen() }, t('allg.abbrechen')),
@@ -243,6 +246,7 @@ function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {})
       const r = raum
         ? await api(`/api/raeume/${raum.code}`, { methode: 'PATCH', json: body })
         : await api(ve ? `/api/vorlagen/${vorlage.id}/raum` : '/api/raeume', { methode: 'POST', json: body });
+      r.raum = await e2eeNachSpeichern(r.raum, f.e2ee.checked);
       schliessen();
       if (ve && r.passcode) passcodeZeigen(r.raum, r.passcode);
       toast(raum ? t('konto.gespeichert') : t('konto.geplant'), 'ok', raum ? {} : { aktion: { text: t('konto.einladen'), fn: () => einladenDialog(r.raum) } });
@@ -267,6 +271,7 @@ function einladenDialog(raum) {
     h('p', { class: 'sec klein' }, t('konto.einladenText', { titel: raum.titel || raum.code })),
     h('label', { class: 'feld' }, h('span', {}, t('konto.feldEmails')), feld, h('small', {}, t('konto.emailsHinweis'))),
     erinnerung.feld,
+    e2eeEinladenHinweis(raum),
     h('div', { class: 'link-feld' }, raumLink(raum)),
     statusEl,
     h('div', { class: 'knoepfe' },

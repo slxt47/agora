@@ -5,6 +5,8 @@ import { t } from '../i18n.js';
 import { CODE_MUSTER, codeAusText, laufzeitText } from '../helfer.js';
 import { Lobby } from './lobby.js';
 import { feedbackZeigen } from './feedback.js';
+import { E2eeLobby } from './e2ee-lobby.js';
+import './e2ee.css';
 
 const ANSICHTEN = ['laden', 'fehler', 'lobby', 'warten', 'ende'];
 function zeigen(name) { for (const a of ANSICHTEN) $(`#v-${a}`).hidden = a !== name; }
@@ -13,11 +15,11 @@ function fehler(titel, text) { $('#fehler-titel').textContent = titel; $('#fehle
 const roh = decodeURIComponent(location.pathname.split('/').filter(Boolean)[1] || new URLSearchParams(location.search).get('code') || '');
 const code = CODE_MUSTER.test(roh) ? roh : codeAusText(roh);
 const params = new URLSearchParams(location.search);
-let raum = null, ich = null, lobby = null, warten = null;
+let raum = null, ich = null, lobby = null, warten = null, e2ee = null, schluessel = '';
 
 async function start() {
   if (!code) { fehler(t('raum.ungueltigTitel'), t('raum.ungueltigText')); return; }
-  if (code !== roh) history.replaceState(null, '', `/r/${code}${location.search}`);
+  if (code !== roh) history.replaceState(null, '', `/r/${code}${location.search}${location.hash}`);
   try {
     [{ raum }, ich] = await Promise.all([api(`/api/raeume/${code}`), ichLaden()]);
   } catch (e) {
@@ -49,13 +51,15 @@ async function start() {
     f.passcode.required = true;
     if (pc) f.passcode.value = pc;
   }
-  if (pc) { params.delete('p'); params.delete('pwd'); history.replaceState(null, '', `/r/${code}${params.toString() ? `?${params}` : ''}`); }
+  if (pc) { params.delete('p'); params.delete('pwd'); history.replaceState(null, '', `/r/${code}${params.toString() ? `?${params}` : ''}${location.hash}`); }
   if (raum.ist_host) $('#beitreten-knopf').textContent = t('raum.starten');
   // Webinar: Panel-Link (?panel=) oder persönlicher Anmeldelink (?anmeldung=) – Zuschauer senden nichts
   if (raum.webinar && !raum.ist_host && !params.get('panel')) {
     status($('#beitritt-status'), t('webinar.lobbyZuschauer'), '');
     if (raum.webinar.registrierung && !params.get('anmeldung')) $('#beitritt-status').append(' ', h('a', { href: raum.webinar.anmelde_link || `/w/${code}` }, t('webinar.zurAnmeldung')));
   }
+  e2ee = new E2eeLobby(code, raum, (neu) => { raum = neu; });     // Ende-zu-Ende-Verschlüsselung (Schlüssel aus #k=…)
+  e2ee.einrichten();
 
   zeigen('lobby');
   lobby = new Lobby();
@@ -71,6 +75,7 @@ async function beitreten() {
   if (!name) { f.name.setAttribute('aria-invalid', 'true'); status($('#beitritt-status'), t('raum.nameFehlt'), 'err'); f.name.focus(); return; }
   if (f.passcode.required && !f.passcode.value.trim()) { f.passcode.setAttribute('aria-invalid', 'true'); status($('#beitritt-status'), t('raum.passcodeFehlt'), 'err'); f.passcode.focus(); return; }
   f.name.removeAttribute('aria-invalid'); f.passcode.removeAttribute('aria-invalid');
+  try { schluessel = await e2ee.pruefen(); } catch (e) { status($('#beitritt-status'), e.message, 'err'); return; }
   try { if (!ich) localStorage.setItem('agora-name', name); } catch { /* privat */ }
   const knopf = $('#beitreten-knopf');
   const text = knopf.textContent;
@@ -124,7 +129,7 @@ async function meetingStarten(zugang) {
   const medien = lobby.beenden(false);
   try {
     const { Meeting } = await import('./meeting.js');
-    const m = new Meeting({ code, raum, ich, zugang, medien, onEnde: ende });
+    const m = new Meeting({ code, raum, ich, zugang, medien, onEnde: ende, schluessel });
     await m.start();
     $('#v-laden').hidden = true;
   } catch (e) {
@@ -132,7 +137,7 @@ async function meetingStarten(zugang) {
     document.body.classList.remove('im-meeting');
     $('#v-meeting').hidden = true;
     fehler(t('raum.verbindenFehler'), t('raum.verbindenFehlerText', { text: e?.message || '' }));
-    $('#fehler-text').after(h('div', { class: 'knoepfe oben' }, h('a', { class: 'btn', href: location.pathname }, t('raum.nochmal'))));
+    $('#fehler-text').after(h('div', { class: 'knoepfe oben' }, h('a', { class: 'btn', href: location.pathname, onclick: (e) => { e.preventDefault(); location.reload(); } }, t('raum.nochmal'))));
   }
 }
 
@@ -151,7 +156,8 @@ function ende(art, aufnahmeSichern, laufenderUpload, extra = {}) {
   $('#ende-titel').textContent = t(texte[0]);
   $('#ende-text').textContent = texte[1] ? t(texte[1]) : '';
   const erneut = $('#ende-erneut');
-  erneut.href = `/r/${code}`;
+  erneut.href = `/r/${code}${schluessel ? `#k=${schluessel}` : ''}`;      // E2EE: Schlüssel bleibt im Fragment
+  erneut.onclick = (e) => { if (erneut.href === location.href) { e.preventDefault(); location.reload(); } };   // nur das Fragment gleich → neu laden
   erneut.hidden = art === 'entfernt' || (art === 'beendet' && !raum?.ist_host) || art === 'beendetSelbst';
   erneut.textContent = art === 'verbindung' ? t('ende.neuVerbinden') : t('ende.erneut');
   if (ich) $('#ende-start').replaceWith(h('a', { class: 'btn', href: '/konto', id: 'ende-start' }, t('ende.zumKonto')));

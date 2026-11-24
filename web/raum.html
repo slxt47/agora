@@ -65,6 +65,8 @@
         <form class="formular oben" id="f-beitritt" novalidate>
           <label class="feld"><span>Dein Name</span><input name="name" autocomplete="name" maxlength="60" required enterkeyhint="go"><small id="name-hinweis">So sehen dich die anderen.</small></label>
           <label class="feld" id="feld-passcode" hidden><span>Passcode</span><input name="passcode" autocomplete="off" maxlength="32" spellcheck="false" autocapitalize="none" enterkeyhint="go"><small>Steht in der Einladung.</small></label>
+          <label class="feld" id="feld-schluessel" hidden><span>Schlüssel (Ende-zu-Ende-Verschlüsselung)</span><input name="schluessel" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" enterkeyhint="go"><small>Steht im Einladungslink nach „#k=“. Du kannst auch den ganzen Link einfügen.</small></label>
+          <div id="feld-e2ee" hidden></div>
           <button class="btn primary" type="submit" id="beitreten-knopf">Beitreten</button>
         </form>
         <div class="status oben" id="beitritt-status" role="alert" hidden></div>
@@ -99,6 +101,7 @@
         <span class="m-unter"><span class="mono" id="m-code"></span><span id="m-zeit" class="m-zeit" aria-label="Dauer"></span></span>
       </div>
       <span class="m-pille" id="m-schloss" hidden></span>
+      <span class="m-pille e2ee" id="m-e2ee" role="status" hidden></span>
       <span class="m-pille rec" id="m-rec" role="status" hidden></span>
       <span class="m-pille warn" id="m-verbindung" role="status" hidden></span>
       <div class="m-kopf-rechts">

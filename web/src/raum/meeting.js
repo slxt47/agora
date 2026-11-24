@@ -3,7 +3,7 @@
 // Geräte im Gespräch, Wiederverbinden, Datensparmodus, Bild-im-Bild, Aufzeichnung, Verlassen / für alle beenden.
 import {
   Room, RoomEvent, Track, VideoPresets, ScreenSharePresets, VideoQuality, DisconnectReason, ConnectionState,
-  supportsAudioOutputSelection,
+  supportsAudioOutputSelection, Encryption_Type,
 } from 'livekit-client';
 import { $, h, api, toast, blatt, bestaetigen, kopieren, wachBleiben, ruhe, ApiFehler } from '../common.js';
 import { t } from '../i18n.js';
@@ -25,13 +25,16 @@ import { Zusammenarbeit } from './zusammenarbeit.js';     // Whiteboard, Notizen
 import { Webinar } from './webinar.js';          // Webinar: Bühne nur Panel, Zuschauer senden nichts
 import { ServerAufnahme } from './egress.js';     // Server-Aufnahme + Livestream (nur mit AGORA_EGRESS=1)
 import { Untertitel } from './untertitel.js';     // Live-Untertitel (Web Speech, nur mit Zustimmung)
+import { e2eeVorbereiten, E2eeAnzeige } from './e2ee.js';
+import { linkMitSchluessel } from '../e2ee-schluessel.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
 
 export class Meeting {
-  constructor({ code, raum, ich, zugang, medien, onEnde }) {
+  constructor({ code, raum, ich, zugang, medien, onEnde, schluessel }) {
     Object.assign(this, { code, raum, ich, zugang, medien, onEnde });
+    this.schluessel = raum.e2ee ? schluessel || '' : '';     // E2EE: Geheimnis aus dem Link (nie an den Server)
     this.rolle = zugang.rolle;
     this.rechte = { ...RECHTE_STANDARD };
     this.gesperrt = !!raum.gesperrt;
@@ -59,6 +62,8 @@ export class Meeting {
     return this.rollen[p.identity] || (a === 'zuschauer' || a === 'panelist' ? a : 'teilnehmer');
   }
   name(p) { return (p.name || '').trim() || t('allg.unbekannt'); }
+  /** Link zum Weitergeben – bei E2EE mit Schlüssel im Fragment. */
+  einladeLink() { return linkMitSchluessel(this.raum.link || `${location.origin}/r/${this.code}`, this.schluessel); }
   farbe(p) { const f = p.attributes?.farbe; return /^#[0-9a-f]{6}$/i.test(f || '') ? f : farbeAusText(p.identity); }
   darfUmbenennen(p) { return p.isLocal ? (this.istMod() || this.rechte.umbenennen !== false) : this.istMod(); }
   /** Darf ich an p moderieren? Host an allen anderen; Co-Host nur an Teilnehmenden/Gästen. */
@@ -74,7 +79,9 @@ export class Meeting {
     document.body.classList.add('im-meeting');
     ruhe(true);
     $('#v-meeting').hidden = false;
+    const e2ee = e2eeVorbereiten(this.schluessel);
     this.room = new Room({
+      ...e2ee.optionen,
       adaptiveStream: true,
       dynacast: true,
       videoCaptureDefaults: { resolution: VIDEO_AUFLOESUNG, deviceId: wahl.videoinput || undefined },
@@ -101,6 +108,8 @@ export class Meeting {
     this.webinar = new Webinar(this);
     this.egress = new ServerAufnahme(this);
     this.untertitel = new Untertitel(this);
+    await e2ee.aktivieren(this.room);
+    if (this.schluessel) this.e2eeAnzeige = new E2eeAnzeige(this);
 
     await this.room.connect(this.zugang.url, this.zugang.token);
     this.statistik.starten();
@@ -208,7 +217,10 @@ export class Meeting {
         if (p.isLocal && 'hand' in geaendert) { this.hand = geaendert.hand === '1'; this.steuerAktualisieren(); }
       })
       .on(RoomEvent.RoomMetadataChanged, (md) => this.metadatenLesen(md))
-      .on(RoomEvent.DataReceived, (daten, p, _kind, topic) => aktiv() && this.datenEmpfangen(daten, p, topic))
+      .on(RoomEvent.DataReceived, (daten, p, _kind, topic, verschl) => {
+        // E2EE: Nachrichten anderer Browser nur verschlüsselt annehmen (sonst könnte der Medienserver sie fälschen)
+        if (aktiv() && !(this.schluessel && p && verschl === Encryption_Type.NONE)) this.datenEmpfangen(daten, p, topic);
+      })
       .on(RoomEvent.AudioPlaybackStatusChanged, () => {
         if (r.canPlaybackAudio) this.bannerSetzen('audio');
         else this.bannerSetzen('audio', 'warn', t('meeting.tonBlockiert'), { text: t('meeting.tonEinschalten'), fn: () => r.startAudio().then(() => this.bannerSetzen('audio')) });
@@ -717,20 +729,21 @@ export class Meeting {
       { text: t('einst.selbstAusblenden'), symbol: 'augeAus', an: this.buehne.selbstAus, aktion: () => this.selbstUmschalten() },
       { text: t('einst.sparmodus'), symbol: 'sparen', an: this.sparmodus !== 'aus', aktion: () => this.sparmodusSetzen(this.sparmodus === 'aus' ? 'audio' : 'aus') },
       '-',
-      { text: t('meeting.linkKopieren'), symbol: 'link', aktion: () => kopieren(this.raum.link || `${location.origin}/r/${this.code}`, t('meeting.linkKopiert')) },
+      { text: t('meeting.linkKopieren'), symbol: 'link', aktion: () => kopieren(this.einladeLink(), t('meeting.linkKopiert')) },
       { text: t('einst.titel'), symbol: 'zahnrad', aktion: () => this.einstellungen() },
       { text: t('meeting.tastenkuerzel'), symbol: 'tastatur', aktion: () => this.hilfe() },
     ], { label: t('steuer.mehr') });
   }
 
   infoMenue(anker) {
-    const link = this.raum.link || `${location.origin}/r/${this.code}`;
+    const link = this.einladeLink();
     const inhalt = h('div', { class: 'formular', style: { padding: '8px', width: 'min(340px, calc(100vw - 32px))' } },
       h('b', {}, this.raum.titel || t('meeting.ohneTitel')),
       h('span', { class: 'sec klein' }, t('meeting.gastgeber', { name: this.raum.besitzer_name || '' })),
       h('div', { class: 'link-feld' }, link),
       h('span', { class: 'sec klein' }, `${t('meeting.code')}: `, h('span', { class: 'mono' }, this.code)),
       this.raum.passcode_noetig ? h('span', { class: 'sec klein' }, t('meeting.mitPasscode')) : null,
+      this.schluessel ? h('span', { class: 'sec klein' }, t('e2ee.infoHinweis')) : null,
       h('button', { type: 'button', class: 'btn primary klein', onclick: () => { kopieren(link, t('meeting.linkKopiert')); menueSchliessen(); } }, t('meeting.linkKopieren')));
     menue(anker, null, { inhalt, label: t('meeting.info'), oben: false });
   }
@@ -829,7 +842,7 @@ export class Meeting {
     let box = ziel;
     if (!box) { box = $('.upload-schwebend') || h('div', { class: 'upload-schwebend', role: 'status' }); document.body.append(box); }
     const datum = new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
-    aufnahmeAblegen(box, blob, { code: this.code, titel: `${this.raum.titel || this.code} – ${datum}`, dauer, angemeldet: !!this.ich });
+    aufnahmeAblegen(box, blob, { code: this.code, titel: `${this.raum.titel || this.code} – ${datum}`, dauer, angemeldet: !!this.ich, e2ee: !!this.schluessel });
   }
 
   // ---------------------------------------------------------------- Verlassen / Ende
@@ -860,8 +873,10 @@ export class Meeting {
     const geraet = (art) => alt.getActiveDevice(art) || undefined;
     if (this.rekorder?.laeuft) await this.aufnahmeUmschalten(t('breakout.aufnahmeGestoppt'));
     menueSchliessen();
+    const e2ee = e2eeVorbereiten(this.schluessel);      // eigener Worker je LiveKit-Raum, gleicher Schlüssel
     this.room = new Room({
       ...alt.options,
+      ...e2ee.optionen,
       videoCaptureDefaults: { ...alt.options.videoCaptureDefaults, deviceId: geraet('videoinput') },
       audioCaptureDefaults: { ...alt.options.audioCaptureDefaults, deviceId: geraet('audioinput') },
       audioOutput: geraet('audiooutput') ? { deviceId: geraet('audiooutput') } : alt.options.audioOutput,
@@ -871,6 +886,7 @@ export class Meeting {
     $('#audio-ablage').replaceChildren();
     this.buehne.spotlight(null);
     this.buehne.sync();
+    await e2ee.aktivieren(this.room);
     await this.room.connect(ziel.url, ziel.token);
     this.metadatenLesen(this.room.metadata);
     try {

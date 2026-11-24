@@ -167,7 +167,7 @@ export class Rekorder {
  * Upload-/Download-Box für eine fertige Aufnahme. ziel = Element, in das die Box kommt.
  * Mit Konto: Upload mit Fortschritt; ohne Konto, zu groß oder bei Fehler: Download-Knopf.
  */
-export function aufnahmeAblegen(ziel, blob, { code, titel, dauer, angemeldet }) {
+export function aufnahmeAblegen(ziel, blob, { code, titel, dauer, angemeldet, e2ee }) {
   const endung = blob.type.includes('mp4') ? 'mp4' : 'webm';
   const dateiname = `${titel.replace(/[^\p{L}\p{N}\- ]/gu, '_').slice(0, 80) || 'aufnahme'}.${endung}`;
   const text = h('p', { class: 'klein' });
@@ -180,9 +180,9 @@ export function aufnahmeAblegen(ziel, blob, { code, titel, dauer, angemeldet }) 
   const download = () => h('a', { class: 'btn klein', href: url, download: dateiname }, t('aufnahme.herunterladen'));
   const schliessen = (nachMs) => setTimeout(() => { box.remove(); if (!ziel.children.length && ziel.classList.contains('upload-schwebend')) ziel.remove(); }, nachMs);
 
-  if (!angemeldet || blob.size > MAX_BYTES) {
+  if (!angemeldet || e2ee || blob.size > MAX_BYTES) {      // E2EE: nie unverschlüsselt auf den Server
     fort.hidden = true;
-    text.textContent = !angemeldet ? t('aufnahme.ohneKonto') : t('aufnahme.zuGross', { groesse: groesseText(blob.size) });
+    text.textContent = e2ee ? t('e2ee.aufnahmeLokal') : !angemeldet ? t('aufnahme.ohneKonto') : t('aufnahme.zuGross', { groesse: groesseText(blob.size) });
     knoepfe.append(download(), h('button', { type: 'button', class: 'btn klein leise', onclick: () => schliessen(0) }, t('allg.schliessen')));
     return;
   }

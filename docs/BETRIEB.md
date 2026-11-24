@@ -143,6 +143,10 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
   selbst läuft im Browser (bei Chrome/Edge beim Browser-Hersteller) und nur nach Zustimmung der jeweiligen Person.
 - Transkripte aus Aufnahmen (Whisper): `.vtt` neben der Aufnahme, mit ihr gelöscht (90 Tage).
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
+- Ende-zu-Ende-Verschlüsselung: Der Server speichert je Raum nur „an/aus“ und einen Prüfwert (bis zum Ausschalten oder
+  Löschen des Raums). Der Schlüssel liegt nur in Links (Fragment `#k=…`) und im Browser-Speicher des Hosts; geht er
+  verloren, hilft nur „Neuen Schlüssel erzeugen“ (alte Links gelten dann nicht mehr). Es gibt keinen Weg, ihn vom Server
+  wiederzuholen – auch nicht für Admins.
 
 ## Updates
 

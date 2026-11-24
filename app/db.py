@@ -324,11 +324,8 @@ SCHEMA = [
     );
     """,
     # ==== Ende Block Verbindungsqualität ====
-    # ======== Platzhalter Version 14 und 15 (andere parallele Blöcke) – beim Zusammenführen durch diese ersetzen ========
-    'SELECT 1;',
-    'SELECT 1;',
     # ======== Block „Zusammenarbeit“ (Whiteboard, Notizen, Q&A, Dateien) – beim Zusammenführen ggf. neu nummerieren ========
-    # Version 16: Gemeinsames Whiteboard – Operations-Log je Meeting (raum_id + sitzung), Sperre/Zähler je Raum.
+    # Version 14: Gemeinsames Whiteboard – Operations-Log je Meeting (raum_id + sitzung), Sperre/Zähler je Raum.
     # Mit dem Meeting gelöscht, außer der Raum hat chat_speichern (dann sieht der Besitzer das Bild im Meeting-Verlauf).
     """
     CREATE TABLE whiteboard (          -- je Raum: laufende Nummer der Operationen und Sperre (nur Moderation zeichnet)
@@ -348,7 +345,7 @@ SCHEMA = [
     );
     CREATE INDEX whiteboard_ops_raum ON whiteboard_ops(raum_id, sitzung, id);
     """,
-    # Version 17: Gemeinsame Notizen – ein Text je Meeting, Version für die optimistische Sperre (letzter Schreiber gewinnt,
+    # Version 15: Gemeinsame Notizen – ein Text je Meeting, Version für die optimistische Sperre (letzter Schreiber gewinnt,
     # Konflikt → 409). Mit dem Meeting gelöscht, außer chat_speichern.
     """
     CREATE TABLE notizen (
@@ -361,7 +358,7 @@ SCHEMA = [
       PRIMARY KEY (raum_id, sitzung)
     );
     """,
-    # Version 18: Q&A – Fragen je Meeting (anonym nur gegenüber anderen Teilnehmenden; identity/Name/Konto speichert der
+    # Version 16: Q&A – Fragen je Meeting (anonym nur gegenüber anderen Teilnehmenden; identity/Name/Konto speichert der
     # Server immer) und Stimmen (eine je Teilnahme). Mit dem Meeting gelöscht, außer chat_speichern.
     """
     CREATE TABLE fragen (
@@ -383,7 +380,7 @@ SCHEMA = [
       PRIMARY KEY (frage_id, identity)
     );
     """,
-    # Version 19: Dateien im Meeting (Inhalt unter DATEN/dateien/<id>). ablauf NULL = läuft noch; beim Ende gelöscht oder
+    # Version 17: Dateien im Meeting (Inhalt unter DATEN/dateien/<id>). ablauf NULL = läuft noch; beim Ende gelöscht oder
     # (chat_speichern) ablauf = Ende + 30 Tage.
     """
     CREATE TABLE dateien (

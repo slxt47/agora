@@ -14,6 +14,7 @@ import { erinnerungEinrichten, einladenErinnerung } from './erinnerung.js';
 import { verlaufEinrichten } from './verlauf.js';
 import { qualitaetLaden, qualitaetMarke } from './qualitaet-konto.js';
 import { webinarKnopf, webinarMarke } from './webinar-konto.js';      // Webinar + Registrierung
+import { transkriptKnopf, aufnahmeTranskript } from './transkript-konto.js';   // Untertitel-Transkripte, Whisper
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -78,6 +79,7 @@ function persoenlichZeigen(raum) {
       knopf(t('konto.einladen'), { symbol: 'mail', onclick: () => einladenDialog(raum) }),
       knopf(t('konto.einstellungen'), { symbol: 'zahnrad', onclick: () => planenDialog(raum, { persoenlich: true }) }),
       webinarKnopf(raum, 'btn'),
+      transkriptKnopf(raum, 'btn'),
       raum.dauer_chat ? knopf(t('dauerchat.leeren'), { klasse: 'btn gefahr', symbol: 'muell', onclick: async () => {
         if (!await bestaetigen(t('dauerchat.leerenTitel'), t('dauerchat.leerenText'), { ja: t('dauerchat.leeren'), gefahr: true })) return;
         await beschaeftigt(null, async () => { await api(`/api/raeume/${raum.code}/dauer-chat`, { methode: 'DELETE' }); toast(t('dauerchat.geleert'), 'ok'); });
@@ -117,6 +119,7 @@ function raumEintrag(raum, vergangen) {
       knopf(t('konto.bearbeiten'), { klasse: 'btn klein', symbol: 'stift', onclick: () => planenDialog(raum) }),
       knopf(t('vorlage.alsVorlage'), { klasse: 'btn klein', symbol: 'stern', onclick: () => alsVorlage(raum) }),
       webinarKnopf(raum),
+      transkriptKnopf(raum),
     );
   } else {
     aktionen.append(knopf(t('konto.chatverlauf'), { klasse: 'btn klein', symbol: 'chat', onclick: () => verlaufDialog(raum) }));
@@ -354,6 +357,7 @@ function aufnahmeEintrag(a) {
     a.freigabe
       ? knopf(t('konto.freigabeBeenden'), { klasse: 'btn klein', symbol: 'schliessen', onclick: () => freigabeBeenden(a) })
       : knopf(t('konto.teilen'), { klasse: 'btn klein', symbol: 'teilenLink', onclick: () => freigabeDialog(a) }),
+    ...aufnahmeTranskript(a, aufnahmenLaden),
     knopf(t('konto.loeschen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: () => aufnahmeLoeschen(a) })));
   return li;
 }

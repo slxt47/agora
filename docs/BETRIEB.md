@@ -84,6 +84,23 @@ die 500-MB-Grenze je Datei gilt nur für Uploads). Stream-URL und -Schlüssel we
 nur verschlüsselt und nur bis zum Ende des Streams gespeichert. Ziele im eigenen Netz sind gesperrt (Schutz vor SSRF über den
 Egress-Container). Egress-Aufträge (ohne Ziel) bleiben 7 Tage für die Statusanzeige. HLS ist nicht umgesetzt (siehe ADR 0003).
 
+## Transkript aus Aufnahme (Whisper) – optional
+
+Mit `AGORA_WHISPER_URL` in `app.env` (OpenAI-kompatibel: multipart `file`, `model`, `response_format=vtt`; optional
+`AGORA_WHISPER_MODELL`, Standard `whisper-1`, `AGORA_WHISPER_SCHLUESSEL` als Bearer, `AGORA_WHISPER_TIMEOUT` in s,
+Standard 3600) bietet die Bibliothek „Transkript erstellen“ an. Ein Job nach dem anderen; das Ergebnis liegt als
+`daten/aufnahmen/<id>.vtt` neben der Aufnahme und verschwindet mit ihr. Die Aufnahme verlässt dabei den Server nur,
+wenn die URL auf einen fremden Dienst zeigt – deshalb nur einen eigenen Whisper eintragen.
+
+Vorhandener Dienst auf diesem Server (nur gelesen, nicht verändert): `disslxt-repo-whisper-1`, whisper.cpp-Server
+(`whisper-server --model /models/ggml-base.bin --port 8080`), nur im Docker-Netz `disslxt-repo_speech`, kein Host-Port.
+So ist er für Agora (Host-Netz) nicht sauber erreichbar (die Container-IP 172.29.0.x ist nicht fest), und ohne
+`--convert` nimmt whisper.cpp nur WAV an, Agora-Aufnahmen sind WebM/MP4. Anbinden, ohne den bestehenden Dienst zu ändern:
+einen zweiten whisper.cpp-Container (gleiches Image, gleiches Modell-Volume nur lesend) mit
+`--host 127.0.0.1 --port 8095 --convert --inference-path /v1/audio/transcriptions` im Host-Netz starten (braucht ffmpeg im
+Image; RAM je nach Modell: base ≈ 400 MB, small ≈ 1 GB) und `AGORA_WHISPER_URL=http://127.0.0.1:8095/v1/audio/transcriptions`
+setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben und `--convert` ergänzen (Änderung dort).
+
 ## Aufbewahrung
 
 - Nicht bestätigte Konten: 48 h
@@ -109,6 +126,10 @@ Egress-Container). Egress-Aufträge (ohne Ziel) bleiben 7 Tage für die Statusan
   Webinar – bei geplanten Webinaren ab Termin + Dauer, außerdem beim Ende jedes Meetings im Raum auf höchstens +30 Tage
   gekürzt; ohne Termin spätestens 90 Tage nach der Anmeldung. Selbst löschbar über den Link in der Mail, mit dem Raum weg.
   Panel-Links: bis der Besitzer sie löscht (Token = HMAC aus `AGORA_GEHEIM`, nur Hash gespeichert).
+- Live-Untertitel: nichts gespeichert, außer der Besitzer schaltet „Transkript speichern“ ein (alle sehen einen Hinweis);
+  dann fertige Abschnitte mit Name und Zeit: 90 Tage, je Meeting oder ganz löschbar, mit dem Raum weg. Die Spracherkennung
+  selbst läuft im Browser (bei Chrome/Edge beim Browser-Hersteller) und nur nach Zustimmung der jeweiligen Person.
+- Transkripte aus Aufnahmen (Whisper): `.vtt` neben der Aufnahme, mit ihr gelöscht (90 Tage).
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 
 ## Updates

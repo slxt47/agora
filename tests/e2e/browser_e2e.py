@@ -509,6 +509,39 @@ with sync_playwright() as p:
         hp.click('dialog .btn.gefahr')
         zp.wait_for_selector('#v-ende:not([hidden])', timeout=15000)
         time.sleep(1)                                     # Kontext offen lassen: Schließen mitten im Abbau meldet DataChannel-Fehler
+        # ==== Live-Untertitel: Anzeige an, Abschnitt über die API (Web Speech gibt es headless nicht), Zustimmung, Transkript am Ende ====
+        r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Untertitel-Test'})})).json())""")
+        ucode = r['raum']['code']
+        hp.request.patch(f'{B}/api/raeume/{ucode}/transkript', data=json.dumps({'speichern': True}), headers={'X-Agora': '1', 'Content-Type': 'application/json'})
+        hp.goto(f'{B}/r/{ucode}')
+        hp.wait_for_selector('#v-lobby:not([hidden])')
+        hp.click('#beitreten-knopf')
+        hp.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
+        hp.wait_for_selector('.toast:has-text("als Transkript")', timeout=10000)      # Hinweis „Transkript wird gespeichert“
+        api_gast = p.request.new_context(base_url=B, extra_http_headers={'X-Agora': '1'})
+        gzug = api_gast.post(f'/api/raeume/{ucode}/beitreten', data={'name': 'Berta API'}).json()['zugang']
+        hp.click('#s-mehr'); hp.click('.menue [role^=menuitem] >> text=Untertitel anzeigen')
+        r = api_gast.post(f'/api/raeume/{ucode}/untertitel', data={'text': 'Hallo aus der Untertitel-API', 'final': True, 'dauer_ms': 1500},
+                          headers={'X-Teilnahme': gzug['teilnahme']})
+        if r.status != 200: fehler.append(f'Untertitel senden: {r.status}')
+        hp.wait_for_selector('#untertitel .ut-zeile:has-text("Berta API: Hallo aus der Untertitel-API")', timeout=10000)
+        hp.screenshot(path=OUT + '23a-untertitel.png')
+        # Eigene Sprache: nie ohne Zustimmung – Dialog (oder Hinweis, wenn der Browser es nicht kann)
+        hp.click('#s-mehr'); hp.click('.menue [role^=menuitem] >> text=Meine Sprache transkribieren')
+        hp.wait_for_selector('dialog:has-text("Live-Untertitel für deine Sprache"), .toast:has-text("keine Spracherkennung")', timeout=10000)
+        if hp.locator('dialog:has-text("Live-Untertitel für deine Sprache")').count():
+            if 'Google' not in hp.inner_text('dialog'): fehler.append('Zustimmungsdialog ohne Hinweis auf Google')
+            hp.screenshot(path=OUT + '23b-untertitel-zustimmung.png')
+            hp.click('dialog button:has-text("Abbrechen")')
+            print('Untertitel: Zustimmungsdialog gezeigt, abgelehnt')
+        hp.click('#s-verlassen'); hp.click('.menue [role=menuitem] >> text=Für alle beenden')
+        hp.click('dialog .btn.gefahr')
+        hp.wait_for_selector('#v-ende .ende-transkript a', timeout=15000)
+        txt = hp.request.get(hp.get_attribute('#v-ende .ende-transkript a', 'href') if hp.get_attribute('#v-ende .ende-transkript a', 'href').startswith('http') else B + hp.get_attribute('#v-ende .ende-transkript a', 'href')).text()
+        print('Transkript am Ende:', txt.strip().splitlines()[-1])
+        if 'Berta API: Hallo aus der Untertitel-API' not in txt: fehler.append('Transkript fehlt')
+        hp.screenshot(path=OUT + '23c-transkript-ende.png')
+        api_gast.dispose()
         # PWA: im Cache nur App-Hülle/statische Dateien – nie API, Medien, MediaPipe
         gecacht = hp.evaluate("(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) out.push(new URL(r.url).pathname); return out; })()")
         print('Im Cache:', len(gecacht), 'Einträge')

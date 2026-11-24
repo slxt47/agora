@@ -22,6 +22,8 @@ AUFBEWAHRUNG_S = 90 * 86400
 TYPEN = {'video/webm': 'webm', 'video/mp4': 'mp4'}
 TAGE = (1, 7, 30)
 ID_RE = re.compile(r'^[A-Za-z0-9_-]{22}$')
+BEIM_ENTFERNEN = []        # f(id) – andere Module räumen eigene Dateien zur Aufnahme weg (Transkript .vtt)
+JSON_EXTRA = []            # f(zeile) → dict, wird in aufnahme_json gemischt (Transkript-Status)
 _freigabe_ok = {}          # Cache: sha256(token + passwort) → gültig bis (sonst bei jedem Range-Abruf argon2)
 
 
@@ -42,7 +44,8 @@ def aufnahme_json(a):
     if a['freigabe_token'] and a['freigabe_bis'] and a['freigabe_bis'] > jetzt():
         fg = {'link': freigabe_link(a['freigabe_token']), 'bis': iso(a['freigabe_bis']), 'passwort': bool(a['freigabe_passwort'])}
     return {'id': a['id'], 'titel': a['titel'], 'raum_code': a['raum_code'], 'groesse': a['groesse'], 'typ': a['typ'],
-            'dauer': a['dauer'], 'erstellt': iso(a['erstellt']), 'ablauf': iso(a['ablauf']), 'freigabe': fg}
+            'dauer': a['dauer'], 'erstellt': iso(a['erstellt']), 'ablauf': iso(a['ablauf']), 'freigabe': fg} | {
+        k: v for f in JSON_EXTRA for k, v in f(a).items()}
 
 
 def aufnahme_entfernen(i):
@@ -50,6 +53,8 @@ def aufnahme_entfernen(i):
         os.remove(pfad(i))
     except FileNotFoundError:
         pass
+    for f in BEIM_ENTFERNEN:
+        f(i)
     db.verbindung().execute('DELETE FROM aufnahmen WHERE id = ?', (i,))
 
 

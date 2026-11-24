@@ -159,10 +159,24 @@ function ende(art, aufnahmeSichern, laufenderUpload, extra = {}) {
   if (laufenderUpload) { upload.hidden = false; upload.append(laufenderUpload); }
   if (aufnahmeSichern) { upload.hidden = false; aufnahmeSichern(upload); }
   if (art !== 'abgelehnt') feedbackZeigen(code, extra.feedback, upload);     // „Wie war die Qualität?“
+  if (raum?.ist_host && ich) transkriptAmEnde(upload);   // Untertitel-Transkript für den Besitzer
   zeigen('ende');
   $('#ende-titel').setAttribute('tabindex', '-1');
   $('#ende-titel').focus();
   document.title = `${t(texte[0])} – Agora`;
+}
+
+/** Ende-Bildschirm (Besitzer): Transkript dieses Meetings als .txt/.vtt, falls etwas gespeichert wurde. */
+async function transkriptAmEnde(box) {
+  try {
+    const r = await api(`/api/raeume/${code}/transkripte`);
+    const x = r.transkripte?.[0];
+    if (!x) return;
+    box.hidden = false;
+    box.append(h('div', { class: 'knoepfe oben ende-transkript' }, h('span', { class: 'sec' }, t('tk.amEnde', { n: x.abschnitte })),
+      h('a', { class: 'btn klein', href: `/api/raeume/${code}/transkript?sitzung=${x.sitzung}&format=txt`, download: '' }, '.txt'),
+      h('a', { class: 'btn klein', href: `/api/raeume/${code}/transkript?sitzung=${x.sitzung}&format=vtt`, download: '' }, '.vtt')));
+  } catch { /* kein Transkript */ }
 }
 
 start();

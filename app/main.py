@@ -32,6 +32,7 @@ from . import qualitaet
 from . import metriken
 from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
 from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur mit AGORA_EGRESS=1)
+from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnahme (Whisper)
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -114,6 +115,7 @@ app.include_router(qualitaet.router)
 app.include_router(metriken.router)
 app.include_router(webinar.router)
 app.include_router(egress.router)
+app.include_router(untertitel.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -156,6 +158,7 @@ def aufraeumen():
     dauerchat.aufraeumen()
     melden.aufraeumen(t)
     webinar.aufraeumen(t)
+    untertitel.aufraeumen(t)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

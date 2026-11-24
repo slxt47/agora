@@ -54,6 +54,11 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Kapazitätsgrenze, Bestätigungsmail mit persönlichem Beitrittslink (und .ics), Liste + CSV-Export für den Besitzer;
   Anmeldedaten 30 Tage nach dem Webinar gelöscht.
 - **Bildschirmfreigabe:** Bildschirm, Fenster oder Tab, mit Systemton, wo der Browser es kann. Standardmäßig nur eine Person gleichzeitig.
+- **Live-Untertitel:** Wer will, lässt die eigene Sprache im Browser erkennen (Web Speech API – nur nach ausdrücklicher
+  Zustimmung, weil Chrome/Edge den Ton an Google/Microsoft schicken; nie automatisch, nur bei offenem Mikrofon). Der Text
+  geht über den Server an alle; jede Person blendet die Untertitel mit Namen selbst ein. Der Besitzer kann „Transkript
+  speichern“ einschalten (alle sehen einen Hinweis) und lädt es als .txt/.vtt (Ende-Bildschirm oder Konto, 90 Tage).
+  Optional „Transkript aus Aufnahme erstellen“ über einen Whisper-Dienst (`AGORA_WHISPER_URL`).
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Umfragen:** Host und Co-Hosts stellen Fragen mit 2–10 Antworten (Einfach- oder Mehrfachwahl, anonym oder namentlich), sehen das Ergebnis live und teilen es mit allen. Eine Stimme je Person, vom Server geprüft.
 - **Breakout-Räume:** 2–50 Räume, Zuteilung von Hand (ziehen oder auswählen) oder automatisch gleichmäßig, optionaler Timer. Alle wechseln automatisch, können „Hilfe rufen“ und (wenn erlaubt) selbst zurück. Der Host besucht jeden Raum, schickt Nachrichten an alle Räume und schließt sie mit 60-Sekunden-Countdown.

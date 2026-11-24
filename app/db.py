@@ -375,6 +375,29 @@ SCHEMA = [
     CREATE INDEX egress_laeufe_raum ON egress_laeufe(raum_id, status);
     """,
     # ======== Ende Block „Server-Aufnahme + Livestream (Egress)“ ========
+    # ======== Block „Live-Untertitel + Transkript“ (app/untertitel.py) – Version 22, beim Zusammenführen neu nummerieren ========
+    """
+    ALTER TABLE raeume ADD COLUMN transkript_speichern INTEGER NOT NULL DEFAULT 0;   -- Besitzer: Untertitel als Transkript speichern
+    CREATE TABLE transkript (          -- fertige Untertitel-Abschnitte (nur mit transkript_speichern), 90 Tage
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      name TEXT NOT NULL,
+      text TEXT NOT NULL,
+      beginn_ms INTEGER NOT NULL, ende_ms INTEGER NOT NULL,   -- Unix-Zeit in ms (Server-Uhr, Beginn = Ende − gemeldete Dauer)
+      zeit INTEGER NOT NULL
+    );
+    CREATE INDEX transkript_raum ON transkript(raum_id, sitzung);
+    CREATE TABLE aufnahme_transkript ( -- Whisper-Job je Aufnahme; Ergebnis als Datei <aufnahme>.vtt daneben
+      aufnahme_id TEXT PRIMARY KEY REFERENCES aufnahmen(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,            -- laeuft | fertig | fehler
+      fehler TEXT,
+      erstellt INTEGER NOT NULL,
+      fertig INTEGER
+    );
+    """,
+    # ======== Ende Block „Live-Untertitel + Transkript“ ========
 ]
 
 

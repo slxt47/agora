@@ -383,3 +383,17 @@ Streams. Ereignis (Topic `agora`, nur an Host/Co-Hosts): `{typ:"egress", art, st
 `{typ:"aufnahme", aktiv:true, von_name, server:true}` an alle. Fertige Aufnahmen erscheinen in `GET /api/aufnahmen`
 (`typ: video/mp4`). Fehlertexte sind von Stream-URL und Schlüssel bereinigt (`***`).
 
+## Live-Untertitel + Transkript (app/untertitel.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| POST `/api/raeume/{code}/untertitel` | X-Teilnahme (nicht `zuschauer`) | `{text ≤500, final: bool, dauer_ms?: 0–120000}` → `{ok}`; verteilt `{identity, name, text, final, zeit}` über Topic `untertitel` (nur vom Server angenommen). Gespeichert nur `final` und nur mit `transkript_speichern`. Grenze 60 je 30 s |
+| PATCH `/api/raeume/{code}/transkript` | Besitzer (Cookie) | `{speichern: bool}`; Metadaten `transkript: true`, Ereignis `{typ:"transkript", an}` |
+| GET `/api/raeume/{code}/transkripte` | Besitzer | `{speichern, aktuelle_sitzung, transkripte:[{sitzung, abschnitte, beginn, ende}]}` |
+| GET `/api/raeume/{code}/transkript?sitzung=&format=txt\|vtt` | Besitzer | Datei (ohne `sitzung`: neuestes Meeting); 404 wenn leer |
+| DELETE `/api/raeume/{code}/transkript?sitzung=` | Besitzer | ein Meeting oder alle |
+| POST `/api/aufnahmen/{id}/transkript` | Besitzer der Aufnahme | nur mit `AGORA_WHISPER_URL` (sonst 404); startet Hintergrund-Job → `{transkript:{status:"laeuft"}}`; 409 läuft schon |
+| GET `/api/aufnahmen/{id}/transkript[?format=vtt\|txt]` | Besitzer | ohne `format`: `{transkript: null\|{status, fehler}, verfuegbar}`; sonst die Datei |
+
+`raum_json` hat zusätzlich `transkript_speichern`; `aufnahme_json` hat `transkript` (Status oder `null`) und `transkript_moeglich`.
+Hooks in `aufnahmen.py`: `BEIM_ENTFERNEN`, `JSON_EXTRA`.
+

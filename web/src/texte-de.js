@@ -394,4 +394,23 @@ export const de = {
   'egress.streamStartet': 'Livestream startet …', 'egress.streamLaeuft': 'Der Livestream läuft.', 'egress.streamGestoppt': 'Livestream beendet.',
   'egress.liveVon': '{name} überträgt das Meeting live', 'egress.liveHinweis': 'Dieses Meeting wird jetzt live übertragen ({name}).',
   // ==== Ende Block Server-Aufnahme ====
+  // ==== Block Live-Untertitel + Transkript (web/src/raum/untertitel.js, transkript-konto.js) ====
+  'ut.anzeigen': 'Untertitel anzeigen', 'ut.ausblenden': 'Untertitel ausblenden', 'ut.anzeigeAn': 'Untertitel werden angezeigt.', 'ut.anzeigeAus': 'Untertitel ausgeblendet.',
+  'ut.eigeneStarten': 'Meine Sprache transkribieren …', 'ut.eigeneStoppen': 'Meine Sprache nicht mehr transkribieren',
+  'ut.eigeneAn': 'Deine Sprache wird jetzt als Untertitel gezeigt.', 'ut.eigeneAus': 'Transkription beendet.',
+  'ut.nichtUnterstuetzt': 'Dein Browser kann keine Spracherkennung. Untertitel der anderen siehst du trotzdem.',
+  'ut.zustimmungTitel': 'Live-Untertitel für deine Sprache',
+  'ut.zustimmungText': 'Dein Browser erkennt, was du sagst, und Agora zeigt den Text allen als Untertitel. Achtung: Die Spracherkennung macht nicht Agora, sondern der Hersteller deines Browsers – bei Chrome und Edge geht dein Ton dafür an Google bzw. Microsoft. Agora bekommt nur den erkannten Text. Du kannst es jederzeit wieder ausschalten; solange dein Mikrofon aus ist, wird nichts geschickt.',
+  'ut.zustimmungGespeichert': 'In diesem Meeting speichert der Gastgeber die Untertitel als Transkript.',
+  'ut.zustimmen': 'Einverstanden, starten', 'ut.fehler': 'Spracherkennung beendet ({text}).',
+  'ut.transkriptHinweis': 'Der Gastgeber speichert die Untertitel dieses Meetings als Transkript.',
+  'ut.speichern': 'Transkript speichern', 'ut.speichernAn': 'Untertitel werden jetzt als Transkript gespeichert.', 'ut.speichernAus': 'Transkript wird nicht mehr gespeichert.',
+  'tk.knopf': 'Transkripte', 'tk.titel': 'Transkripte: {titel}', 'tk.speichern': 'Transkript speichern',
+  'tk.speichernHinweis': 'Untertitel, die Teilnehmende freiwillig einschalten, werden mit Namen gespeichert (90 Tage). Alle im Meeting sehen einen Hinweis.',
+  'tk.liste': 'Gespeicherte Transkripte', 'tk.leer': 'Noch keine Transkripte.', 'tk.abschnitte': '{n} Abschnitte', 'tk.loeschen': 'Transkript löschen?',
+  'tk.amEnde': 'Transkript ({n} Abschnitte):',
+  'tk.aufnahmeErstellen': 'Transkript erstellen', 'tk.aufnahmeNochmal': 'Transkript erneut versuchen', 'tk.aufnahmeLaeuft': 'Transkript wird erstellt …',
+  'tk.aufnahmeGestartet': 'Das Transkript wird im Hintergrund erstellt – das kann einige Minuten dauern.',
+  'tk.aufnahmeVtt': 'Transkript (.vtt)', 'tk.aufnahmeTxt': 'Transkript (.txt)',
+  // ==== Ende Block Live-Untertitel ====
 };

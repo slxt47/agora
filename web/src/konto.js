@@ -22,8 +22,8 @@ const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions(
 const zone = () => ich?.zeitzone || browserZone;
 const raumLink = (raum) => e2eeLink(raum, raum.link || `${location.origin}/r/${raum.code}`);
 
-// ---------------------------------------------------------------- Reiter (#meetings, #aufnahmen, #profil, #planen)
-const REITER = ['meetings', 'aufnahmen', 'profil'];
+// ---------------------------------------------------------------- Reiter (#meetings, #aufnahmen, #profil, #entwickler, #planen)
+const REITER = ['meetings', 'aufnahmen', 'profil', 'entwickler'];      // entwickler: entwickler.js (API, Webhooks)
 function reiter(name, fokus = false) {
   if (!REITER.includes(name)) name = 'meetings';
   for (const r of REITER) {

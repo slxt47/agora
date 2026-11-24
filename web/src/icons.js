@@ -83,6 +83,10 @@ const P = {
   datei: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
   notizen: '<path d="M5 4h14v16H5z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
   // ==== Ende Block „Zusammenarbeit“ ====
+  // ==== Block „Öffentliche API, Webhooks, Einbetten“ ====
+  schluessel: '<circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.8-8.8M16.5 6.5l2.5 2.5M14 9l2 2"/>',
+  code: '<path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/>',
+  // ==== Ende Block „Öffentliche API, Webhooks, Einbetten“ ====
 };
 
 /** SVG-Zeichenkette für ein Symbol. */

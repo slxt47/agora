@@ -58,6 +58,15 @@ Dateien liegen unter `daten/dateien/` (25 MB je Datei, 200 MB je Meeting). Erlau
 Ist clamd nicht erreichbar, lehnt die App Uploads mit 503 ab (fail closed). Ohne die Variable steht in der Oberfläche
 „Nicht auf Viren geprüft“. Ein clamd-Container läuft wie die anderen gehärtet im Host-Netz, gebunden an 127.0.0.1.
 
+## Öffentliche API (`/api/v1`)
+
+Nutzer legen persönliche API-Schlüssel im Konto an (Reiter „Entwickler“), Beschreibung in [`API-V1.md`](API-V1.md).
+Nichts einzurichten; die Grenzen (120/min je Schlüssel, 30 ungültige Schlüssel/10 min je IP) liegen wie alle anderen im
+Arbeitsspeicher des einen Workers. Download-Links sind mit `AGORA_GEHEIM` signiert – ändert er sich, werden offene Links
+ungültig (sie gelten ohnehin nur 15 min). Ein kompromittierter Schlüssel: Nutzer widerruft ihn selbst, oder ein Admin
+sperrt das Konto (gesperrte Konten können keine Schlüssel nutzen). Im Protokoll stehen nur Erstellen/Widerrufen und
+„Raum angelegt/gelöscht (API)“, keine einzelnen Abrufe.
+
 ## Kapazität
 
 Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/lasttest.sh`, nur gegen Wegwerf-Instanzen).
@@ -142,6 +151,9 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
   dann fertige Abschnitte mit Name und Zeit: 90 Tage, je Meeting oder ganz löschbar, mit dem Raum weg. Die Spracherkennung
   selbst läuft im Browser (bei Chrome/Edge beim Browser-Hersteller) und nur nach Zustimmung der jeweiligen Person.
 - Transkripte aus Aufnahmen (Whisper): `.vtt` neben der Aufnahme, mit ihr gelöscht (90 Tage).
+- API-Schlüssel (Name, SHA-256 des Schlüssels, erste 12 Zeichen, Rechte, Erstellzeit, Ablauf, letzte Nutzung ohne IP):
+  bis der Besitzer sie widerruft oder das Konto gelöscht wird; abgelaufene Schlüssel sind sofort ungültig und werden
+  30 Tage nach dem Ablauf gelöscht. Signierte Download-Links der API gelten 15 min und werden nicht gespeichert.
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 - Anmerkungen auf geteilten Bildschirmen: nicht gespeichert (nur im Browser, weg mit dem Ende der Freigabe); der Server
   kennt nur das Recht „erlaubt“ für das laufende Meeting.

@@ -688,4 +688,18 @@ export const de = {
   'html.erledigt': 'Erledigt',
   'html.alle': 'Alle',
   // ==== Ende Block Sprachen ====
+  // ==== Block Öffentliche API (web/src/entwickler.js) ====
+  'dev.reiter': 'Entwickler', 'dev.apiTitel': 'API-Schlüssel', 'dev.apiNeu': 'Neuer Schlüssel', 'dev.apiNeuTitel': 'Neuer API-Schlüssel',
+  'dev.apiText': 'Mit einem API-Schlüssel steuern eigene Programme dein Konto über die öffentliche API (/api/v1): Meetings planen, Links abrufen, Aufnahmen herunterladen. Jeder Schlüssel bekommt nur die Rechte, die du ankreuzt.',
+  'dev.apiLeer': 'Noch keine API-Schlüssel.', 'dev.feldName': 'Name', 'dev.nameBeispiel': 'z. B. Kalender-Skript', 'dev.nameFehlt': 'Bitte einen Namen eingeben.',
+  'dev.feldRechte': 'Rechte', 'dev.rechteFehlen': 'Bitte mindestens ein Recht ankreuzen.', 'dev.feldGueltig': 'Gültigkeit',
+  'dev.ohneAblauf': 'Ohne Ablauf', 'dev.tage': '{n} Tage', 'dev.erstellen': 'Schlüssel erstellen',
+  'dev.recht.meetings:lesen': 'Meetings, Beitrittslinks und Teilnehmende ansehen', 'dev.recht.meetings:schreiben': 'Meetings anlegen, ändern und löschen',
+  'dev.recht.aufnahmen:lesen': 'Aufnahmen auflisten und herunterladen', 'dev.recht.webhooks': 'Webhooks verwalten',
+  'dev.apiEinmal': 'Kopiere den Schlüssel jetzt – er wird nur dieses eine Mal angezeigt. Wer ihn hat, handelt mit den gewählten Rechten in deinem Namen.',
+  'dev.kopieren': 'Kopieren', 'dev.beispiel': 'Beispiel', 'dev.erstellt': 'erstellt {zeit}', 'dev.benutzt': 'zuletzt benutzt {zeit}', 'dev.nieBenutzt': 'noch nie benutzt',
+  'dev.gueltigBis': 'gültig bis {zeit}', 'dev.abgelaufen': 'abgelaufen am {zeit}', 'dev.widerrufen': 'Widerrufen', 'dev.widerrufenTitel': 'Schlüssel widerrufen?',
+  'dev.widerrufenText': '„{name}“ funktioniert danach sofort nicht mehr. Programme, die ihn nutzen, bekommen 401.', 'dev.widerrufenOk': 'Schlüssel widerrufen.',
+  'sicherheit.art.api_schluessel_neu': 'API-Schlüssel erstellt', 'sicherheit.art.api_schluessel_weg': 'API-Schlüssel widerrufen',
+  // ==== Ende Block Öffentliche API ====
 };

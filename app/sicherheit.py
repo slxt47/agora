@@ -27,6 +27,8 @@ ARTEN = [
     ('2FA zurückgesetzt (Admin)', 'zwei_faktor_admin'),
     ('Konto gesperrt (Admin)', 'gesperrt'),
     ('Konto entsperrt (Admin)', 'entsperrt'),
+    ('API-Schlüssel erstellt', 'api_schluessel_neu'),
+    ('API-Schlüssel widerrufen', 'api_schluessel_weg'),
 ]
 
 

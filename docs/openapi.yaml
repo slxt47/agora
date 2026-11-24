@@ -1,0 +1,268 @@
+openapi: 3.1.0
+# Von Hand gepflegt. tests/test_api_v1.py prüft, dass jede /api/v1-Route der App hier steht.
+# Die Haupt-App liefert keine eigene Doku aus (docs_url/openapi_url sind aus).
+info:
+  title: Agora – öffentliche API
+  version: "1.0"
+  description: |
+    Persönliche API-Schlüssel (Konto → Entwickler) als `Authorization: Bearer agora_…`.
+    Keine Cookies, kein CSRF-Header, kein CORS (nur Server-zu-Server oder Skripte).
+    Fehler: HTTP-Status + `{"fehler": "deutscher Text"}`. Zeiten in ISO 8601 UTC (`2030-01-07T08:00:00Z`).
+    Grenzen: 120 Anfragen/min je Schlüssel (429 mit `Retry-After`), 30 ungültige Schlüssel/10 min je IP.
+    Beispiele: docs/API-V1.md.
+  license: { name: MIT }
+servers:
+  - url: https://agora.slxt.dev
+security:
+  - bearer: []
+tags:
+  - name: Meetings
+  - name: Aufnahmen
+  - name: Webhooks
+
+paths:
+  /api/v1/meetings:
+    get:
+      tags: [Meetings]
+      summary: Eigene Meetings auflisten (neueste zuerst, höchstens 500)
+      x-recht: meetings:lesen
+      parameters:
+        - { name: art, in: query, required: false, schema: { type: string, enum: [sofort, geplant, persoenlich] } }
+      responses:
+        "200": { description: Liste, content: { application/json: { schema: { type: object, properties: { meetings: { type: array, items: { $ref: "#/components/schemas/Meeting" } } } } } } }
+        "400": { $ref: "#/components/responses/Fehler" }
+        "401": { $ref: "#/components/responses/Fehler" }
+        "403": { $ref: "#/components/responses/Fehler" }
+        "429": { $ref: "#/components/responses/Fehler" }
+    post:
+      tags: [Meetings]
+      summary: Meeting anlegen (ohne `geplant` = Sofort-Meeting)
+      x-recht: meetings:schreiben
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/MeetingEingabe" } } }
+      responses:
+        "201": { description: Angelegt, content: { application/json: { schema: { type: object, properties: { meeting: { $ref: "#/components/schemas/Meeting" } } } } } }
+        "400": { $ref: "#/components/responses/Fehler" }
+        "401": { $ref: "#/components/responses/Fehler" }
+        "403": { $ref: "#/components/responses/Fehler" }
+        "429": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/meetings/{code}:
+    parameters:
+      - $ref: "#/components/parameters/Code"
+    get:
+      tags: [Meetings]
+      summary: Ein eigenes Meeting
+      x-recht: meetings:lesen
+      responses:
+        "200": { description: Meeting, content: { application/json: { schema: { type: object, properties: { meeting: { $ref: "#/components/schemas/Meeting" } } } } } }
+        "404": { $ref: "#/components/responses/Fehler" }
+    patch:
+      tags: [Meetings]
+      summary: Meeting ändern (nur übergebene Felder; `geplant` ersetzt den Termin ganz)
+      x-recht: meetings:schreiben
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/MeetingEingabe" } } }
+      responses:
+        "200": { description: Geändert, content: { application/json: { schema: { type: object, properties: { meeting: { $ref: "#/components/schemas/Meeting" } } } } } }
+        "400": { $ref: "#/components/responses/Fehler" }
+        "404": { $ref: "#/components/responses/Fehler" }
+    delete:
+      tags: [Meetings]
+      summary: Meeting löschen (beendet ein laufendes Meeting; der persönliche Raum geht nicht → 400)
+      x-recht: meetings:schreiben
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Fehler" }
+        "404": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/meetings/{code}/link:
+    parameters:
+      - $ref: "#/components/parameters/Code"
+    get:
+      tags: [Meetings]
+      summary: Beitrittslink
+      description: Bei `e2ee = true` fehlt dem Link der Schlüssel (`#k=…`) – den kennt nur der Browser des Hosts.
+      x-recht: meetings:lesen
+      responses:
+        "200":
+          description: Link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string }
+                  link: { type: string, format: uri }
+                  passcode_noetig: { type: boolean }
+                  e2ee: { type: boolean }
+                  naechster_termin: { type: [string, "null"], format: date-time }
+        "404": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/meetings/{code}/teilnehmer:
+    parameters:
+      - $ref: "#/components/parameters/Code"
+    get:
+      tags: [Meetings]
+      summary: Gerade verbundene Teilnehmende (live vom Medienserver)
+      x-recht: meetings:lesen
+      responses:
+        "200":
+          description: Liste (leer, wenn das Meeting nicht läuft)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aktiv: { type: boolean }
+                  teilnehmer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identity: { type: string }
+                        name: { type: string }
+                        rolle: { type: [string, "null"], enum: [host, cohost, teilnehmer, gast, panelist, zuschauer, null] }
+                        gast: { type: boolean, description: ohne Konto }
+                        beigetreten: { type: [string, "null"], format: date-time }
+                        breakout: { type: boolean, description: gerade in einem Breakout-Raum }
+        "404": { $ref: "#/components/responses/Fehler" }
+        "503": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/aufnahmen:
+    get:
+      tags: [Aufnahmen]
+      summary: Eigene Aufnahmen
+      x-recht: aufnahmen:lesen
+      responses:
+        "200": { description: Liste, content: { application/json: { schema: { type: object, properties: { aufnahmen: { type: array, items: { $ref: "#/components/schemas/Aufnahme" } } } } } } }
+
+  /api/v1/aufnahmen/{aufnahme_id}:
+    parameters:
+      - $ref: "#/components/parameters/AufnahmeId"
+    get:
+      tags: [Aufnahmen]
+      summary: Eine Aufnahme
+      x-recht: aufnahmen:lesen
+      responses:
+        "200": { description: Aufnahme, content: { application/json: { schema: { type: object, properties: { aufnahme: { $ref: "#/components/schemas/Aufnahme" } } } } } }
+        "404": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/aufnahmen/{aufnahme_id}/download:
+    parameters:
+      - $ref: "#/components/parameters/AufnahmeId"
+    get:
+      tags: [Aufnahmen]
+      summary: Kurzlebigen, signierten Download-Link erzeugen (15 min)
+      x-recht: aufnahmen:lesen
+      responses:
+        "200":
+          description: Link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+                  gueltig_bis: { type: string, format: date-time }
+        "404": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/download/{aufnahme_id}:
+    parameters:
+      - $ref: "#/components/parameters/AufnahmeId"
+      - { name: bis, in: query, required: true, schema: { type: integer } }
+      - { name: sig, in: query, required: true, schema: { type: string } }
+    get:
+      tags: [Aufnahmen]
+      summary: Datei über den signierten Link laden (ohne API-Schlüssel)
+      security: []
+      responses:
+        "200": { description: Video (Content-Disposition attachment), content: { video/webm: {}, video/mp4: {} } }
+        "403": { $ref: "#/components/responses/Fehler" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Persönlicher API-Schlüssel `agora_…` (Konto → Entwickler; nur einmal sichtbar).
+  parameters:
+    Code:
+      name: code
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[a-z]{3}-[a-z]{4}-[a-z]{3}$" }
+    AufnahmeId:
+      name: aufnahme_id
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[A-Za-z0-9_-]{22}$" }
+  responses:
+    Ok:
+      description: Erledigt
+      content: { application/json: { schema: { type: object, properties: { ok: { type: boolean, const: true } } } } }
+    Fehler:
+      description: Fehler
+      content: { application/json: { schema: { $ref: "#/components/schemas/Fehler" } } }
+  schemas:
+    Fehler:
+      type: object
+      properties: { fehler: { type: string } }
+    Termin:
+      type: object
+      properties:
+        start: { type: string, description: "ISO 8601; ohne Zeitzonen-Angabe gilt `zeitzone`" }
+        dauer_min: { type: integer, minimum: 5, maximum: 1440, default: 60 }
+        zeitzone: { type: string, example: Europe/Berlin, description: Standard = Zeitzone des Kontos }
+        beschreibung: { type: string, maxLength: 2000 }
+        wiederholung: { type: string, enum: [keine, taeglich, woechentlich], default: keine }
+        bis: { type: [string, "null"], description: "Ende der Wiederholung (Datum = Tagesende)" }
+      required: [start]
+    MeetingEingabe:
+      type: object
+      additionalProperties: false
+      properties:
+        titel: { type: string, maxLength: 120 }
+        passcode: { type: [string, "null"], minLength: 4, maxLength: 32, description: '"" oder null entfernt den Passcode' }
+        warteraum: { type: boolean }
+        chat_speichern: { type: boolean }
+        geplant: { $ref: "#/components/schemas/Termin" }
+    Meeting:
+      type: object
+      properties:
+        code: { type: string, example: abc-defg-hij }
+        titel: { type: string }
+        art: { type: string, enum: [sofort, geplant, persoenlich] }
+        link: { type: string, format: uri }
+        aktiv: { type: boolean }
+        beendet: { type: boolean }
+        passcode_noetig: { type: boolean }
+        warteraum: { type: boolean }
+        chat_speichern: { type: boolean }
+        e2ee: { type: boolean }
+        geplant:
+          oneOf:
+            - { type: "null" }
+            - type: object
+              properties:
+                start: { type: string, format: date-time }
+                dauer_min: { type: integer }
+                zeitzone: { type: string }
+                beschreibung: { type: string }
+                wiederholung: { type: string, enum: [keine, taeglich, woechentlich] }
+                bis: { type: [string, "null"], format: date-time }
+        naechster_termin: { type: [string, "null"], format: date-time }
+        erstellt: { type: string, format: date-time }
+    Aufnahme:
+      type: object
+      properties:
+        id: { type: string }
+        titel: { type: string }
+        raum_code: { type: [string, "null"] }
+        groesse: { type: integer, description: Bytes }
+        typ: { type: string, enum: [video/webm, video/mp4] }
+        dauer: { type: [integer, "null"], description: Sekunden }
+        erstellt: { type: string, format: date-time }
+        ablauf: { type: string, format: date-time }

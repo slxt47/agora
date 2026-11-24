@@ -38,6 +38,8 @@ from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
 from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur mit AGORA_EGRESS=1)
 from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnahme (Whisper)
 from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
+from . import api_schluessel  # Öffentliche API: persönliche API-Schlüssel
+from . import api_v1          # Öffentliche API /api/v1 (Bearer)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -91,8 +93,9 @@ SICHERHEIT = {
 async def schutz(req: Request, call_next):
     sprache = texte.aus_header(req.headers.get('accept-language'))
     texte.SPRACHE.set(sprache)          # für Termin-Texte, .ics, Kalender-Links in dieser Anfrage
-    # Zustandsändernde Aufrufe nur mit eigenem Header (CSRF: fremde Seiten können ihn ohne CORS nicht setzen)
-    if req.method in ('POST', 'PUT', 'PATCH', 'DELETE') and req.headers.get('x-agora') != '1':
+    # Zustandsändernde Aufrufe nur mit eigenem Header (CSRF: fremde Seiten können ihn ohne CORS nicht setzen).
+    # Ausnahme /api/v1/: dort zählt nur der Bearer-Schlüssel, nie ein Cookie – CSRF greift dort nicht.
+    if req.method in ('POST', 'PUT', 'PATCH', 'DELETE') and req.headers.get('x-agora') != '1' and not req.url.path.startswith('/api/v1/'):
         r = JSONResponse({'fehler': texte.fehler_text('Anfrage abgelehnt', sprache)}, status_code=403)
     else:
         r = await call_next(req)
@@ -131,6 +134,8 @@ app.include_router(webinar.router)
 app.include_router(egress.router)
 app.include_router(untertitel.router)
 app.include_router(anmerkungen.router)
+app.include_router(api_schluessel.router)
+app.include_router(api_v1.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -175,6 +180,7 @@ def aufraeumen():
     dateien.aufraeumen(t)      # abgelaufene und verwaiste Dateien aus Meetings
     webinar.aufraeumen(t)
     untertitel.aufraeumen(t)
+    api_schluessel.aufraeumen(t)   # abgelaufene API-Schlüssel (30 Tage nach Ablauf)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

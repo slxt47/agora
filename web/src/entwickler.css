@@ -1,0 +1,13 @@
+/* Agora – Konto → Entwickler: API-Schlüssel, Webhooks, Einbetten. */
+.dev-liste .zeile { flex-wrap: wrap; gap: 6px; }
+.dev-rechte { display: grid; gap: 8px; }
+.dev-recht { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; cursor: pointer; }
+.dev-recht:hover { background: var(--tile); }
+.dev-recht input { margin-top: 3px; flex: none; }
+.dev-recht span { display: grid; gap: 2px; min-width: 0; }
+.dev-recht code { font-family: var(--mono); font-size: .9rem; }
+.dev-recht small { color: var(--sec); }
+.dev-geheim { overflow-wrap: anywhere; user-select: all; }
+.dev-beispiel pre { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--tile); overflow-x: auto;
+  font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dev-beispiel summary { cursor: pointer; color: var(--accent); }

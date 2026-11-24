@@ -5,7 +5,8 @@ Alle Antworten JSON. Fehler: HTTP-Status + `{"fehler": "Text"}` – auf Deutsch,
 Dieselbe Sprache gilt für Termin-Texte (`.ics`, Kalender-Links), Standard-Titel neuer Räume, die Konto-Sprache bei der
 Registrierung, Einladungs-Mails und Webinar-Bestätigungen. Andere Mails gehen in der Konto-Sprache des Empfängers
 (Erinnerungen an Eingeladene: Sprache des einladenden Kontos); Meldungen an Admins bleiben deutsch.
-Zustandsändernde Aufrufe (POST/PUT/PATCH/DELETE) brauchen Header `X-Agora: 1` (CSRF-Schutz), sonst 403.
+Zustandsändernde Aufrufe (POST/PUT/PATCH/DELETE) brauchen Header `X-Agora: 1` (CSRF-Schutz), sonst 403 – außer unter
+`/api/v1/` (öffentliche API mit Bearer-Schlüssel, ohne Cookies; siehe [`API-V1.md`](API-V1.md) und [`openapi.yaml`](openapi.yaml)).
 Anmeldung per Cookie `__Host-agora` (httponly, secure, samesite=lax). Test: `AGORA_COOKIE=agora`, `AGORA_COOKIE_SECURE=0`.
 Wer in einem Meeting ist, schickt bei Raum-Aktionen Header `X-Teilnahme: <teilnahme>` (Geheimnis aus dem Beitritt).
 Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3}-[a-z]{4}-[a-z]{3}$`).
@@ -491,4 +492,16 @@ Streams. Ereignis (Topic `agora`, nur an Host/Co-Hosts): `{typ:"egress", art, st
 
 `raum_json` hat zusätzlich `transkript_speichern`; `aufnahme_json` hat `transkript` (Status oder `null`) und `transkript_moeglich`.
 Hooks in `aufnahmen.py`: `BEIM_ENTFERNEN`, `JSON_EXTRA`.
+
+## Öffentliche API: API-Schlüssel (app/api_schluessel.py, app/api_v1.py)
+Die Endpunkte unter `/api/v1/` beschreibt [`API-V1.md`](API-V1.md) (Bearer `agora_…`, kein Cookie, kein `X-Agora`, kein CORS).
+Verwaltung im Konto (Cookie + `X-Agora` wie üblich):
+
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `/api/konto/api-schluessel` | – | `{schluessel:[{id, name, anfang, rechte, erstellt, gueltig_bis, benutzt}], rechte:[…], maximal:10}` |
+| POST `/api/konto/api-schluessel` | `{name ≤60, rechte:[meetings:lesen\|meetings:schreiben\|aufnahmen:lesen\|webhooks], gueltig_tage: null\|30\|90\|365}` | `{schluessel, token}` – `token` nur in dieser Antwort; 409 bei 10 Schlüsseln; 20/h je Konto |
+| DELETE `/api/konto/api-schluessel/{id}` | – | `{ok:true}` (sofort ungültig) |
+
+Sicherheitsereignisse: `api_schluessel_neu`, `api_schluessel_weg`. Datenexport: `api_schluessel` (ohne Hash).
 

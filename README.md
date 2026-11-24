@@ -99,6 +99,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 - **Admin-Bereich** `/admin` (nur Konten aus `AGORA_ADMIN_MAILS`, für alle anderen 404): Übersicht (Konten, laufende Meetings
   und Teilnehmende live aus LiveKit, Meetings der letzten 7/30 Tage, Speicher der Aufnahmen), Konten suchen, sperren,
   2FA zurücksetzen, löschen, Meldungen bearbeiten, Protokoll mit Filter, laufende Meetings beenden. Jede Aktion wird protokolliert.
+- **Öffentliche API** (`/api/v1`): persönliche API-Schlüssel im Konto (Reiter „Entwickler“) mit Rechten
+  `meetings:lesen`, `meetings:schreiben`, `aufnahmen:lesen`, `webhooks`, optionalem Ablauf und „zuletzt benutzt“; nur
+  einmal sichtbar, gespeichert als Hash, jederzeit widerrufbar. Meetings (auch geplant/wiederkehrend) auflisten, anlegen,
+  ändern, löschen, Beitrittslink, Teilnehmende des laufenden Meetings, Aufnahmen mit kurzlebigen signierten
+  Download-Links. Bearer statt Cookie, kein CORS, 120 Anfragen/min je Schlüssel. Doku: [`docs/API-V1.md`](docs/API-V1.md),
+  [`docs/openapi.yaml`](docs/openapi.yaml).
 - **Host-Kontrollen:**
   - Rollen Host, Co-Host, Teilnehmer und Gast
   - einzelne oder alle stummschalten, um Kamera bitten oder Kamera aus

@@ -485,6 +485,24 @@ SCHEMA = [
     ALTER TABLE raeume ADD COLUMN anmerkungen INTEGER NOT NULL DEFAULT 1;
     """,
     # ======== Ende Block „Anmerkungen“ ========
+    # ======== Block „Öffentliche API“ (app/api_schluessel.py, app/api_v1.py) – Version 23 ========
+    # Persönliche API-Schlüssel: nur der SHA-256 des Schlüssels wird gespeichert (der Schlüssel hat 256 Bit Zufall,
+    # ein langsamer Hash bringt da nichts), dazu ein kurzer Anfang zum Wiedererkennen. Widerrufen = Zeile löschen.
+    """
+    CREATE TABLE api_schluessel (
+      id INTEGER PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      anfang TEXT NOT NULL,            -- z. B. „agora_Ab12Cd“ (Anzeige, kein Geheimnis)
+      schluessel_hash TEXT NOT NULL UNIQUE,
+      rechte TEXT NOT NULL,            -- JSON-Liste: meetings:lesen, meetings:schreiben, aufnahmen:lesen, webhooks
+      erstellt INTEGER NOT NULL,
+      gueltig_bis INTEGER,             -- NULL = ohne Ablauf
+      benutzt INTEGER                  -- letzte Nutzung (höchstens minütlich aktualisiert), keine IP
+    );
+    CREATE INDEX api_schluessel_benutzer ON api_schluessel(benutzer_id);
+    """,
+    # ======== Ende Block „Öffentliche API“ ========
 ]
 
 

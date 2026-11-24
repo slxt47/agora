@@ -19,6 +19,7 @@
   <title data-t="html.meinKontoAgora">Mein Konto – Agora</title>
   <script type="module" src="/src/konto.js"></script>
   <script type="module" src="/src/konto-sicherheit.js"></script>
+  <script type="module" src="/src/entwickler.js"></script>
 </head>
 <body>
   <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
@@ -46,6 +47,7 @@
       <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="true" data-t="html.meetings">Meetings</button>
       <button type="button" role="tab" id="tab-aufnahmen" aria-controls="p-aufnahmen" aria-selected="false" data-t="html.aufnahmen">Aufnahmen</button>
       <button type="button" role="tab" id="tab-profil" aria-controls="p-profil" aria-selected="false" data-t="html.profil">Profil</button>
+      <button type="button" role="tab" id="tab-entwickler" aria-controls="p-entwickler" aria-selected="false" data-t="dev.reiter">Entwickler</button>
     </nav>
 
     <div id="p-meetings" role="tabpanel" aria-labelledby="tab-meetings" class="formular">
@@ -138,6 +140,14 @@
           <button class="btn" type="button" id="abmelden" data-t="html.abmelden">Abmelden</button>
           <button class="btn gefahr" type="button" id="konto-loeschen" data-t="html.kontoLoeschen">Konto löschen</button>
         </div>
+      </section>
+    </div>
+
+    <div id="p-entwickler" role="tabpanel" aria-labelledby="tab-entwickler" class="formular" hidden>
+      <section class="card" aria-labelledby="h-api">
+        <div class="zeile zwischen"><h2 id="h-api" data-t="dev.apiTitel">API-Schlüssel</h2><button class="btn klein" type="button" id="api-neu" data-t="dev.apiNeu">Neuer Schlüssel</button></div>
+        <p class="sec klein" data-t="dev.apiText">Mit einem API-Schlüssel steuern eigene Programme dein Konto über die öffentliche API (/api/v1): Meetings planen, Links abrufen, Aufnahmen herunterladen. Jeder Schlüssel bekommt nur die Rechte, die du ankreuzt.</p>
+        <ul class="liste dev-liste" id="liste-api"></ul>
       </section>
     </div>
   </main>

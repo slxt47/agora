@@ -946,6 +946,36 @@ with sync_playwright() as p:
         dsw.close()
         print('Englisch: Start, Konto, Lobby, Meeting, Gast, Sprachschalter geprüft')
         # ==== Ende Block Englisch ====
+        # ==== Block Öffentliche API: Schlüssel im Konto anlegen (nur einmal sichtbar), damit per API ein Meeting planen ====
+        hp.goto(B + '/konto#entwickler')
+        hp.wait_for_selector('#p-entwickler:not([hidden])')
+        hp.click('#api-neu')
+        hp.wait_for_selector('dialog [name=name]')
+        hp.fill('dialog [name=name]', 'E2E-Skript')
+        hp.check('dialog [name=recht][value="meetings:schreiben"]')
+        hp.screenshot(path=OUT + '40a-api-schluessel-neu.png')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('#dev-geheim')
+        api_token = hp.inner_text('#dev-geheim').strip()
+        hp.screenshot(path=OUT + '40b-api-schluessel-einmal.png')
+        hp.click('dialog button:has-text("Fertig")')
+        hp.wait_for_selector('#liste-api li[data-schluessel] .name:has-text("E2E-Skript")')
+        if not re.match(r'^agora_[\w-]{43}$', api_token): fehler.append(f'API-Schlüssel sieht falsch aus: {api_token[:10]}…')
+        if api_token in hp.content(): fehler.append('API-Schlüssel steht nach dem Schließen noch in der Seite')
+        api_kontext = p.request.new_context(base_url=B, extra_http_headers={'Authorization': f'Bearer {api_token}'})
+        r = api_kontext.post('/api/v1/meetings', data={'titel': 'Per API geplant', 'warteraum': True,
+                             'geplant': {'start': '2031-03-03T10:00', 'dauer_min': 45, 'zeitzone': 'Europe/Berlin', 'wiederholung': 'woechentlich'}})
+        if r.status != 201: fehler.append(f'API: Meeting anlegen {r.status} {r.text()[:200]}')
+        api_code = r.json()['meeting']['code']
+        if api_code not in [m['code'] for m in api_kontext.get('/api/v1/meetings?art=geplant').json()['meetings']]: fehler.append('API: Meeting fehlt in der Liste')
+        if p.request.new_context(base_url=B).get('/api/v1/meetings').status != 401: fehler.append('API ohne Schlüssel nicht 401')
+        hp.goto(B + '/konto#meetings'); hp.reload()           # nur das Fragment geändert → neu laden
+        hp.wait_for_selector(f'#liste-geplant li:has-text("{api_code}")')
+        hp.goto(B + '/konto#entwickler'); hp.reload()
+        hp.wait_for_selector('#liste-api li[data-schluessel] .info:has-text("zuletzt benutzt")')
+        hp.screenshot(path=OUT + '40c-api-schluessel-liste.png', full_page=True)
+        print('Öffentliche API: Schlüssel angelegt, Meeting', api_code, 'per API geplant')
+        # ==== Ende Block Öffentliche API ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

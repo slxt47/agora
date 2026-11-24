@@ -6,7 +6,7 @@ import { woerterbuch } from '../src/i18n.js';
 
 test('Arten wie im Backend, mit Text und Symbol', () => {
   // gleiche Liste wie app/sicherheit.py (ARTEN) – der API-Test prüft die Gegenrichtung
-  assert.equal(SICHERHEIT_ARTEN.length, 16);
+  assert.equal(SICHERHEIT_ARTEN.length, 18);
   for (const a of SICHERHEIT_ARTEN) {
     assert.ok(woerterbuch.de[`sicherheit.art.${a}`], a);
     assert.ok(['ok', 'warn'].includes(sicherheitArt(a).ton));

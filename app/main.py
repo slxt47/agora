@@ -32,6 +32,7 @@ from . import qualitaet
 from . import metriken
 from . import whiteboard     # Zusammenarbeit: Whiteboard
 from . import notizen        # Zusammenarbeit: gemeinsame Notizen
+from . import fragen         # Zusammenarbeit: Q&A
 from . import livekit_dienst as lk
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
@@ -114,6 +115,7 @@ app.include_router(qualitaet.router)
 app.include_router(metriken.router)
 app.include_router(whiteboard.router)
 app.include_router(notizen.router)
+app.include_router(fragen.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 

@@ -3,3 +3,4 @@
 .verlauf-notizen { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); overflow-wrap: anywhere; }
 .verlauf-notizen h3, .verlauf-notizen h4, .verlauf-notizen h5 { margin: 10px 0 4px; }
 .verlauf-notizen li.aufgabe { list-style: none; }
+.verlauf-fragen { display: grid; gap: 6px; padding-left: 20px; overflow-wrap: anywhere; }

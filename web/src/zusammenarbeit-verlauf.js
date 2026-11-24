@@ -1,5 +1,5 @@
 // Meeting-Verlauf (Konto): gespeicherte Inhalte aus „Zusammenarbeit“ – Whiteboard als Bild (mit PNG-Download),
-// Notizen (Vorschau + .md).
+// Notizen (Vorschau + .md), Fragen (Q&A, anonyme ohne Namen).
 // Nur bei Räumen mit „Chat speichern“; die Daten kommen aus GET /api/verlauf/{id}/inhalt.
 import { h } from './common.js';
 import { t } from './i18n.js';
@@ -32,5 +32,11 @@ export function zusammenarbeitVerlauf(inhalt, r, m) {
     const laden = h('button', { type: 'button', class: 'btn klein', onclick: () => blobSpeichern(new Blob([`${r.notizen}\n`], { type: 'text/markdown;charset=utf-8' }), `notizen-${m.code}.md`) },
       t('zv.notizenMd'));
     inhalt.append(h('h4', {}, t('zv.notizen')), h('div', { class: 'verlauf-notizen' }, bloeckeDom(r.notizen)), h('div', { class: 'knoepfe' }, laden));
+  }
+  if (r.fragen?.length) {
+    inhalt.append(h('h4', {}, t('zv.fragen')), h('ol', { class: 'verlauf-fragen' }, r.fragen.map((f) => h('li', {},
+      h('b', {}, f.name || t('fragen.anonymWer')), `: ${f.text} `,
+      h('span', { class: 'sec klein' }, `(${t('zv.stimmen', { n: f.stimmen })}${f.status === 'beantwortet' ? ` · ${t('fragen.beantwortet')}` : ''})`),
+      f.antwort ? h('div', { class: 'sec klein' }, `${f.antwort_von || ''}: ${f.antwort}`) : null))));
   }
 }

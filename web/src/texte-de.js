@@ -374,5 +374,16 @@ export const de = {
   'notizen.konflikt': '{name} hat gleichzeitig dieselbe Stelle geändert. Welche Fassung soll gelten?',
   'notizen.meineBehalten': 'Meine Fassung behalten', 'notizen.derenUebernehmen': 'Neue Fassung übernehmen',
   'zv.notizen': 'Notizen', 'zv.notizenMd': 'Als .md speichern',
+  'fragen.tab': 'Fragen', 'fragen.liste': 'Fragen und Antworten', 'fragen.leer': 'Noch keine Fragen. Stell die erste!',
+  'fragen.platzhalter': 'Deine Frage an alle …', 'fragen.deineFrage': 'Deine Frage', 'fragen.stellen': 'Fragen',
+  'fragen.anonym': 'Anonym fragen', 'fragen.anonymWer': 'Anonym', 'fragen.duAnonym': 'Du (anonym)',
+  'fragen.gestellt': 'Frage gestellt.', 'fragen.gestelltAnonym': 'Frage anonym gestellt – andere sehen deinen Namen nicht.',
+  'fragen.sortierung': 'Sortierung', 'fragen.sort.stimmen': 'Beliebt', 'fragen.sort.zeit': 'Neueste',
+  'fragen.stimmeLabel': 'Hochstimmen, {n} Stimmen', 'fragen.hochstimmen': 'Hochstimmen', 'fragen.eigene': 'Deine eigene Frage',
+  'fragen.hervorgehoben': 'Hervorgehoben', 'fragen.beantwortet': 'Beantwortet', 'fragen.verworfen': 'Verworfen',
+  'fragen.alsBeantwortet': 'Beantwortet', 'fragen.hervorheben': 'Hervorheben', 'fragen.nichtHervorheben': 'Nicht mehr hervorheben',
+  'fragen.verwerfen': 'Verwerfen', 'fragen.wiederOffen': 'Wieder öffnen', 'fragen.zurueckziehen': 'Zurückziehen',
+  'fragen.antwortOptional': 'Antwort (optional, für alle sichtbar)', 'fragen.antwortPlatzhalter': 'Kurz schriftlich antworten …',
+  'fragen.neuN': '{n} neue Fragen', 'zv.fragen': 'Fragen', 'zv.stimmen': '{n} Stimmen',
   // ==== Ende Block „Zusammenarbeit“ ====
 };

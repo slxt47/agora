@@ -361,6 +361,28 @@ SCHEMA = [
       PRIMARY KEY (raum_id, sitzung)
     );
     """,
+    # Version 18: Q&A – Fragen je Meeting (anonym nur gegenüber anderen Teilnehmenden; identity/Name/Konto speichert der
+    # Server immer) und Stimmen (eine je Teilnahme). Mit dem Meeting gelöscht, außer chat_speichern.
+    """
+    CREATE TABLE fragen (
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL, name TEXT NOT NULL, benutzer_id INTEGER,
+      anonym INTEGER NOT NULL DEFAULT 0,
+      text TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'offen',      -- offen | beantwortet | verworfen
+      hervorgehoben INTEGER NOT NULL DEFAULT 0,
+      antwort TEXT, antwort_von TEXT,
+      erstellt INTEGER NOT NULL, beantwortet INTEGER
+    );
+    CREATE INDEX fragen_raum ON fragen(raum_id, sitzung);
+    CREATE TABLE fragen_stimmen (
+      frage_id INTEGER NOT NULL REFERENCES fragen(id) ON DELETE CASCADE,
+      identity TEXT NOT NULL,
+      PRIMARY KEY (frage_id, identity)
+    );
+    """,
 ]
 
 

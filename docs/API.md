@@ -329,7 +329,7 @@ Verbundener (Haupt- und Breakout-Räume, minütlich und bei jedem Beitritt gemes
 | Methode + Pfad | Antwort |
 |---|---|
 | GET `/api/verlauf` | `{meetings:[eintrag]}` – nur beendete, neueste zuerst, max. 100 |
-| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt], notizen}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
+| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt], notizen, fragen:[frage]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
 | DELETE `/api/verlauf/{id}` | `{ok:true}` |
 
 Server-Haken in `raeume.py` für Module: `BEIM_START`, `BEIM_BEITRITT`, `BEI_ZAEHLUNG(raum, anzahl)` (neben `BEIM_ENDE`).
@@ -378,3 +378,19 @@ Verfahren: letzter Schreiber gewinnt mit Versionsprüfung ([ADR 0004](adr/0004-n
 60 Speichervorgänge je Minute und Person. Ereignis (Topic `agora`): `{typ:"notizen", version, von, von_name, text?}` – `text` fehlt, wenn
 das Paket zu groß wäre (dann GET). Der Client führt bei 409 bzw. einem Ereignis während eigener ungespeicherter Änderungen beide
 Fassungen zeilenweise zusammen (3-Wege); überschneiden sie sich, wählt die Person „Meine Fassung behalten“ oder „Neue übernehmen“.
+
+### Fragen (Q&A)
+`frage` = `{id, text, anonym, name (null bei anonym – auch für Host/Co-Hosts), status: "offen"|"beantwortet"|"verworfen", hervorgehoben,
+stimmen, antwort, antwort_von, erstellt, beantwortet}`, in Antworten an die Person selbst zusätzlich `meins`, `ich_gestimmt`.
+Der Server speichert identity, Name und Konto auch bei anonymen Fragen (Missbrauch bleibt nachvollziehbar; Protokoll ohne Inhalt).
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| GET `/api/raeume/{code}/fragen` | alle | – | `{fragen:[frage]}` (verworfene nur für Moderation und die fragende Person) |
+| POST `/api/raeume/{code}/fragen` | alle | `{text (≤ 500), anonym?: false}` | `{frage}`; 10/min, höchstens 300 je Meeting |
+| POST `/api/raeume/{code}/fragen/{id}/stimme` | alle außer der fragenden Person | `{an: bool}` | `{frage}`; 400 eigene, 409 verworfen |
+| POST `/api/raeume/{code}/fragen/{id}/moderieren` | host/cohost | `{aktion: beantwortet\|offen\|verworfen\|hervorheben\|nicht_hervorheben, antwort? (≤ 1000, bei beantwortet)}` | `{frage}` |
+| DELETE `/api/raeume/{code}/fragen/{id}` | fragende Person (solange offen) oder host/cohost | – | `{ok:true}` |
+
+Ereignis (Topic `agora`): `{typ:"frage", aktion: neu|aktualisiert|geloescht, frage}` (ohne `meins`/`ich_gestimmt`). Verworfene gehen
+mit Inhalt nur an Moderation und fragende Person, alle anderen bekommen `geloescht`; „Wieder öffnen“ schickt `neu` an alle.

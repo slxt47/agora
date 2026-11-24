@@ -5,6 +5,7 @@ import { $, h } from '../common.js';
 import { t } from '../i18n.js';
 import { Whiteboard } from './whiteboard.js';
 import { Notizen } from './notizen.js';
+import { Fragen } from './fragen.js';
 import './zusammenarbeit.css';
 
 export class Zusammenarbeit {
@@ -12,16 +13,18 @@ export class Zusammenarbeit {
     this.m = m;
     this.module = new Map();          // Reiter-Name → Modul {typen:[…], laden, ereignis, zeigen, rolleGeaendert}
     this.whiteboard = new Whiteboard(m);
+    this.anmelden('fragen', new Fragen(m, this.panelAnlegen('fragen', t('fragen.tab'), 'chat')));     // Q&A direkt neben dem Chat
     this.anmelden('notizen', new Notizen(m, this.panelAnlegen('notizen', t('notizen.tab'))));
   }
 
   get panels() { return [...this.module.keys()]; }
 
   /** Reiter + Panel in der Seitenleiste anlegen; gibt das (leere) Panel zurück. */
-  panelAnlegen(name, label) {
+  panelAnlegen(name, label, nach = null) {
     const tab = h('button', { type: 'button', role: 'tab', id: `tab-${name}`, 'aria-controls': `panel-${name}`, 'aria-selected': 'false',
       onclick: () => this.m.leisteOeffnen(name) }, label);
-    $('#seitenleiste .umschalter').append(tab);
+    const vor = nach && $(`#tab-${nach}`);
+    if (vor) vor.after(tab); else $('#seitenleiste .umschalter').append(tab);
     const panel = h('div', { class: 'panel', id: `panel-${name}`, role: 'tabpanel', 'aria-labelledby': `tab-${name}`, hidden: true });
     $('#seitenleiste').append(panel);
     return panel;

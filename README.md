@@ -56,6 +56,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Eigener Canvas-Code ohne Bibliothek.
 - **Notizen:** gemeinsamer Text je Meeting (Markdown light mit Vorschau), speichert automatisch, Export als `.md`. Gleichzeitige
   Änderungen werden zeilenweise zusammengeführt, bei Überschneidung wählt man die Fassung (ADR 0004).
+- **Fragen (Q&A):** eigener Reiter neben dem Chat – Fragen stellen (auf Wunsch anonym, auch gegenüber dem Host), hochstimmen,
+  nach Stimmen oder Zeit sortieren; Host/Co-Hosts markieren beantwortet (optional mit schriftlicher Antwort), heben hervor oder verwerfen.
 - **Umfragen:** Host und Co-Hosts stellen Fragen mit 2–10 Antworten (Einfach- oder Mehrfachwahl, anonym oder namentlich), sehen das Ergebnis live und teilen es mit allen. Eine Stimme je Person, vom Server geprüft.
 - **Breakout-Räume:** 2–50 Räume, Zuteilung von Hand (ziehen oder auswählen) oder automatisch gleichmäßig, optionaler Timer. Alle wechseln automatisch, können „Hilfe rufen“ und (wenn erlaubt) selbst zurück. Der Host besucht jeden Raum, schickt Nachrichten an alle Räume und schließt sie mit 60-Sekunden-Countdown.
 - **Melden und Blockieren:** Jede Person im Meeting kann eine andere melden (Grund + optionaler Text); die Meldung geht an die

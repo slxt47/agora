@@ -40,6 +40,7 @@ from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnah
 from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
 from . import api_schluessel  # Öffentliche API: persönliche API-Schlüssel
 from . import api_v1          # Öffentliche API /api/v1 (Bearer)
+from . import webhooks        # Webhooks (Zustellung im eigenen Hintergrund-Thread)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -51,6 +52,7 @@ db.einrichten()      # idempotent; gleich beim Laden, damit auch Tests ohne Life
 async def lebenszeit(_app):
     if not TEST:
         threading.Thread(target=hintergrund, daemon=True).start()
+        webhooks.starten()
     yield
 
 
@@ -136,6 +138,7 @@ app.include_router(untertitel.router)
 app.include_router(anmerkungen.router)
 app.include_router(api_schluessel.router)
 app.include_router(api_v1.router)
+app.include_router(webhooks.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -181,6 +184,7 @@ def aufraeumen():
     webinar.aufraeumen(t)
     untertitel.aufraeumen(t)
     api_schluessel.aufraeumen(t)   # abgelaufene API-Schlüssel (30 Tage nach Ablauf)
+    webhooks.aufraeumen(t)         # Zustell-Protokoll 14 Tage, verwaiste Warteschlange/Anwesenheit
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

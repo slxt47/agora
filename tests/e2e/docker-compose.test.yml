@@ -17,6 +17,7 @@ services:
     environment:
       AGORA_TEST: "1"
       AGORA_GRENZEN_AUS: "1"
+      AGORA_WEBHOOK_LOKAL: "1"          # nur mit AGORA_TEST: Webhook-Ziel auf 127.0.0.1 (Fake-Empfänger im E2E)
       AGORA_ADMIN_MAILS: host@example.com
       AGORA_COOKIE: agora
       AGORA_COOKIE_SECURE: "0"

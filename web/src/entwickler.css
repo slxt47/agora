@@ -11,3 +11,6 @@
 .dev-beispiel pre { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--tile); overflow-x: auto;
   font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .dev-beispiel summary { cursor: pointer; color: var(--accent); }
+.dev-url { overflow-wrap: anywhere; font-size: .9rem; }
+.dev-protokoll li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.dev-protokoll .mono { font-family: var(--mono); font-size: .85rem; }

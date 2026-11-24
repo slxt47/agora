@@ -976,6 +976,47 @@ with sync_playwright() as p:
         hp.screenshot(path=OUT + '40c-api-schluessel-liste.png', full_page=True)
         print('Öffentliche API: Schlüssel angelegt, Meeting', api_code, 'per API geplant')
         # ==== Ende Block Öffentliche API ====
+        # ==== Block Webhooks: lokaler Fake-Empfänger (AGORA_WEBHOOK_LOKAL nur im Test), anlegen, „Test senden“, Signatur prüfen ====
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        wh_empfangen = []
+
+        class WhEmpfaenger(BaseHTTPRequestHandler):
+            def do_POST(self):
+                wh_empfangen.append((dict(self.headers), self.rfile.read(int(self.headers.get('content-length') or 0))))
+                self.send_response(204); self.end_headers()
+
+            def log_message(self, *a):
+                pass
+        wh_server = ThreadingHTTPServer(('127.0.0.1', 0), WhEmpfaenger)
+        threading.Thread(target=wh_server.serve_forever, daemon=True).start()
+        hp.click('#webhook-neu')
+        hp.wait_for_selector('dialog [name=url]')
+        hp.fill('dialog [name=url]', f'http://127.0.0.1:{wh_server.server_address[1]}/agora-hook')
+        hp.check('dialog [name=ereignis][value="aufnahme.fertig"]')
+        hp.screenshot(path=OUT + '41a-webhook-neu.png')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector('#dev-geheim')
+        wh_geheim = hp.inner_text('#dev-geheim').strip()
+        hp.click('dialog button:has-text("Fertig")')
+        hp.wait_for_selector('#liste-webhooks li[data-webhook]')
+        hp.click('#liste-webhooks li[data-webhook] [data-wh-test]')
+        hp.wait_for_selector('#liste-webhooks li[data-webhook] .status.ok')
+        if len(wh_empfangen) != 1: fehler.append(f'Webhook: {len(wh_empfangen)} Aufrufe statt 1')
+        else:
+            kopf, body = wh_empfangen[0]
+            teile = dict(x.split('=', 1) for x in kopf.get('X-Agora-Signatur', '').split(','))
+            soll = hmac.new(wh_geheim.encode(), teile.get('t', '').encode() + b'.' + body, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(soll, teile.get('v1', '')): fehler.append('Webhook: Signatur stimmt nicht')
+            if json.loads(body)['ereignis'] != 'test': fehler.append('Webhook: falsches Ereignis')
+        hp.click('#liste-webhooks li[data-webhook] [data-wh-protokoll]')
+        hp.wait_for_selector('dialog .dev-protokoll li[data-ok="true"]')
+        hp.screenshot(path=OUT + '41b-webhook-protokoll.png')
+        hp.keyboard.press('Escape')
+        hp.screenshot(path=OUT + '41c-entwickler.png', full_page=True)
+        wh_server.shutdown()
+        print('Webhooks: Test-Ereignis signiert angekommen')
+        # ==== Ende Block Webhooks ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

@@ -38,6 +38,9 @@ BEITRITT_ROLLE = []           # Webinar: f(raum, benutzer|None, body) → {'roll
 ROLLE_STANDARD = []           # Webinar: f(raum, podium) → Grundrolle (podium = war Host/Co-Host → 'panelist', sonst 'zuschauer') oder None
 META_EXTRA = []               # f(raum) → dict, wird in die LiveKit-Raum-Metadaten gemischt (Webinar, Server-Aufnahme, Transkript, Anmerkungen)
 RAUM_JSON_EXTRA = []          # f(raum, benutzer|None) → dict, wird in raum_json gemischt
+VOR_ENDE = []                 # f(raum) beim Meeting-Ende, solange Teilnahmen noch da sind (Webhooks: teilnehmer.gegangen)
+NACH_ZUGANG = []              # f(raum, identity, name, rolle) nach jedem ausgegebenen Zugang (Webhooks)
+BEI_LISTE = []                # f(raum, liste) – minütlich die Verbundenen laut LiveKit (Webhooks)
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -233,6 +236,8 @@ async def meeting_beenden(r, grund='host'):
         return
     await lk.senden(r['code'], {'typ': 'beendet'})
     await lk.raum_loeschen(r['code'])
+    for f in VOR_ENDE:
+        f(r)
     c = db.verbindung()
     c.execute('DELETE FROM teilnahmen WHERE raum_id = ?', (r['id'],))
     c.execute("UPDATE anfragen SET status = 'beendet' WHERE raum_id = ? AND status IN ('wartet', 'zugelassen')", (r['id'],))
@@ -296,6 +301,8 @@ async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None):
     c.execute('INSERT INTO teilnahmen VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
               (h(geheim), r['id'], r['sitzung'], identity, name, rolle, b['id'] if b else None, ip, farbe, jetzt()))
     c.execute('UPDATE raeume SET letzte_aktivitaet = ? WHERE id = ?', (jetzt(), r['id']))
+    for f in NACH_ZUGANG:
+        f(r, identity, name, rolle)
     await lk.raum_anlegen(r['code'], meta(r), MAX_TEILNEHMER)
     for f in BEIM_BEITRITT:
         f(r)
@@ -324,6 +331,8 @@ async def leere_pruefen(t=None):
             continue                     # LiveKit nicht erreichbar → nichts entscheiden
         for f in BEI_ZAEHLUNG:
             f(r, len(liste))
+        for f in BEI_LISTE:
+            f(r, liste)
         if liste or c.execute("SELECT 1 FROM anfragen WHERE raum_id = ? AND sitzung = ? AND status = 'wartet' AND erstellt > ?",
                               (r['id'], r['sitzung'], t - ANFRAGE_S)).fetchone():
             c.execute('UPDATE raeume SET leer_seit = NULL, letzte_aktivitaet = ? WHERE id = ?', (t, r['id']))

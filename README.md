@@ -105,6 +105,11 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   ändern, löschen, Beitrittslink, Teilnehmende des laufenden Meetings, Aufnahmen mit kurzlebigen signierten
   Download-Links. Bearer statt Cookie, kein CORS, 120 Anfragen/min je Schlüssel. Doku: [`docs/API-V1.md`](docs/API-V1.md),
   [`docs/openapi.yaml`](docs/openapi.yaml).
+- **Webhooks:** bis zu 5 HTTPS-Endpunkte je Konto für `meeting.gestartet`, `meeting.beendet`, `teilnehmer.beigetreten`,
+  `teilnehmer.gegangen`, `aufnahme.fertig`, `webinar.anmeldung`; JSON mit HMAC-SHA-256-Signatur (`X-Agora-Signatur`),
+  Geheimnis nur einmal sichtbar, Zustellung im Hintergrund mit bis zu 5 Versuchen (exponentiell), Protokoll der letzten
+  50 Versuche (14 Tage), „Test senden“, Abschalten mit Mail nach wiederholten Fehlschlägen. Nur öffentliche Ziele
+  (DNS geprüft, IP fest, keine Weiterleitungen).
 - **Host-Kontrollen:**
   - Rollen Host, Co-Host, Teilnehmer und Gast
   - einzelne oder alle stummschalten, um Kamera bitten oder Kamera aus

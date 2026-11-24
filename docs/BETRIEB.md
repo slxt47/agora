@@ -67,6 +67,16 @@ ungültig (sie gelten ohnehin nur 15 min). Ein kompromittierter Schlüssel: Nutz
 sperrt das Konto (gesperrte Konten können keine Schlüssel nutzen). Im Protokoll stehen nur Erstellen/Widerrufen und
 „Raum angelegt/gelöscht (API)“, keine einzelnen Abrufe.
 
+## Webhooks
+
+Die Zustellung läuft in einem eigenen Thread der App (4 parallel, alle 5 s oder sofort nach einem Ereignis), ausgehend
+direkt vom Server (Host-Netz) per HTTPS zu öffentlichen Adressen – Ziele im eigenen Netz lehnt die App ab, auch wenn
+DNS später dorthin zeigt (es wird mit genau der geprüften IP verbunden). Die Nutzlast verlässt dabei den Server: das ist
+die Entscheidung des Konto-Besitzers (Datenschutz-Hinweis im Konto). Ändert sich `AGORA_GEHEIM`, lassen sich die
+gespeicherten Geheimnisse nicht mehr entschlüsseln – Signaturen stimmen dann nicht mehr; Nutzer erzeugen mit „Neues
+Geheimnis“ ein neues. Abgeschaltete Endpunkte (3 endgültige Fehlschläge in Folge) bekommen eine Mail; im Protokoll steht
+„Webhook abgeschaltet (#id)“.
+
 ## Kapazität
 
 Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/lasttest.sh`, nur gegen Wegwerf-Instanzen).
@@ -154,6 +164,12 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
 - API-Schlüssel (Name, SHA-256 des Schlüssels, erste 12 Zeichen, Rechte, Erstellzeit, Ablauf, letzte Nutzung ohne IP):
   bis der Besitzer sie widerruft oder das Konto gelöscht wird; abgelaufene Schlüssel sind sofort ungültig und werden
   30 Tage nach dem Ablauf gelöscht. Signierte Download-Links der API gelten 15 min und werden nicht gespeichert.
+- Webhooks (Adresse, Ereignisse, Geheimnis verschlüsselt mit einem aus `AGORA_GEHEIM` abgeleiteten Schlüssel): bis der
+  Besitzer sie löscht oder mit dem Konto. Zustell-Protokoll (Zeit, Ereignis, Versuch, HTTP-Status, Dauer, Fehlertext –
+  keine Inhalte): die letzten 50 Versuche je Webhook, höchstens 14 Tage. Warteschlange (Nutzlast der Ereignisse, darin
+  ggf. Name/E-Mail aus Webinar-Anmeldungen und Teilnehmernamen): bis zur Zustellung, höchstens 2 Tage.
+  Anwesenheits-Merker für `teilnehmer.gegangen` (identity, Name, Rolle): nur bei Konten mit passendem Webhook und nur bis
+  zum Ende des Meetings.
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 - Anmerkungen auf geteilten Bildschirmen: nicht gespeichert (nur im Browser, weg mit dem Ende der Freigabe); der Server
   kennt nur das Recht „erlaubt“ für das laufende Meeting.

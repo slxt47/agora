@@ -505,3 +505,22 @@ Verwaltung im Konto (Cookie + `X-Agora` wie üblich):
 
 Sicherheitsereignisse: `api_schluessel_neu`, `api_schluessel_weg`. Datenexport: `api_schluessel` (ohne Hash).
 
+## Webhooks (app/webhooks.py)
+Beschreibung, Ereignisse, Signatur und Zustellung: [`API-V1.md#webhooks`](API-V1.md#webhooks). Dieselben Endpunkte gibt es
+im Konto (Cookie + `X-Agora`) unter `/api/konto/webhooks…` und in der öffentlichen API (Bearer, Recht `webhooks`) unter
+`/api/v1/webhooks…`:
+
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `…/webhooks` | – | `{webhooks:[{id, url, ereignisse, aktiv, erstellt, letzter_erfolg, fehler_folge, deaktiviert_grund}], ereignisse, maximal:5}` |
+| POST `…/webhooks` | `{url, ereignisse:[…]}` | `{webhook, geheimnis}` (Konto 200, `/api/v1` 201); 400 Ziel ungültig, 409 bei 5 |
+| PATCH `…/webhooks/{id}` | `{url?, ereignisse?, aktiv?}` | `{webhook}` |
+| DELETE `…/webhooks/{id}` | – | `{ok:true}` |
+| POST `…/webhooks/{id}/test` | – | `{ok, status, fehler, dauer_ms}` (10/min je Konto) |
+| POST `…/webhooks/{id}/geheimnis` | – | `{geheimnis}` |
+| GET `…/webhooks/{id}/zustellungen` | – | `{zustellungen:[{zustellung, ereignis, zeit, versuch, status, ok, dauer_ms, fehler}]}` |
+
+Hooks dafür: `raeume.VOR_ENDE`, `raeume.NACH_ZUGANG`, `raeume.BEI_LISTE`, `aufnahmen.NACH_NEU`, `webinar.NACH_ANMELDUNG`.
+Datenexport: `webhooks` (mit Protokoll, ohne Geheimnis). Nur Tests: `AGORA_WEBHOOK_LOKAL=1` (wirkt nur mit `AGORA_TEST=1`)
+erlaubt `http://` und Ziele im eigenen Netz.
+

@@ -87,3 +87,105 @@ export function geheimZeigen(inhalt, schliessen, geheim, hinweis, beispiel) {
 
 $('#api-neu')?.addEventListener('click', neuDialog);
 schluesselLaden();
+
+// ---------------------------------------------------------------- Webhooks
+export const EREIGNISSE = ['meeting.gestartet', 'meeting.beendet', 'teilnehmer.beigetreten', 'teilnehmer.gegangen', 'aufnahme.fertig', 'webinar.anmeldung'];
+
+async function webhooksLaden() {
+  const ul = $('#liste-webhooks');
+  if (!ul) return;
+  let d;
+  try { d = await api('/api/konto/webhooks'); } catch (e) { ul.replaceChildren(h('li', { class: 'leer' }, e.message)); return; }
+  ul.replaceChildren();
+  $('#webhook-neu').disabled = d.webhooks.length >= d.maximal;
+  if (!d.webhooks.length) { ul.append(h('li', { class: 'leer' }, t('wh.leer'))); return; }
+  for (const w of d.webhooks) ul.append(webhookEintrag(w));
+}
+
+function webhookEintrag(w) {
+  const zeilen = [t('dev.erstellt', { zeit: zeit(w.erstellt) }), w.letzter_erfolg ? t('wh.erfolg', { zeit: zeit(w.letzter_erfolg) }) : t('wh.nochKeinErfolg')];
+  const ergebnis = h('div', { class: 'status', role: 'status', hidden: true });
+  return h('li', { 'data-webhook': w.id },
+    h('div', { class: 'kopf' },
+      h('div', { class: 'symbol', html: icon('link') }),
+      h('div', { class: 'text' },
+        h('span', { class: 'name mono dev-url' }, w.url),
+        h('span', { class: 'info' }, zeilen.join(' · ')))),
+    h('div', { class: 'zeile' },
+      h('span', { class: `marker ${w.aktiv ? 'ok' : 'warn'}` }, w.aktiv ? t('wh.aktiv') : t('wh.aus')),
+      w.ereignisse.map((e) => h('span', { class: 'marker' }, e))),
+    w.deaktiviert_grund ? h('p', { class: 'sec klein' }, w.deaktiviert_grund) : null,
+    ergebnis,
+    h('div', { class: 'aktionen' },
+      knopf(t('wh.testen'), { klasse: 'btn klein', symbol: 'senden', 'data-wh-test': '', onclick: (e) => beschaeftigt(e.currentTarget, async () => {
+        const r = await api(`/api/konto/webhooks/${w.id}/test`, { methode: 'POST' });
+        status(ergebnis, r.ok ? t('wh.testOk', { status: r.status, ms: r.dauer_ms }) : t('wh.testFehler', { fehler: r.fehler }), r.ok ? 'ok' : 'err');
+      }) }),
+      knopf(t('wh.protokoll'), { klasse: 'btn klein', symbol: 'uhr', 'data-wh-protokoll': '', onclick: () => protokollDialog(w) }),
+      knopf(t('konto.bearbeiten'), { klasse: 'btn klein', symbol: 'stift', onclick: () => webhookDialog(w) }),
+      knopf(w.aktiv ? t('wh.ausschalten') : t('wh.einschalten'), { klasse: 'btn klein', onclick: (e) => beschaeftigt(e.currentTarget, async () => {
+        await api(`/api/konto/webhooks/${w.id}`, { methode: 'PATCH', json: { aktiv: !w.aktiv } }); webhooksLaden();
+      }) }),
+      knopf(t('wh.neuesGeheimnis'), { klasse: 'btn klein', symbol: 'schluessel', onclick: async (e) => {
+        const el = e.currentTarget;
+        if (!await bestaetigen(t('wh.neuesGeheimnis'), t('wh.neuesGeheimnisText'), { ja: t('wh.neuesGeheimnis') })) return;
+        beschaeftigt(el, async () => {
+          const r = await api(`/api/konto/webhooks/${w.id}/geheimnis`, { methode: 'POST' });
+          const { inhalt, schliessen } = blatt(t('wh.geheimnisTitel'));
+          geheimZeigen(inhalt, schliessen, r.geheimnis, t('wh.geheimnisEinmal'));
+        });
+      } }),
+      knopf(t('konto.loeschen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: async (e) => {
+        const el = e.currentTarget;
+        if (!await bestaetigen(t('wh.loeschenTitel'), t('wh.loeschenText'), { ja: t('konto.loeschen'), gefahr: true })) return;
+        beschaeftigt(el, async () => { await api(`/api/konto/webhooks/${w.id}`, { methode: 'DELETE' }); webhooksLaden(); });
+      } })));
+}
+
+function webhookDialog(w = null) {
+  const { inhalt, schliessen } = blatt(w ? t('wh.bearbeitenTitel') : t('wh.neuTitel'), { onclose: webhooksLaden });
+  const st = statusFeld();
+  const f = h('form', { class: 'formular', novalidate: true },
+    h('label', { class: 'feld' }, h('span', {}, t('wh.feldUrl')),
+      h('input', { name: 'url', type: 'url', required: true, maxlength: '500', value: w?.url || '', placeholder: 'https://beispiel.de/agora-hook', autocomplete: 'off', spellcheck: 'false' }),
+      h('small', {}, t('wh.urlHinweis'))),
+    h('fieldset', { class: 'feld ohne-rahmen dev-rechte' }, h('legend', {}, h('b', {}, t('wh.feldEreignisse'))),
+      EREIGNISSE.map((e) => h('label', { class: 'dev-recht' },
+        h('input', { type: 'checkbox', name: 'ereignis', value: e, checked: w ? w.ereignisse.includes(e) : e.startsWith('meeting.') }),
+        h('span', {}, h('code', {}, e), h('small', {}, t(`wh.e.${e}`)))))),
+    st,
+    h('div', { class: 'knoepfe' },
+      h('button', { type: 'button', class: 'btn', onclick: schliessen }, t('allg.abbrechen')),
+      h('button', { type: 'submit', class: 'btn primary' }, w ? t('allg.speichern') : t('wh.anlegen'))));
+  inhalt.append(f);
+  f.url.focus();
+  f.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ereignisse = [...f.querySelectorAll('[name=ereignis]:checked')].map((x) => x.value);
+    if (!f.url.value.trim()) { status(st, t('wh.nurHttps'), 'err'); f.url.focus(); return; }
+    if (!ereignisse.length) { status(st, t('wh.ereignisseFehlen'), 'err'); return; }
+    beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
+      const json = { url: f.url.value.trim(), ereignisse };
+      if (w) { await api(`/api/konto/webhooks/${w.id}`, { methode: 'PATCH', json }); schliessen(); toast(t('konto.gespeichert'), 'ok'); return; }
+      const r = await api('/api/konto/webhooks', { methode: 'POST', json });
+      geheimZeigen(inhalt, schliessen, r.geheimnis, t('wh.geheimnisEinmal'));
+    }, st);
+  });
+}
+
+async function protokollDialog(w) {
+  const { inhalt } = blatt(t('wh.protokollTitel'), { breit: true });
+  inhalt.append(h('p', { class: 'sec' }, t('allg.laden')));
+  try {
+    const { zustellungen } = await api(`/api/konto/webhooks/${w.id}/zustellungen`);
+    inhalt.replaceChildren(h('p', { class: 'sec klein' }, t('wh.protokollText')));
+    if (!zustellungen.length) { inhalt.append(h('p', { class: 'leer' }, t('wh.protokollLeer'))); return; }
+    inhalt.append(h('ul', { class: 'liste dev-protokoll' }, zustellungen.map((z) => h('li', { 'data-ok': String(z.ok) },
+      h('span', { class: `marker ${z.ok ? 'ok' : 'warn'}` }, z.status ?? '—'),
+      h('span', { class: 'mono' }, z.ereignis),
+      h('span', { class: 'sec klein' }, [zeit(z.zeit), t('wh.versuch', { n: z.versuch }), `${z.dauer_ms} ms`, z.fehler].filter(Boolean).join(' · '))))));
+  } catch (e) { inhalt.replaceChildren(h('p', { class: 'leer' }, e.message)); }
+}
+
+$('#webhook-neu')?.addEventListener('click', () => webhookDialog());
+webhooksLaden();

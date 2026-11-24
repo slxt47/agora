@@ -31,6 +31,7 @@ from .kern import GEHEIM, SEITE, benutzer_aus_sitzung, client_ip, fehler, grenze
 from .raeume import besitzer_raum, raum_laden
 
 router = APIRouter()
+NACH_ANMELDUNG = []           # f(raum, name, email, antworten) nach jeder (erneuten) Anmeldung (Webhooks)
 CHAT = ('alle', 'panel', 'aus')
 STANDARD = {'chat': 'alle', 'fragen_an': True, 'registrierung': False, 'kapazitaet': None, 'fragen': []}
 PANEL_ROLLEN = ('host', 'cohost', 'panelist')
@@ -335,6 +336,8 @@ async def anmelden(code: str, req: Request):
         mail.im_hintergrund(anmelde_mail, email, name, r['titel'], f'{SEITE}/r/{r["code"]}?anmeldung={tok}', details, ics_daten,
                             f'{anmelde_link(r["code"])}?abmelden={tok}', texte.sprache())
     db.protokollieren('Webinar-Anmeldung', None, code)
+    for f in NACH_ANMELDUNG:
+        f(r, name, email, antworten)
     return {'ok': True}
 
 

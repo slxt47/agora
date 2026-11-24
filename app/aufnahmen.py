@@ -24,6 +24,7 @@ TAGE = (1, 7, 30)
 ID_RE = re.compile(r'^[A-Za-z0-9_-]{22}$')
 BEIM_ENTFERNEN = []        # f(id) – andere Module räumen eigene Dateien zur Aufnahme weg (Transkript .vtt)
 JSON_EXTRA = []            # f(zeile) → dict, wird in aufnahme_json gemischt (Transkript-Status)
+NACH_NEU = []              # f(zeile) – neue Aufnahme liegt in der Bibliothek (Upload oder Server-Aufnahme; Webhooks)
 _freigabe_ok = {}          # Cache: sha256(token + passwort) → gültig bis (sonst bei jedem Range-Abruf argon2)
 
 
@@ -120,7 +121,10 @@ async def hochladen(req: Request):
         if os.path.exists(tmp):
             os.remove(tmp)
     db.protokollieren('Aufnahme hochgeladen', b['id'], code or None)
-    return {'aufnahme': aufnahme_json(db.verbindung().execute('SELECT * FROM aufnahmen WHERE id = ?', (i,)).fetchone())}
+    a = db.verbindung().execute('SELECT * FROM aufnahmen WHERE id = ?', (i,)).fetchone()
+    for f in NACH_NEU:
+        f(a)
+    return {'aufnahme': aufnahme_json(a)}
 
 
 @router.get('/api/aufnahmen')

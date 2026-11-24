@@ -702,4 +702,22 @@ export const de = {
   'dev.widerrufenText': '„{name}“ funktioniert danach sofort nicht mehr. Programme, die ihn nutzen, bekommen 401.', 'dev.widerrufenOk': 'Schlüssel widerrufen.',
   'sicherheit.art.api_schluessel_neu': 'API-Schlüssel erstellt', 'sicherheit.art.api_schluessel_weg': 'API-Schlüssel widerrufen',
   // ==== Ende Block Öffentliche API ====
+  // ==== Block Webhooks (web/src/entwickler.js) ====
+  'wh.titel': 'Webhooks', 'wh.neu': 'Neuer Webhook', 'wh.neuTitel': 'Neuer Webhook', 'wh.bearbeitenTitel': 'Webhook bearbeiten',
+  'wh.text': 'Agora meldet Ereignisse deiner Meetings an eine eigene HTTPS-Adresse – signiert, mit Wiederholungen. Die Daten (z. B. Namen von Teilnehmenden oder Webinar-Anmeldungen) gehen dabei an diese Adresse.',
+  'wh.leer': 'Noch keine Webhooks.', 'wh.feldUrl': 'Adresse (HTTPS)', 'wh.urlHinweis': 'Nur https:// und nur öffentliche Server. Weiterleitungen werden nicht verfolgt.',
+  'wh.nurHttps': 'Bitte eine Adresse eingeben (https://…).', 'wh.feldEreignisse': 'Ereignisse', 'wh.ereignisseFehlen': 'Bitte mindestens ein Ereignis ankreuzen.',
+  'wh.anlegen': 'Webhook anlegen',
+  'wh.e.meeting.gestartet': 'Ein Meeting in einem deiner Räume beginnt', 'wh.e.meeting.beendet': 'Ein Meeting endet',
+  'wh.e.teilnehmer.beigetreten': 'Jemand tritt bei (mit Name und Rolle)', 'wh.e.teilnehmer.gegangen': 'Jemand verlässt das Meeting',
+  'wh.e.aufnahme.fertig': 'Eine Aufnahme liegt in deiner Bibliothek', 'wh.e.webinar.anmeldung': 'Neue Anmeldung zu einem Webinar (mit Name und E-Mail)',
+  'wh.geheimnisTitel': 'Signier-Geheimnis', 'wh.geheimnisEinmal': 'Kopiere das Geheimnis jetzt – es wird nur dieses eine Mal angezeigt. Damit prüft dein Server die Signatur im Kopf X-Agora-Signatur.',
+  'wh.aktiv': 'aktiv', 'wh.aus': 'abgeschaltet', 'wh.erfolg': 'zuletzt zugestellt {zeit}', 'wh.nochKeinErfolg': 'noch nichts zugestellt',
+  'wh.testen': 'Test senden', 'wh.testOk': 'Test angekommen: HTTP {status} in {ms} ms.', 'wh.testFehler': 'Test fehlgeschlagen: {fehler}',
+  'wh.protokoll': 'Protokoll', 'wh.protokollTitel': 'Zustellungen', 'wh.protokollText': 'Die letzten 50 Versuche der letzten 14 Tage, neueste zuerst.',
+  'wh.protokollLeer': 'Noch keine Zustellungen.', 'wh.versuch': 'Versuch {n}',
+  'wh.einschalten': 'Einschalten', 'wh.ausschalten': 'Ausschalten', 'wh.neuesGeheimnis': 'Neues Geheimnis',
+  'wh.neuesGeheimnisText': 'Das alte Geheimnis gilt sofort nicht mehr – trage das neue gleich bei deinem Server ein.',
+  'wh.loeschenTitel': 'Webhook löschen?', 'wh.loeschenText': 'Offene Zustellungen und das Protokoll werden mitgelöscht.',
+  // ==== Ende Block Webhooks ====
 };

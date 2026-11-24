@@ -503,6 +503,56 @@ SCHEMA = [
     CREATE INDEX api_schluessel_benutzer ON api_schluessel(benutzer_id);
     """,
     # ======== Ende Block „Öffentliche API“ ========
+    # ======== Block „Webhooks“ (app/webhooks.py) – Version 24 ========
+    """
+    CREATE TABLE webhooks (            -- höchstens 5 je Konto
+      id INTEGER PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,               -- https://, öffentliche IP (bei jeder Zustellung neu geprüft)
+      ereignisse TEXT NOT NULL,        -- JSON-Liste
+      geheim TEXT NOT NULL,            -- Signier-Geheimnis, verschlüsselt (zwei_faktor.verschluesseln)
+      aktiv INTEGER NOT NULL DEFAULT 1,
+      fehler_folge INTEGER NOT NULL DEFAULT 0,  -- endgültig fehlgeschlagene Zustellungen in Folge
+      deaktiviert_grund TEXT,
+      erstellt INTEGER NOT NULL,
+      letzter_erfolg INTEGER
+    );
+    CREATE INDEX webhooks_benutzer ON webhooks(benutzer_id);
+    CREATE TABLE webhook_zustellungen (   -- Warteschlange (offene Versuche); höchstens 2 Tage
+      id TEXT PRIMARY KEY,
+      webhook_id INTEGER NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+      ereignis TEXT NOT NULL,
+      nutzlast TEXT NOT NULL,
+      versuch INTEGER NOT NULL DEFAULT 0,
+      naechster INTEGER NOT NULL,
+      erstellt INTEGER NOT NULL
+    );
+    CREATE INDEX webhook_zustellungen_faellig ON webhook_zustellungen(naechster);
+    CREATE TABLE webhook_log (         -- je Versuch: Status, Dauer, Fehler (keine Antwort-Inhalte); letzte 50 je Webhook, 14 Tage
+      id INTEGER PRIMARY KEY,
+      webhook_id INTEGER NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+      zustellung TEXT NOT NULL,
+      ereignis TEXT NOT NULL,
+      zeit INTEGER NOT NULL,
+      versuch INTEGER NOT NULL,
+      status INTEGER,
+      ok INTEGER NOT NULL,
+      dauer_ms INTEGER NOT NULL,
+      fehler TEXT
+    );
+    CREATE INDEX webhook_log_webhook ON webhook_log(webhook_id, id);
+    CREATE TABLE webhook_anwesend (    -- für teilnehmer.gegangen: wer einen Zugang bekam; nur bis zum Ende des Meetings
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      name TEXT NOT NULL,
+      rolle TEXT NOT NULL,
+      verbunden INTEGER NOT NULL DEFAULT 0,     -- 1 = schon einmal bei LiveKit gesehen
+      zeit INTEGER NOT NULL,
+      PRIMARY KEY (raum_id, identity)
+    );
+    """,
+    # ======== Ende Block „Webhooks“ ========
 ]
 
 

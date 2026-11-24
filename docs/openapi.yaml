@@ -182,6 +182,158 @@ paths:
         "200": { description: Video (Content-Disposition attachment), content: { video/webm: {}, video/mp4: {} } }
         "403": { $ref: "#/components/responses/Fehler" }
 
+  /api/v1/webhooks:
+    get:
+      tags: [Webhooks]
+      summary: Eigene Webhooks (höchstens 5)
+      x-recht: webhooks
+      responses:
+        "200":
+          description: Liste
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhooks: { type: array, items: { $ref: "#/components/schemas/Webhook" } }
+                  ereignisse: { type: array, items: { $ref: "#/components/schemas/Ereignis" } }
+                  maximal: { type: integer }
+    post:
+      tags: [Webhooks]
+      summary: Webhook anlegen – das Geheimnis steht nur in dieser Antwort
+      x-recht: webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, ereignisse]
+              properties:
+                url: { type: string, format: uri, description: "https://, öffentliche IP, ≤ 500 Zeichen" }
+                ereignisse: { type: array, minItems: 1, items: { $ref: "#/components/schemas/Ereignis" } }
+      responses:
+        "201":
+          description: Angelegt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhook: { $ref: "#/components/schemas/Webhook" }
+                  geheimnis: { type: string, example: whsec_… }
+        "400": { $ref: "#/components/responses/Fehler" }
+        "409": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/webhooks/{webhook_id}:
+    parameters:
+      - $ref: "#/components/parameters/WebhookId"
+    patch:
+      tags: [Webhooks]
+      summary: Adresse, Ereignisse ändern oder ein-/ausschalten (`aktiv: true` setzt den Fehlerzähler zurück)
+      x-recht: webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url: { type: string, format: uri }
+                ereignisse: { type: array, items: { $ref: "#/components/schemas/Ereignis" } }
+                aktiv: { type: boolean }
+      responses:
+        "200": { description: Geändert, content: { application/json: { schema: { type: object, properties: { webhook: { $ref: "#/components/schemas/Webhook" } } } } } }
+        "400": { $ref: "#/components/responses/Fehler" }
+        "404": { $ref: "#/components/responses/Fehler" }
+    delete:
+      tags: [Webhooks]
+      summary: Webhook löschen (mit Warteschlange und Protokoll)
+      x-recht: webhooks
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Fehler" }
+
+  /api/v1/webhooks/{webhook_id}/test:
+    parameters:
+      - $ref: "#/components/parameters/WebhookId"
+    post:
+      tags: [Webhooks]
+      summary: Sofort ein Ereignis `test` senden (ein Versuch, zählt nicht als Fehlschlag)
+      x-recht: webhooks
+      responses:
+        "200":
+          description: Ergebnis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  status: { type: [integer, "null"] }
+                  fehler: { type: [string, "null"] }
+                  dauer_ms: { type: integer }
+
+  /api/v1/webhooks/{webhook_id}/geheimnis:
+    parameters:
+      - $ref: "#/components/parameters/WebhookId"
+    post:
+      tags: [Webhooks]
+      summary: Neues Signier-Geheimnis (das alte gilt sofort nicht mehr)
+      x-recht: webhooks
+      responses:
+        "200": { description: Neu, content: { application/json: { schema: { type: object, properties: { geheimnis: { type: string } } } } } }
+
+  /api/v1/webhooks/{webhook_id}/zustellungen:
+    parameters:
+      - $ref: "#/components/parameters/WebhookId"
+    get:
+      tags: [Webhooks]
+      summary: Zustell-Protokoll (letzte 50 Versuche, höchstens 14 Tage)
+      x-recht: webhooks
+      responses:
+        "200":
+          description: Protokoll, neueste zuerst
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  zustellungen:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        zustellung: { type: string }
+                        ereignis: { type: string }
+                        zeit: { type: string, format: date-time }
+                        versuch: { type: integer, minimum: 1, maximum: 5 }
+                        status: { type: [integer, "null"] }
+                        ok: { type: boolean }
+                        dauer_ms: { type: integer }
+                        fehler: { type: [string, "null"] }
+
+webhooks:
+  ereignis:
+    post:
+      summary: So ruft Agora deinen Endpunkt auf
+      description: |
+        Kopfzeilen: `X-Agora-Ereignis`, `X-Agora-Zustellung` (gleich bei jedem Versuch derselben Zustellung),
+        `X-Agora-Signatur: t=<unix>,v1=<hex>` mit v1 = HMAC-SHA256(geheimnis, "<t>.<roher Body>").
+        2xx = angenommen; alles andere (auch 3xx – Weiterleitungen werden nicht verfolgt) wird bis zu 5-mal wiederholt.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: string, example: evt_… }
+                ereignis: { $ref: "#/components/schemas/Ereignis" }
+                erstellt: { type: string, format: date-time }
+                daten: { type: object }
+      responses:
+        "200": { description: angenommen }
+
 components:
   securitySchemes:
     bearer:
@@ -194,6 +346,11 @@ components:
       in: path
       required: true
       schema: { type: string, pattern: "^[a-z]{3}-[a-z]{4}-[a-z]{3}$" }
+    WebhookId:
+      name: webhook_id
+      in: path
+      required: true
+      schema: { type: integer }
     AufnahmeId:
       name: aufnahme_id
       in: path
@@ -266,3 +423,17 @@ components:
         dauer: { type: [integer, "null"], description: Sekunden }
         erstellt: { type: string, format: date-time }
         ablauf: { type: string, format: date-time }
+    Ereignis:
+      type: string
+      enum: [meeting.gestartet, meeting.beendet, teilnehmer.beigetreten, teilnehmer.gegangen, aufnahme.fertig, webinar.anmeldung, test]
+    Webhook:
+      type: object
+      properties:
+        id: { type: integer }
+        url: { type: string, format: uri }
+        ereignisse: { type: array, items: { $ref: "#/components/schemas/Ereignis" } }
+        aktiv: { type: boolean }
+        erstellt: { type: string, format: date-time }
+        letzter_erfolg: { type: [string, "null"], format: date-time }
+        fehler_folge: { type: integer, description: endgültig fehlgeschlagene Zustellungen in Folge (bei 3 abgeschaltet) }
+        deaktiviert_grund: { type: [string, "null"] }

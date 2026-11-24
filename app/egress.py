@@ -116,6 +116,8 @@ def registrieren(e, info):
                jetzt() + aufnahmen.AUFBEWAHRUNG_S))
     shutil.move(quelle, aufnahmen.pfad(i))       # gleiches Dateisystem: umbenennen, sonst kopieren + löschen
     db.protokollieren('Server-Aufnahme in der Bibliothek', e['benutzer_id'], e['raum_code'])
+    for f in aufnahmen.NACH_NEU:
+        f(c.execute('SELECT * FROM aufnahmen WHERE id = ?', (i,)).fetchone())
     return i
 
 

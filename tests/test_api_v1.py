@@ -211,8 +211,8 @@ def test_openapi_beschreibt_alle_v1_routen():
         import pytest
         pytest.skip('docs/ nicht im Image')
     text = spec.read_text()
-    from app import api_schluessel, api_v1
-    alle = [r for modul in (api_v1, api_schluessel) for r in modul.router.routes]
+    from app import api_schluessel, api_v1, webhooks
+    alle = [r for modul in (api_v1, api_schluessel, webhooks) for r in modul.router.routes]
     routen = {(m, r.path) for r in alle if r.path.startswith('/api/v1/') for m in r.methods - {'HEAD'}}
     assert routen
     for methode, pfad in routen:

@@ -16,6 +16,7 @@ import { qualitaetLaden, qualitaetMarke } from './qualitaet-konto.js';
 import { webinarKnopf, webinarMarke } from './webinar-konto.js';      // Webinar + Registrierung
 import { transkriptKnopf, aufnahmeTranskript } from './transkript-konto.js';   // Untertitel-Transkripte, Whisper
 import { e2eeLink, e2eeMarker, e2eeSchalter, e2eeNachSpeichern, e2eeEinladenHinweis } from './e2ee-konto.js';
+import { einbettenKnopf, einbettenMarke } from './einbetten-konto.js';     // Einbetten auf fremden Seiten
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -63,6 +64,7 @@ function merkmale(raum) {
   if (raum.dauer_chat) m.push(h('span', { class: 'marker' }, t('dauerchat.marker')));
   if (webinarMarke(raum)) m.push(webinarMarke(raum));
   if (raum.e2ee) m.push(e2eeMarker(raum));
+  if (einbettenMarke(raum)) m.push(einbettenMarke(raum));
   return m.length ? h('div', { class: 'zeile' }, m) : null;
 }
 
@@ -82,6 +84,7 @@ function persoenlichZeigen(raum) {
       knopf(t('konto.einstellungen'), { symbol: 'zahnrad', onclick: () => planenDialog(raum, { persoenlich: true }) }),
       webinarKnopf(raum, 'btn'),
       transkriptKnopf(raum, 'btn'),
+      einbettenKnopf(raum, 'btn', meetingsLaden),
       raum.dauer_chat ? knopf(t('dauerchat.leeren'), { klasse: 'btn gefahr', symbol: 'muell', onclick: async () => {
         if (!await bestaetigen(t('dauerchat.leerenTitel'), t('dauerchat.leerenText'), { ja: t('dauerchat.leeren'), gefahr: true })) return;
         await beschaeftigt(null, async () => { await api(`/api/raeume/${raum.code}/dauer-chat`, { methode: 'DELETE' }); toast(t('dauerchat.geleert'), 'ok'); });
@@ -122,6 +125,7 @@ function raumEintrag(raum, vergangen) {
       knopf(t('vorlage.alsVorlage'), { klasse: 'btn klein', symbol: 'stern', onclick: () => alsVorlage(raum) }),
       webinarKnopf(raum),
       transkriptKnopf(raum),
+      einbettenKnopf(raum, 'btn klein', meetingsLaden),
     );
   } else {
     aktionen.append(knopf(t('konto.chatverlauf'), { klasse: 'btn klein', symbol: 'chat', onclick: () => verlaufDialog(raum) }));

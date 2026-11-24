@@ -41,6 +41,7 @@ from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
 from . import api_schluessel  # Öffentliche API: persönliche API-Schlüssel
 from . import api_v1          # Öffentliche API /api/v1 (Bearer)
 from . import webhooks        # Webhooks (Zustellung im eigenen Hintergrund-Thread)
+from . import einbetten       # Einbetten: /e/<code> mit frame-ancestors je Raum, /embed.js
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -108,6 +109,7 @@ async def schutz(req: Request, call_next):
         r.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     elif not p.startswith('/icons/'):
         r.headers['Cache-Control'] = 'no-store'
+    einbetten.kopf_anpassen(req, r)      # /e/<code>: frame-ancestors = erlaubte Herkünfte; /embed.js: CORP cross-origin
     return r
 
 
@@ -139,6 +141,7 @@ app.include_router(anmerkungen.router)
 app.include_router(api_schluessel.router)
 app.include_router(api_v1.router)
 app.include_router(webhooks.router)
+app.include_router(einbetten.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 

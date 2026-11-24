@@ -553,6 +553,12 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Webhooks“ ========
+    # ======== Block „Einbetten“ (app/einbetten.py) – Version 25 ========
+    """
+    ALTER TABLE raeume ADD COLUMN einbetten INTEGER NOT NULL DEFAULT 0;   -- /e/<code> erlaubt
+    ALTER TABLE raeume ADD COLUMN einbetten_herkunft TEXT;                -- JSON-Liste geprüfter Origins (frame-ancestors)
+    """,
+    # ======== Ende Block „Einbetten“ ========
 ]
 
 

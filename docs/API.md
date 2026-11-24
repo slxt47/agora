@@ -524,3 +524,17 @@ Hooks dafür: `raeume.VOR_ENDE`, `raeume.NACH_ZUGANG`, `raeume.BEI_LISTE`, `aufn
 Datenexport: `webhooks` (mit Protokoll, ohne Geheimnis). Nur Tests: `AGORA_WEBHOOK_LOKAL=1` (wirkt nur mit `AGORA_TEST=1`)
 erlaubt `http://` und Ziele im eigenen Netz.
 
+## Einbetten (app/einbetten.py)
+Beschreibung: [`EINBETTEN.md`](EINBETTEN.md).
+
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| PUT `/api/raeume/{code}/einbetten` | Besitzer (Cookie) | `{erlaubt: bool, herkuenfte: ["https://…", …≤10]}` → `{einbetten:{erlaubt, herkuenfte, link}}`; 400 bei Pfad/`*`/http (außer localhost) oder `erlaubt` ohne Herkunft |
+| GET `/api/einbetten/{code}` | öffentlich | `{herkuenfte}` (Ziele für postMessage); 404, wenn Einbetten aus |
+| GET `/e/{code}` | öffentlich | `raum.html` mit `frame-ancestors <herkuenfte>`, ohne `X-Frame-Options`, `Cross-Origin-Resource-Policy: cross-origin`; 404, wenn aus |
+| GET `/embed.js` | öffentlich | Einbett-Skript, `Cross-Origin-Resource-Policy: cross-origin`, `Cache-Control: public, max-age=3600` |
+
+`raum_json` hat für den Besitzer zusätzlich `einbetten: {erlaubt, herkuenfte, link}`. Die Raum-Seite liest `?name=` als
+Vorbelegung und löst `agora:beigetreten` / `agora:verlassen` (CustomEvent auf `document`) aus; `raum/einbetten.js`
+leitet sie unter `/e/` als `{quelle:'agora', typ, code, …}` an die erlaubte Eltern-Herkunft weiter.
+

@@ -1,0 +1,5 @@
+/* Agora – eingebettete Meeting-Seite (/e/<code> im iframe): ohne Kopfleiste und Sternenhimmel, knapper Rand. */
+.eingebettet body > header.bar, .eingebettet .springen, .eingebettet footer { display: none; }
+.eingebettet .sky { display: none; }
+.eingebettet body { background: var(--sky2); }
+.eingebettet main.breit { padding-top: 12px; }

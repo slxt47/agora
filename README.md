@@ -110,6 +110,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Geheimnis nur einmal sichtbar, Zustellung im Hintergrund mit bis zu 5 Versuchen (exponentiell), Protokoll der letzten
   50 Versuche (14 Tage), „Test senden“, Abschalten mit Mail nach wiederholten Fehlschlägen. Nur öffentliche Ziele
   (DNS geprüft, IP fest, keine Weiterleitungen).
+- **Einbetten:** Der Besitzer erlaubt je Raum das Einbetten auf eigenen Seiten und nennt die Herkünfte (Origins);
+  `/e/<code>` bekommt `frame-ancestors` genau mit diesen Herkünften (alle anderen Seiten bleiben `'none'`). Das
+  selbst gehostete `/embed.js` (ohne Abhängigkeiten) baut das iframe mit `allow="camera; microphone; display-capture"`
+  und meldet `bereit`, `beigetreten`, `verlassen` per postMessage mit Herkunftsprüfung. Doku: [`docs/EINBETTEN.md`](docs/EINBETTEN.md).
 - **Host-Kontrollen:**
   - Rollen Host, Co-Host, Teilnehmer und Gast
   - einzelne oder alle stummschalten, um Kamera bitten oder Kamera aus

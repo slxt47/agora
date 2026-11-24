@@ -836,6 +836,7 @@ with sync_playwright() as p:
         ep.keyboard.press('Escape')
         ep.click('#s-teilen')
         # ==== Ende Block Anmerkungen ====
+        eg.close(); ep.close()      # E2EE-Meeting verlassen (sonst laufen dessen Ereignisse in die folgenden Blöcke)
         # ==== Block Englisch (ADR 0006): Browser mit Accept-Language en → englische Oberfläche ohne deutsche Reste ====
         DEUTSCH = re.compile(r'[äöüÄÖÜß„]|\b(und|oder|nicht|bitte|Bitte|der|die|das|mit|für|Meeting starten|Beitreten|Anmelden|'
                              r'Konto|Einstellungen|Teilnehmende|Kamera|Mikrofon|Verlassen|Stumm|Teilen|Aufnahmen|Speichern)\b')
@@ -1017,6 +1018,67 @@ with sync_playwright() as p:
         wh_server.shutdown()
         print('Webhooks: Test-Ereignis signiert angekommen')
         # ==== Ende Block Webhooks ====
+        # ==== Block Einbetten: Besitzer erlaubt eine Test-Herkunft (zweiter http.server auf anderem Port), Fremdseite bettet
+        # per /embed.js ein, Gast tritt im iframe bei, postMessage beigetreten/verlassen kommen nur dort an
+        class FremdSeite(BaseHTTPRequestHandler):
+            def do_GET(self):
+                html = FREMD_HTML.encode()
+                self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(html))); self.end_headers(); self.wfile.write(html)
+
+            def log_message(self, *a):
+                pass
+        fremd_server = ThreadingHTTPServer(('127.0.0.1', 0), FremdSeite)
+        fremd = f'http://127.0.0.1:{fremd_server.server_address[1]}'
+        threading.Thread(target=fremd_server.serve_forever, daemon=True).start()
+        emb = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Eingebettet'})})).json())""")
+        emb_code = emb['raum']['code']
+        if hp.request.get(f'{B}/e/{emb_code}').status != 404: fehler.append('Einbetten: /e/ ohne Freigabe nicht 404')
+        hp.goto(B + '/konto#meetings'); hp.reload()
+        hp.click(f'[data-einbetten="{emb_code}"]')
+        hp.wait_for_selector('dialog [name=herkuenfte]')
+        hp.click('dialog label.schalter:has([name=erlaubt])')
+        hp.fill('dialog [name=herkuenfte]', fremd)
+        hp.screenshot(path=OUT + '42a-einbetten-einstellen.png')
+        hp.click('dialog button[type=submit]')
+        hp.wait_for_selector(f'#liste-geplant li:has-text("{emb_code}") .marker:has-text("einbettbar")')
+        kopf = hp.request.get(f'{B}/e/{emb_code}').headers
+        print('Einbetten: CSP frame-ancestors =', kopf['content-security-policy'].split('frame-ancestors ')[1].split(';')[0])
+        if f'frame-ancestors {fremd}' not in kopf['content-security-policy'] or 'x-frame-options' in kopf: fehler.append(f'Einbetten: Kopfzeilen falsch {kopf}')
+        if hp.request.get(f'{B}/r/{emb_code}').headers.get('x-frame-options') != 'DENY': fehler.append('Einbetten: /r/ ohne X-Frame-Options')
+        js = hp.request.get(B + '/embed.js')
+        if js.status != 200 or js.headers.get('cross-origin-resource-policy') != 'cross-origin': fehler.append(f'embed.js: {js.status} {js.headers}')
+        FREMD_HTML = f"""<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Fremde Seite</title></head>
+<body style="margin:0;background:#fff;font-family:sans-serif"><h1 style="margin:8px">Fremde Seite</h1><div id="m"></div>
+<script src="{B}/embed.js"></script>
+<script>window.ereignisse = []; window.boese = [];
+Agora.einbetten('#m', {{ code: '{emb_code}', name: 'Eingebettete Ella', hoehe: '700px' }}).on('*', function (d) {{ window.ereignisse.push(d.typ); }});
+window.addEventListener('message', function (e) {{ if (e.origin !== '{B}') window.boese.push(e.origin); }});
+</script></body></html>"""
+        ef = br.new_context(viewport={'width': 1100, 'height': 860}, permissions=['camera', 'microphone'])
+        efp = ef.new_page(); beobachten(efp, 'fremdseite')
+        efp.goto(fremd + '/')
+        rahmen = efp.frame_locator('#m iframe')
+        rahmen.locator('#v-lobby:not([hidden])').wait_for(timeout=20000)
+        if rahmen.locator('[name=name]').input_value() != 'Eingebettete Ella': fehler.append('Einbetten: Name nicht vorbelegt')
+        warten_js(efp, "window.ereignisse.includes('bereit')", 10)
+        efp.screenshot(path=OUT + '42b-einbetten-lobby.png')
+        rahmen.locator('#beitreten-knopf').click()
+        rahmen.locator('#v-meeting:not([hidden])').wait_for(timeout=30000)
+        warten_js(efp, "window.ereignisse.includes('beigetreten')", 15)
+        time.sleep(2)
+        efp.screenshot(path=OUT + '42c-einbetten-meeting.png')
+        erlaubt_iframe = efp.evaluate("document.querySelector('#m iframe').allow")
+        if 'camera' not in erlaubt_iframe or 'microphone' not in erlaubt_iframe: fehler.append(f'Einbetten: allow fehlt ({erlaubt_iframe})')
+        rahmen.locator('#s-verlassen').click()
+        rahmen.locator('.menue [role=menuitem]').first.click()
+        warten_js(efp, "window.ereignisse.includes('verlassen')", 15)
+        if efp.evaluate('window.boese.length'): fehler.append('Einbetten: Nachrichten von fremder Herkunft')
+        print('Einbetten: Ereignisse auf der Fremdseite', efp.evaluate('window.ereignisse'))
+        efp.screenshot(path=OUT + '42d-einbetten-verlassen.png')
+        ef.close()
+        fremd_server.shutdown()
+        # ==== Ende Block Einbetten ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

@@ -77,6 +77,13 @@ gespeicherten Geheimnisse nicht mehr entschlüsseln – Signaturen stimmen dann 
 Geheimnis“ ein neues. Abgeschaltete Endpunkte (3 endgültige Fehlschläge in Folge) bekommen eine Mail; im Protokoll steht
 „Webhook abgeschaltet (#id)“.
 
+## Einbetten
+
+`/e/<code>` und `/embed.js` laufen über den normalen Tunnel, nichts einzurichten. Nur diese beiden Pfade weichen von
+`frame-ancestors 'none'` / `X-Frame-Options: DENY` bzw. `Cross-Origin-Resource-Policy: same-origin` ab (Haken
+`einbetten.kopf_anpassen` am Ende der Middleware). Eine vorgeschaltete Stelle (Cloudflare-Regel, Proxy), die selbst
+`X-Frame-Options` setzt, würde das Einbetten wieder verhindern.
+
 ## Kapazität
 
 Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/lasttest.sh`, nur gegen Wegwerf-Instanzen).
@@ -170,6 +177,7 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
   ggf. Name/E-Mail aus Webinar-Anmeldungen und Teilnehmernamen): bis zur Zustellung, höchstens 2 Tage.
   Anwesenheits-Merker für `teilnehmer.gegangen` (identity, Name, Rolle): nur bei Konten mit passendem Webhook und nur bis
   zum Ende des Meetings.
+- Einbetten: je Raum nur „an/aus“ und die Liste der erlaubten Herkünfte, bis der Besitzer sie ändert oder den Raum löscht.
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 - Anmerkungen auf geteilten Bildschirmen: nicht gespeichert (nur im Browser, weg mit dem Ende der Freigabe); der Server
   kennt nur das Recht „erlaubt“ für das laufende Meeting.

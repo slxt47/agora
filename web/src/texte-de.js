@@ -720,4 +720,12 @@ export const de = {
   'wh.neuesGeheimnisText': 'Das alte Geheimnis gilt sofort nicht mehr – trage das neue gleich bei deinem Server ein.',
   'wh.loeschenTitel': 'Webhook löschen?', 'wh.loeschenText': 'Offene Zustellungen und das Protokoll werden mitgelöscht.',
   // ==== Ende Block Webhooks ====
+  // ==== Block Einbetten (web/src/einbetten-konto.js) ====
+  'emb.knopf': 'Einbetten', 'emb.titel': 'Auf einer Webseite einbetten', 'emb.marke': 'einbettbar',
+  'emb.text': 'Zeige dieses Meeting auf deiner eigenen Webseite. Nur die Seiten, die du unten einträgst, dürfen es einbetten; alle treten dort als Gast bei.',
+  'emb.erlauben': 'Einbetten erlauben', 'emb.erlaubenHinweis': 'Das Meeting ist dann zusätzlich unter /e/<code> erreichbar – nur in den erlaubten Seiten.',
+  'emb.herkuenfte': 'Erlaubte Herkünfte', 'emb.herkuenfteHinweis': 'Je Zeile eine, z. B. https://beispiel.de – ohne Pfad, ohne *. http:// nur für localhost. Höchstens 10.',
+  'emb.herkuenfteFehlen': 'Bitte mindestens eine Herkunft eintragen.', 'emb.schnipsel': 'Code für deine Seite',
+  'emb.allowHinweis': 'Kamera, Mikrofon und Bildschirmfreigabe brauchen am iframe allow="camera; microphone; display-capture" – embed.js setzt das selbst.',
+  // ==== Ende Block Einbetten ====
 };

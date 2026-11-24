@@ -3,7 +3,7 @@
 // eigenen Kachel zeigen, bei dauerhaft schlechter Verbindung mit Tipps warnen und etwa alle 30 s eine kleine
 // Zusammenfassung an den Server schicken (POST …/statistik). Host/Co-Host sehen die Werte aller in der Teilnehmerliste.
 import { h, toast, blatt } from '../common.js';
-import { t } from '../i18n.js';
+import { t, gebiet } from '../i18n.js';
 import { menue } from './menue.js';
 import { schnappschuss, auswerten, dauerhaftSchlecht, schnitt } from './statistik-rechnen.js';
 import './statistik.css';
@@ -12,7 +12,7 @@ const TAKT_MS = 10000;          // messen
 const MELDEN_JEDE = 3;          // jede dritte Messung (≈ 30 s) an den Server
 const WARN_PAUSE_MS = 5 * 60 * 1000;
 const LEUTE_MS = 10000;         // Host: Werte der anderen nachladen, solange die Liste offen ist
-const zahl = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 1 });
+const zahl = new Intl.NumberFormat(gebiet(), { maximumFractionDigits: 1 });
 
 export class Statistik {
   constructor(m) {

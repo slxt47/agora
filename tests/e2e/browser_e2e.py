@@ -62,7 +62,7 @@ def beobachten(page, wer):
 
 with sync_playwright() as p:
     br = p.chromium.launch(args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'])
-    host = br.new_context(viewport={'width': 1280, 'height': 800}, permissions=['camera', 'microphone'])
+    host = br.new_context(locale='de-DE', viewport={'width': 1280, 'height': 800}, permissions=['camera', 'microphone'])
     hp = host.new_page(); beobachten(hp, 'host')
     try:
         hp.goto(B + '/')
@@ -151,7 +151,7 @@ with sync_playwright() as p:
         time.sleep(2)
         hp.screenshot(path=OUT + '06-meeting-allein.png')
 
-        gast = br.new_context(viewport={'width': 390, 'height': 844}, permissions=['camera', 'microphone'], has_touch=True, is_mobile=True)
+        gast = br.new_context(locale='de-DE', viewport={'width': 390, 'height': 844}, permissions=['camera', 'microphone'], has_touch=True, is_mobile=True)
         gp = gast.new_page(); beobachten(gp, 'gast')
         gp.goto(f'{B}/r/{code}')
         gp.wait_for_selector('#v-lobby:not([hidden])')
@@ -578,7 +578,7 @@ with sync_playwright() as p:
         hp.wait_for_selector('dialog .webinar-panel li[data-panel]')
         hp.screenshot(path=OUT + '22a-webinar-einstellungen.png')
         hp.keyboard.press('Escape')
-        zuschauer = br.new_context(viewport={'width': 1100, 'height': 760}, permissions=['camera', 'microphone'])
+        zuschauer = br.new_context(locale='de-DE', viewport={'width': 1100, 'height': 760}, permissions=['camera', 'microphone'])
         zp = zuschauer.new_page(); beobachten(zp, 'zuschauer')
         zp.goto(f'{B}/w/{wcode}')
         zp.wait_for_selector('#f-anmelden:not([hidden])')
@@ -709,7 +709,7 @@ with sync_playwright() as p:
         ep.click('#beitreten-knopf')
         ep.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
         ep.wait_for_selector('#m-e2ee:not([hidden])', timeout=10000)
-        eg = br.new_context(viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
+        eg = br.new_context(locale='de-DE', viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
         egp = eg.new_page(); beobachten(egp, 'gast-e2ee')
         egp.goto(elink)
         egp.wait_for_selector('#merkmal-e2ee')
@@ -727,7 +727,7 @@ with sync_playwright() as p:
         egp.screenshot(path=OUT + '30b-e2ee-gast-meeting.png')
         ep.screenshot(path=OUT + '30c-e2ee-host-meeting.png')
         # falscher Schlüssel im Link → Lobby meldet es, Feld für den richtigen erscheint
-        fg = br.new_context(viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
+        fg = br.new_context(locale='de-DE', viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
         fgp = fg.new_page(); beobachten(fgp, 'gast-falsch')
         fgp.goto(f'{B}/r/{ecode}#k=' + 'A' * 43)
         fgp.wait_for_selector('#merkmal-e2ee')
@@ -741,7 +741,7 @@ with sync_playwright() as p:
         fg.close()
         # ==== Ende Block E2EE ====
         # ==== Block Audio-Modi: Lobby-Menü, Originalton (Musik) im Meeting, starke Rauschunterdrückung (RNNoise, selbst gehostet)
-        lg = br.new_context(viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
+        lg = br.new_context(locale='de-DE', viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
         lgp = lg.new_page(); beobachten(lgp, 'lobby-audio')
         lgp.goto(elink)
         lgp.wait_for_selector('#lobby-audio')
@@ -836,6 +836,116 @@ with sync_playwright() as p:
         ep.keyboard.press('Escape')
         ep.click('#s-teilen')
         # ==== Ende Block Anmerkungen ====
+        # ==== Block Englisch (ADR 0006): Browser mit Accept-Language en → englische Oberfläche ohne deutsche Reste ====
+        DEUTSCH = re.compile(r'[äöüÄÖÜß„]|\b(und|oder|nicht|bitte|Bitte|der|die|das|mit|für|Meeting starten|Beitreten|Anmelden|'
+                             r'Konto|Einstellungen|Teilnehmende|Kamera|Mikrofon|Verlassen|Stumm|Teilen|Aufnahmen|Speichern)\b')
+
+        def deutsch_rest(seite, wo):
+            """Sichtbaren Text (inkl. aria-label/title/placeholder) auf deutsche Reste prüfen."""
+            text = seite.evaluate("""() => {
+                const t = [document.body.innerText];
+                for (const el of document.querySelectorAll('[aria-label],[title],[placeholder]')) {
+                  if (el.closest('[hidden]') || el.closest('[aria-hidden=true]')) continue;
+                  t.push(el.getAttribute('aria-label') || '', el.getAttribute('title') || '', el.getAttribute('placeholder') || '');
+                }
+                return t.join('\\n'); }""")
+            rest = sorted({z.strip() for z in text.split('\n') if DEUTSCH.search(z) and 'Deutsch' not in z})
+            if rest: fehler.append(f'Englisch ({wo}): deutsche Reste {rest[:8]}')
+            return rest
+
+        en = br.new_context(viewport={'width': 1280, 'height': 800}, permissions=['camera', 'microphone'], locale='en-US')
+        enp = en.new_page(); beobachten(enp, 'en')
+        enp.goto(B + '/')
+        enp.wait_for_selector('#abgemeldet:not([hidden])')
+        if enp.evaluate("document.documentElement.lang") != 'en': fehler.append('Englisch: <html lang> nicht en')
+        if 'Meet without detours' not in enp.inner_text('h1'): fehler.append('Englisch: Startseite nicht übersetzt')
+        if enp.inner_text('[data-sprach-schalter]') != 'DE': fehler.append('Englisch: Sprachschalter fehlt')
+        if '(German)' not in enp.inner_text('footer'): fehler.append('Englisch: Hinweis (German) bei Rechtstexten fehlt')
+        enp.screenshot(path=OUT + '40a-en-start.png')
+        deutsch_rest(enp, 'Start')
+        # API-Fehler auf Englisch
+        enp.fill('#f-anmelden [name=email]', 'niemand@example.com')
+        enp.fill('#f-anmelden [name=passwort]', 'falschfalsch1')
+        enp.click('#f-anmelden button[type=submit]')
+        enp.wait_for_selector('#status:not([hidden])')
+        if 'Wrong email or password' not in enp.inner_text('#status'): fehler.append(f"Englisch: API-Fehler {enp.inner_text('#status')!r}")
+        time.sleep(0.5)    # die absichtlich falsche Anmeldung (400) meldet der Browser als Konsolenfehler – hier gewollt
+        fehler[:] = [f for f in fehler if not (f.startswith('[en] console: Failed to load resource') and '400' in f)]
+        # Registrieren → Konto englisch, Bestätigungsmail englisch
+        enp.click('#tab-registrieren')
+        enp.fill('#f-registrieren [name=name]', 'Emma English')
+        enp.fill('#f-registrieren [name=email]', 'emma@example.com')
+        enp.fill('#f-registrieren [name=passwort]', 'geheimespasswort1')
+        enp.click('#f-registrieren button[type=submit]')
+        enp.wait_for_selector('#status.ok')
+        m = [x for x in enp.request.get(B + '/api/test/posteingang').json()['mails'] if x['an'] == 'emma@example.com'][-1]
+        if m['betreff'] != 'Agora: confirm your email address': fehler.append(f"Englisch: Mail-Betreff {m['betreff']!r}")
+        enp.goto(re.search(r'https?://\S+bestaetigen\?t=[\w\-.]+', m['text']).group(0))
+        enp.wait_for_selector('#angemeldet:not([hidden])')
+        if enp.request.get(B + '/api/konto/ich').json()['ich']['sprache'] != 'en': fehler.append('Englisch: Konto-Sprache nicht en')
+        deutsch_rest(enp, 'Start angemeldet')
+        enp.goto(B + '/konto')
+        enp.wait_for_selector('#liste-geplant')
+        time.sleep(1.5)
+        enp.screenshot(path=OUT + '40b-en-konto.png', full_page=True)
+        deutsch_rest(enp, 'Konto Meetings')
+        enp.click('#tab-profil')
+        time.sleep(1)
+        enp.screenshot(path=OUT + '40c-en-profil.png', full_page=True)
+        deutsch_rest(enp, 'Konto Profil')
+        # Sofort-Meeting: Lobby und Meeting
+        enp.goto(B + '/')
+        enp.click('#neues-meeting')
+        enp.wait_for_selector('#v-lobby:not([hidden])')
+        time.sleep(1.5)
+        enp.screenshot(path=OUT + '40d-en-lobby.png')
+        deutsch_rest(enp, 'Lobby')
+        en_code = enp.url.split('/r/')[1].split('?')[0].split('#')[0]
+        enp.click('#beitreten-knopf')
+        enp.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
+        time.sleep(2)
+        enp.click('#s-leute')
+        time.sleep(1)
+        enp.screenshot(path=OUT + '40e-en-meeting.png')
+        deutsch_rest(enp, 'Meeting')
+        enp.click('#s-mehr')
+        time.sleep(0.5)
+        enp.screenshot(path=OUT + '40f-en-mehr.png')
+        deutsch_rest(enp, 'Meeting Mehr-Menü')
+        enp.keyboard.press('Escape')
+        # Gast ohne Konto mit englischem Browser
+        eng = br.new_context(viewport={'width': 390, 'height': 844}, permissions=['camera', 'microphone'], locale='en-GB',
+                             has_touch=True, is_mobile=True)
+        engp = eng.new_page(); beobachten(engp, 'en-gast')
+        engp.goto(f'{B}/r/{en_code}')
+        engp.wait_for_selector('#v-lobby:not([hidden])')
+        engp.fill('#f-beitritt [name=name]', 'Gary Guest')
+        time.sleep(1)
+        engp.screenshot(path=OUT + '40g-en-gast-lobby.png', full_page=True)
+        deutsch_rest(engp, 'Gast-Lobby')
+        engp.click('#beitreten-knopf')
+        engp.wait_for_selector('#v-meeting:not([hidden]), #v-warten:not([hidden])', timeout=20000)
+        time.sleep(2)
+        engp.screenshot(path=OUT + '40h-en-gast.png')
+        deutsch_rest(engp, 'Gast')
+        eng.close()
+        enp.click('#s-verlassen')
+        time.sleep(1)
+        en.close()
+        # Sprachschalter: deutscher Browser → EN → bleibt nach Neuladen, DE zurück
+        dsw = br.new_context(viewport={'width': 1024, 'height': 700}, locale='de-DE')
+        dp = dsw.new_page(); beobachten(dp, 'schalter')
+        dp.goto(B + '/')
+        if dp.evaluate("document.documentElement.lang") != 'de': fehler.append('Sprachschalter: deutscher Browser nicht deutsch')
+        dp.click('[data-sprach-schalter="en"]')
+        dp.wait_for_selector('html[lang=en] [data-sprach-schalter="de"]')
+        dp.reload()
+        if dp.evaluate("document.documentElement.lang") != 'en': fehler.append('Sprachschalter: Wahl nicht gemerkt')
+        dp.click('[data-sprach-schalter="de"]')
+        dp.wait_for_selector('html[lang=de] [data-sprach-schalter="en"]')
+        dsw.close()
+        print('Englisch: Start, Konto, Lobby, Meeting, Gast, Sprachschalter geprüft')
+        # ==== Ende Block Englisch ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

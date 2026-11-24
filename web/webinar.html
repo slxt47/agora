@@ -16,37 +16,37 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/modus.js?v=6"></script>
-  <title>Webinar – Agora</title>
+  <title data-t="html.webinarAgora">Webinar – Agora</title>
   <script type="module" src="/src/webinar.js"></script>
 </head>
 <body>
-  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
   <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
   <header class="bar">
-    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <a class="marke" href="/" aria-label="Agora – Startseite" data-t-aria="html.agoraStartseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
     <div class="rechts"><button class="rund" type="button" data-modus-schalter></button></div>
   </header>
   <main class="breit" id="inhalt">
     <section class="card webinar-karte" aria-labelledby="titel">
-      <h2>Webinar</h2>
-      <h1 id="titel">Wird geladen …</h1>
+      <h2 data-t="html.webinar">Webinar</h2>
+      <h1 id="titel" data-t="html.wirdGeladen">Wird geladen …</h1>
       <p class="sec" id="info"></p>
       <p class="sec klein" id="beschreibung"></p>
       <form class="formular oben" id="f-anmelden" hidden novalidate>
-        <label class="feld"><span>Name</span><input name="name" autocomplete="name" maxlength="60" required></label>
-        <label class="feld"><span>E-Mail-Adresse</span><input name="email" type="email" autocomplete="email" maxlength="254" required>
-          <small>Dorthin schicken wir deinen persönlichen Link.</small></label>
+        <label class="feld"><span data-t="html.name">Name</span><input name="name" autocomplete="name" maxlength="60" required></label>
+        <label class="feld"><span data-t="html.eMailAdresse">E-Mail-Adresse</span><input name="email" type="email" autocomplete="email" maxlength="254" required>
+          <small data-t="html.dorthinSchickenWirDeinen">Dorthin schicken wir deinen persönlichen Link.</small></label>
         <div id="fragen"></div>
-        <p class="sec klein" id="datenschutz">Wir speichern Name, E-Mail und deine Antworten nur für dieses Webinar. Der Gastgeber sieht sie. 30 Tage nach dem Webinar werden sie gelöscht; abmelden kannst du dich jederzeit über den Link in der Mail.</p>
-        <button class="btn primary" type="submit">Anmelden</button>
+        <p class="sec klein" id="datenschutz" data-t="html.wirSpeichernNameE">Wir speichern Name, E-Mail und deine Antworten nur für dieses Webinar. Der Gastgeber sieht sie. 30 Tage nach dem Webinar werden sie gelöscht; abmelden kannst du dich jederzeit über den Link in der Mail.</p>
+        <button class="btn primary" type="submit" data-t="html.anmelden">Anmelden</button>
       </form>
-      <div class="knoepfe oben" id="abmelden-box" hidden><button class="btn gefahr" type="button" id="abmelden">Anmeldung löschen</button></div>
+      <div class="knoepfe oben" id="abmelden-box" hidden><button class="btn gefahr" type="button" id="abmelden" data-t="html.anmeldungLoeschen">Anmeldung löschen</button></div>
       <div class="status oben" id="status" role="status" hidden></div>
     </section>
   </main>
   <footer>
-    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
-    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+    <p data-t="html.agoraVideokonferenzenImBrowser">Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches" data-t-aria="html.rechtliches"><a href="https://slxt.org/impressum/" data-t="html.impressum">Impressum</a><a href="https://slxt.org/datenschutz/#agora" data-t="html.datenschutz">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora" data-t="html.nutzungsbedingungen">Nutzungsbedingungen</a></nav>
   </footer>
 </body>
 </html>

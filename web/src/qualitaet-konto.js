@@ -1,14 +1,14 @@
 // Konto: Qualität der eigenen Meetings – Sterne-Schnitt aus den Rückmeldungen und Verbindungswerte (Schnitt je
 // Meeting, ohne Namen). Übersicht über GET /api/qualitaet, Einzelheiten je Raum über GET /api/raeume/{code}/qualitaet.
 import { h, api, blatt, knopf } from './common.js';
-import { t } from './i18n.js';
+import { t, gebiet } from './i18n.js';
 import { datumText, uhrzeitText } from './helfer.js';
 import './qualitaet-konto.css';
 
 let uebersicht = {};
 let jeMeeting = {};
 let geladen = null;
-const zahl = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 1 });
+const zahl = new Intl.NumberFormat(gebiet(), { maximumFractionDigits: 1 });
 
 export function qualitaetLaden() {
   geladen = (async () => {

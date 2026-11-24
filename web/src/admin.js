@@ -2,7 +2,7 @@
 // 2FA zurücksetzen, löschen), Meldungen (bearbeiten mit Notiz), laufende Meetings (beenden), Protokoll (Filter).
 import './admin.css';
 import { $, $$, h, api, toast, blatt, bestaetigen, beschaeftigt, status, knopf } from './common.js';
-import { t } from './i18n.js';
+import { t, gebiet } from './i18n.js';
 import { icon } from './icons.js';
 import { groesseText, zeitText } from './helfer.js';
 import { adminZahl } from './admin-format.js';
@@ -43,7 +43,7 @@ async function uebersichtLaden() {
   const box = $('#zahlen');
   try {
     const u = await api('/api/admin/uebersicht');
-    $('#stand').textContent = t('admin.stand', { zeit: new Intl.DateTimeFormat('de-AT', { timeStyle: 'short' }).format(new Date()) });
+    $('#stand').textContent = t('admin.stand', { zeit: new Intl.DateTimeFormat(gebiet(), { timeStyle: 'short' }).format(new Date()) });
     meldungenZahl(u.meldungen_offen);
     box.replaceChildren(
       kachel(t('admin.laufend'), adminZahl(u.laufend.meetings), u.laufend.livekit ? t('admin.teilnehmerLive', { n: adminZahl(u.laufend.teilnehmer) }) : t('admin.livekitAus'), u.laufend.livekit ? '' : 'warn'),

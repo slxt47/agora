@@ -6,7 +6,7 @@ import {
   supportsAudioOutputSelection,
 } from 'livekit-client';
 import { $, h, api, toast, blatt, bestaetigen, kopieren, wachBleiben, ruhe, ApiFehler } from '../common.js';
-import { t } from '../i18n.js';
+import { t, gebiet } from '../i18n.js';
 import { icon } from '../icons.js';
 import { farbeAusText, jsonLesen, laufzeitText } from '../helfer.js';
 import { Buehne } from './kacheln.js';
@@ -851,7 +851,7 @@ export class Meeting {
   aufnahmeSichern(blob, dauer, ziel) {
     let box = ziel;
     if (!box) { box = $('.upload-schwebend') || h('div', { class: 'upload-schwebend', role: 'status' }); document.body.append(box); }
-    const datum = new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
+    const datum = new Intl.DateTimeFormat(gebiet(), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
     aufnahmeAblegen(box, blob, { code: this.code, titel: `${this.raum.titel || this.code} – ${datum}`, dauer, angemeldet: !!this.ich, e2ee: !!this.schluessel });
   }
 

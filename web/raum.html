@@ -16,28 +16,28 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/modus.js?v=6"></script>
-  <title>Meeting – Agora</title>
+  <title data-t="html.meetingAgora">Meeting – Agora</title>
   <script type="module" src="/src/raum/main.js"></script>
 </head>
 <body class="raum-seite">
-  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
   <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
   <header class="bar">
-    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <a class="marke" href="/" aria-label="Agora – Startseite" data-t-aria="html.agoraStartseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
     <div class="rechts"><button class="rund" type="button" data-modus-schalter></button></div>
   </header>
   <main class="breit" id="inhalt">
-    <section class="card" id="v-laden" aria-busy="true"><p class="sec">Meeting wird geladen …</p></section>
+    <section class="card" id="v-laden" aria-busy="true"><p class="sec" data-t="html.meetingWirdGeladen">Meeting wird geladen …</p></section>
 
     <section class="card" id="v-fehler" hidden>
-      <h1 id="fehler-titel">Meeting nicht gefunden</h1>
+      <h1 id="fehler-titel" data-t="html.meetingNichtGefunden">Meeting nicht gefunden</h1>
       <p class="sec" id="fehler-text"></p>
-      <div class="knoepfe oben"><a class="btn primary" href="/">Zur Startseite</a></div>
+      <div class="knoepfe oben"><a class="btn primary" href="/" data-t="html.zurStartseite">Zur Startseite</a></div>
     </section>
 
     <div class="lobby" id="v-lobby" hidden>
       <section class="card vorschau-karte" aria-labelledby="h-vorschau">
-        <h2 id="h-vorschau" class="nur-sr">Kamera- und Tonvorschau</h2>
+        <h2 id="h-vorschau" class="nur-sr" data-t="html.kameraUndTonvorschau">Kamera- und Tonvorschau</h2>
         <div class="vorschau" id="vorschau">
           <video id="vorschau-video" muted playsinline autoplay></video>
           <div class="vorschau-avatar" id="vorschau-avatar" aria-hidden="true"><span></span></div>
@@ -51,55 +51,55 @@
         </div>
         <div class="status oben" id="geraete-status" role="alert" hidden></div>
         <div class="formular oben geraete">
-          <label class="feld"><span>Kamera</span><select id="wahl-kamera"></select></label>
-          <label class="feld"><span>Mikrofon</span><select id="wahl-mikrofon"></select></label>
-          <label class="feld" id="feld-lautsprecher"><span>Lautsprecher</span><select id="wahl-lautsprecher"></select></label>
-          <div class="knoepfe"><button class="btn klein" type="button" id="ton-testen">Lautsprecher testen</button></div>
+          <label class="feld"><span data-t="html.kamera">Kamera</span><select id="wahl-kamera"></select></label>
+          <label class="feld"><span data-t="html.mikrofon">Mikrofon</span><select id="wahl-mikrofon"></select></label>
+          <label class="feld" id="feld-lautsprecher"><span data-t="html.lautsprecher">Lautsprecher</span><select id="wahl-lautsprecher"></select></label>
+          <div class="knoepfe"><button class="btn klein" type="button" id="ton-testen" data-t="html.lautsprecherTesten">Lautsprecher testen</button></div>
         </div>
       </section>
 
       <section class="card beitritt-karte" aria-labelledby="raum-titel">
-        <h2>Meeting</h2>
+        <h2 data-t="html.meeting">Meeting</h2>
         <h1 id="raum-titel">…</h1>
         <p class="sec" id="raum-info"></p>
         <p class="zeile oben" id="raum-merkmale"></p>
         <form class="formular oben" id="f-beitritt" novalidate>
-          <label class="feld"><span>Dein Name</span><input name="name" autocomplete="name" maxlength="60" required enterkeyhint="go"><small id="name-hinweis">So sehen dich die anderen.</small></label>
-          <label class="feld" id="feld-passcode" hidden><span>Passcode</span><input name="passcode" autocomplete="off" maxlength="32" spellcheck="false" autocapitalize="none" enterkeyhint="go"><small>Steht in der Einladung.</small></label>
-          <label class="feld" id="feld-schluessel" hidden><span>Schlüssel (Ende-zu-Ende-Verschlüsselung)</span><input name="schluessel" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" enterkeyhint="go"><small>Steht im Einladungslink nach „#k=“. Du kannst auch den ganzen Link einfügen.</small></label>
+          <label class="feld"><span data-t="html.deinName">Dein Name</span><input name="name" autocomplete="name" maxlength="60" required enterkeyhint="go"><small id="name-hinweis" data-t="html.soSehenDichDie">So sehen dich die anderen.</small></label>
+          <label class="feld" id="feld-passcode" hidden><span data-t="html.passcode">Passcode</span><input name="passcode" autocomplete="off" maxlength="32" spellcheck="false" autocapitalize="none" enterkeyhint="go"><small data-t="html.stehtInDerEinladung">Steht in der Einladung.</small></label>
+          <label class="feld" id="feld-schluessel" hidden><span data-t="html.schluesselEndeZuEnde">Schlüssel (Ende-zu-Ende-Verschlüsselung)</span><input name="schluessel" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" enterkeyhint="go"><small data-t="html.stehtImEinladungslinkNach">Steht im Einladungslink nach „#k=“. Du kannst auch den ganzen Link einfügen.</small></label>
           <div id="feld-e2ee" hidden></div>
-          <button class="btn primary" type="submit" id="beitreten-knopf">Beitreten</button>
+          <button class="btn primary" type="submit" id="beitreten-knopf" data-t="html.beitreten">Beitreten</button>
         </form>
         <div class="status oben" id="beitritt-status" role="alert" hidden></div>
-        <p class="sec klein oben">Mit dem Beitritt werden Bild und Ton an die anderen Teilnehmenden übertragen. Aufnahmen sind für alle sichtbar angekündigt. Mehr unter <a href="https://slxt.org/datenschutz/#agora">Datenschutz</a>.</p>
+        <p class="sec klein oben" data-t-html="html.mitDemBeitrittWerden">Mit dem Beitritt werden Bild und Ton an die anderen Teilnehmenden übertragen. Aufnahmen sind für alle sichtbar angekündigt. Mehr unter <a href="https://slxt.org/datenschutz/#agora">Datenschutz</a>.</p>
       </section>
     </div>
 
     <section class="card warte-karte" id="v-warten" hidden aria-live="polite">
       <div class="warte-puls" aria-hidden="true"><svg viewBox="0 0 64 64"><use href="#ag-logo"/></svg></div>
-      <h1>Gleich geht’s los<span class="punkt">.</span></h1>
-      <p class="sec" id="warte-text">Du bist im Warteraum. Der Host lässt dich gleich herein.</p>
+      <h1 data-t-html="html.gleichGehtSLos">Gleich geht’s los<span class="punkt">.</span></h1>
+      <p class="sec" id="warte-text" data-t="html.duBistImWarteraum">Du bist im Warteraum. Der Host lässt dich gleich herein.</p>
       <p class="sec klein oben" id="warte-zeit"></p>
-      <div class="knoepfe oben"><button class="btn" type="button" id="warten-abbrechen">Warten abbrechen</button></div>
+      <div class="knoepfe oben"><button class="btn" type="button" id="warten-abbrechen" data-t="html.wartenAbbrechen">Warten abbrechen</button></div>
     </section>
 
     <section class="card" id="v-ende" hidden>
-      <h1 id="ende-titel">Meeting verlassen</h1>
+      <h1 id="ende-titel" data-t="html.meetingVerlassen">Meeting verlassen</h1>
       <p class="sec" id="ende-text"></p>
       <div id="ende-upload" class="oben" hidden></div>
       <div class="knoepfe oben">
-        <a class="btn primary" id="ende-erneut" href="">Erneut beitreten</a>
-        <a class="btn" href="/" id="ende-start">Zur Startseite</a>
+        <a class="btn primary" id="ende-erneut" href="" data-t="html.erneutBeitreten">Erneut beitreten</a>
+        <a class="btn" href="/" id="ende-start" data-t="html.zurStartseite">Zur Startseite</a>
       </div>
     </section>
   </main>
 
   <div class="meeting" id="v-meeting" hidden>
-    <h1 class="nur-sr" id="m-h1">Meeting</h1>
+    <h1 class="nur-sr" id="m-h1" data-t="html.meeting">Meeting</h1>
     <div class="m-kopf">
       <div class="m-titel">
         <b id="m-titel"></b>
-        <span class="m-unter"><span class="mono" id="m-code"></span><span id="m-zeit" class="m-zeit" aria-label="Dauer"></span></span>
+        <span class="m-unter"><span class="mono" id="m-code"></span><span id="m-zeit" class="m-zeit" aria-label="Dauer" data-t-aria="html.dauer"></span></span>
       </div>
       <span class="m-pille" id="m-schloss" hidden></span>
       <span class="m-pille e2ee" id="m-e2ee" role="status" hidden></span>
@@ -115,7 +115,7 @@
     </div>
     <div class="m-banner" id="m-banner" role="status" hidden></div>
     <div class="m-haupt">
-      <section class="buehne" id="buehne" aria-label="Videos der Teilnehmenden">
+      <section class="buehne" id="buehne" aria-label="Videos der Teilnehmenden" data-t-aria="html.videosDerTeilnehmenden">
         <div class="gross" id="gross"></div>
         <div class="raster" id="raster"></div>
         <div class="seiten" id="seiten" hidden>
@@ -128,12 +128,12 @@
       </section>
       <aside class="seitenleiste" id="seitenleiste" hidden aria-labelledby="leiste-titel">
         <div class="leiste-kopf">
-          <div class="umschalter" role="tablist" aria-label="Seitenleiste">
-            <button type="button" role="tab" id="tab-chat" aria-controls="panel-chat" aria-selected="true">Chat</button>
-            <button type="button" role="tab" id="tab-leute" aria-controls="panel-leute" aria-selected="false">Teilnehmende</button>
-            <button type="button" role="tab" id="tab-umfragen" aria-controls="panel-umfragen" aria-selected="false">Umfragen</button>
+          <div class="umschalter" role="tablist" aria-label="Seitenleiste" data-t-aria="html.seitenleiste">
+            <button type="button" role="tab" id="tab-chat" aria-controls="panel-chat" aria-selected="true" data-t="html.chat">Chat</button>
+            <button type="button" role="tab" id="tab-leute" aria-controls="panel-leute" aria-selected="false" data-t="html.teilnehmende">Teilnehmende</button>
+            <button type="button" role="tab" id="tab-umfragen" aria-controls="panel-umfragen" aria-selected="false" data-t="html.umfragen">Umfragen</button>
           </div>
-          <h2 class="nur-sr" id="leiste-titel">Seitenleiste</h2>
+          <h2 class="nur-sr" id="leiste-titel" data-t="html.seitenleiste">Seitenleiste</h2>
           <button class="icon-btn" type="button" id="leiste-zu"></button>
         </div>
         <div class="panel" id="panel-chat" role="tabpanel" aria-labelledby="tab-chat"></div>
@@ -141,7 +141,7 @@
         <div class="panel" id="panel-umfragen" role="tabpanel" aria-labelledby="tab-umfragen" hidden></div>
       </aside>
     </div>
-    <nav class="m-leiste" aria-label="Meeting-Steuerung">
+    <nav class="m-leiste" aria-label="Meeting-Steuerung" data-t-aria="html.meetingSteuerung">
       <div class="m-gruppe">
         <button class="steuer" type="button" id="s-mic"></button>
         <button class="steuer" type="button" id="s-cam"></button>
@@ -162,8 +162,8 @@
   </div>
   <svg width="0" height="0" class="nur-sr" aria-hidden="true"><defs><linearGradient id="ag-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient><g id="ag-logo"><rect width="64" height="64" rx="14" fill="url(#ag-l)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-l)"/></g></defs></svg>
   <footer>
-    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
-    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+    <p data-t="html.agoraVideokonferenzenImBrowser">Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches" data-t-aria="html.rechtliches"><a href="https://slxt.org/impressum/" data-t="html.impressum">Impressum</a><a href="https://slxt.org/datenschutz/#agora" data-t="html.datenschutz">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora" data-t="html.nutzungsbedingungen">Nutzungsbedingungen</a></nav>
   </footer>
 </body>
 </html>

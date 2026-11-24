@@ -132,6 +132,7 @@ html.kreis-wechsel::view-transition-old(root) { z-index: 1; }
 .rund:hover { background: var(--tile-hover); }
 .rund:active { transform: scale(.94); }
 .rund svg { width: 20px; height: 20px; }
+.sprach-schalter { font: 700 .8125rem/1 var(--display); letter-spacing: .04em; }
 .pille-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--r-pill);
   border: 1px solid var(--card-line); background: var(--card); color: var(--text); font-weight: 600; font-size: .9375rem; }
 .pille-link:hover { background: var(--tile-hover); }

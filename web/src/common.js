@@ -3,9 +3,10 @@
 //    Animation des Schalters durch die Kreisblende vom Schalter aus (View Transitions, 0,6 s); ohne Unterstützung oder
 //    bei „Bewegung reduzieren“ wechselt modus.js sofort.
 //  • Himmel wie auf slxt.org: Sterne (dunkel) + seltene Sternschnuppen. Im Meeting ruht der Himmel (ruhe(true)).
-//  • API-Helfer (X-Agora gegen CSRF, deutsche Fehlermeldungen), Upload mit Fortschritt, Toasts, Dialoge, DOM-Helfer.
+//  • Sprache: Schalter DE/EN neben Hell/Dunkel, Konto-Sprache für Angemeldete (ADR 0006)
+//  • API-Helfer (X-Agora gegen CSRF, Accept-Language = aktive Sprache → Fehlermeldungen in dieser Sprache), Upload mit Fortschritt, Toasts, Dialoge, DOM-Helfer.
 import './app.css';
-import { t, seiteUebersetzen } from './i18n.js';
+import { t, seiteUebersetzen, aktuelleSprache, spracheWechseln, SPRACHEN } from './i18n.js';
 import { icon } from './icons.js';
 import { pwaStarten } from './pwa.js';
 
@@ -116,7 +117,7 @@ export async function api(pfad, { methode = 'GET', json, body, header = {}, sign
   try {
     r = await fetch(pfad, {
       method: methode, credentials: 'same-origin', signal, cache: 'no-store',
-      headers: { ...(methode !== 'GET' ? { 'X-Agora': '1' } : {}), ...(json !== undefined ? { 'Content-Type': 'application/json' } : {}), ...header },
+      headers: { 'Accept-Language': aktuelleSprache(), ...(methode !== 'GET' ? { 'X-Agora': '1' } : {}), ...(json !== undefined ? { 'Content-Type': 'application/json' } : {}), ...header },
       body: json !== undefined ? JSON.stringify(json) : body,
     });
   } catch (e) {
@@ -135,6 +136,7 @@ export function hochladen(pfad, daten, header = {}, fortschritt) {
     x.open('POST', pfad);
     x.withCredentials = true;
     x.setRequestHeader('X-Agora', '1');
+    x.setRequestHeader('Accept-Language', aktuelleSprache());
     for (const [k, v] of Object.entries(header)) x.setRequestHeader(k, v);
     x.upload.onprogress = (e) => e.lengthComputable && fortschritt?.(e.loaded / e.total, e.loaded, e.total);
     x.onload = () => {
@@ -149,9 +151,46 @@ export function hochladen(pfad, daten, header = {}, fortschritt) {
   return { promise, abbrechen: () => x.abort() };
 }
 
-/** Angemeldet? → ich oder null (Fehler beim Server zählen als „nicht angemeldet“). */
+let angemeldet = false;
+
+/**
+ * Angemeldet? → ich oder null (Fehler beim Server zählen als „nicht angemeldet“).
+ * Für Angemeldete gilt die Sprache aus dem Konto: Weicht sie ab, wird sie gemerkt und die Seite neu geladen
+ * (nur wenn der Browser speichern kann – sonst bliebe es eine Schleife).
+ */
 export async function ichLaden() {
-  try { const r = await api('/api/konto/ich'); return r.angemeldet ? r.ich : null; } catch { return null; }
+  let ich = null;
+  try { const r = await api('/api/konto/ich'); ich = r.angemeldet ? r.ich : null; } catch { return null; }
+  angemeldet = !!ich;
+  if (ich && SPRACHEN.includes(ich.sprache) && ich.sprache !== aktuelleSprache() && !new URLSearchParams(location.search).has('sprache')) {
+    if (spracheWechseln(ich.sprache)) await new Promise(() => {});    // Seite lädt neu
+  }
+  return ich;
+}
+
+/** Sprache wählen (Schalter, Profil): im Konto speichern (falls angemeldet), merken, neu laden. */
+export async function spracheWaehlen(neu, { imKonto = angemeldet } = {}) {
+  if (imKonto) { try { await api('/api/konto/ich', { methode: 'PATCH', json: { sprache: neu } }); } catch { /* trotzdem lokal */ } }
+  if (!spracheWechseln(neu)) toast(t('sprache.nichtGespeichert'), 'err');
+}
+
+// ---------------------------------------------------------------- Sprachschalter
+// Ein kleiner Knopf „EN“/„DE“ vor jedem Hell/Dunkel-Schalter in der Kopfzeile (.bar). Im Meeting (eigene Kopfleiste) nicht.
+function sprachSchalter() {
+  for (const m of document.querySelectorAll('.bar [data-modus-schalter]')) {
+    if (m.parentElement.querySelector('[data-sprach-schalter]')) continue;
+    const ziel = aktuelleSprache() === 'de' ? 'en' : 'de';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'rund sprach-schalter';
+    b.dataset.sprachSchalter = ziel;
+    b.lang = ziel;
+    b.textContent = ziel.toUpperCase();
+    b.setAttribute('aria-label', t('sprache.wechseln'));
+    b.title = t('sprache.wechseln');
+    b.addEventListener('click', () => spracheWaehlen(ziel));
+    m.before(b);
+  }
 }
 
 // ---------------------------------------------------------------- DOM
@@ -275,4 +314,5 @@ export async function wachBleiben() {
 }
 
 seiteUebersetzen();
+sprachSchalter();
 pwaStarten();      // Service Worker, „Neue Version“, Installieren (siehe pwa.js)

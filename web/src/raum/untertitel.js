@@ -79,7 +79,7 @@ export class Untertitel {
 
   starten() {
     const e = new Erkennung();
-    e.lang = (document.documentElement.lang || 'de').slice(0, 2) === 'de' ? 'de-DE' : document.documentElement.lang;
+    e.lang = (document.documentElement.lang || 'de').slice(0, 2) === 'de' ? 'de-DE' : 'en-US';
     e.continuous = true;
     e.interimResults = true;
     let satzStart = 0;

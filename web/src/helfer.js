@@ -1,4 +1,6 @@
 // Reine Hilfsfunktionen ohne DOM – laufen im Browser und unter `node --test` (siehe test/helfer.test.js).
+// Texte und Gebietsschema (Datum, Uhrzeit) kommen aus i18n.js (aktive Sprache).
+import { t, gebiet, aktuelleSprache } from './i18n.js';
 
 /** Raum-Code: abc-defg-hij (Kleinbuchstaben). Der Server erzeugt nur Buchstaben ohne l/o, wir sind beim Lesen großzügig. */
 export const CODE_MUSTER = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
@@ -34,7 +36,7 @@ const sicherZone = (zone) => {
 };
 
 /** Datum + Uhrzeit lesbar: „Mo., 24. Nov. 2026, 14:00“ in der gewünschten Zeitzone. */
-export function zeitText(iso, zone = 'Europe/Vienna', sprache = 'de') {
+export function zeitText(iso, zone = 'Europe/Vienna', sprache = aktuelleSprache()) {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
@@ -48,22 +50,22 @@ export function zeitText(iso, zone = 'Europe/Vienna', sprache = 'de') {
 export function uhrzeitText(iso, zone) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat('de-AT', { hour: '2-digit', minute: '2-digit', ...(zone ? { timeZone: sicherZone(zone) } : {}) }).format(d);
+  return new Intl.DateTimeFormat(gebiet(), { hour: '2-digit', minute: '2-digit', ...(zone ? { timeZone: sicherZone(zone) } : {}) }).format(d);
 }
 
 /** Nur Datum: „30.11.2026“. */
 export function datumText(iso, zone) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', ...(zone ? { timeZone: sicherZone(zone) } : {}) }).format(d);
+  return new Intl.DateTimeFormat(gebiet(), { day: '2-digit', month: '2-digit', year: 'numeric', ...(zone ? { timeZone: sicherZone(zone) } : {}) }).format(d);
 }
 
 /** Minuten als „45 Min.“, „1 Std.“, „1 Std. 30 Min.“ */
 export function minutenText(min) {
   min = Math.max(0, Math.round(Number(min) || 0));
-  if (min < 60) return `${min} Min.`;
+  if (min < 60) return t('zeit.min', { n: min });
   const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h} Std. ${m} Min.` : `${h} Std.`;
+  return m ? t('zeit.stdMin', { h, m }) : t('zeit.std', { h });
 }
 
 /** Sekunden als Uhr: „4:07“ bzw. „1:04:07“ (Meeting-Dauer, Aufnahme). */
@@ -79,28 +81,28 @@ export function seitText(iso, jetzt = Date.now()) {
   const d = new Date(iso).getTime();
   if (Number.isNaN(d)) return '';
   const s = Math.max(0, Math.round((jetzt - d) / 1000));
-  if (s < 45) return 'gerade eben';
-  if (s < 3600) return `vor ${Math.max(1, Math.round(s / 60))} Min.`;
-  if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
-  return `vor ${Math.round(s / 86400)} Tagen`;
+  if (s < 45) return t('zeit.geradeEben');
+  if (s < 3600) return t('zeit.vorMin', { n: Math.max(1, Math.round(s / 60)) });
+  if (s < 86400) return t('zeit.vorStd', { n: Math.round(s / 3600) });
+  return t('zeit.vorTagen', { n: Math.round(s / 86400) });
 }
 
-const WOCHENTAG = ['sonntags', 'montags', 'dienstags', 'mittwochs', 'donnerstags', 'freitags', 'samstags'];
 
 /** Wiederholung lesbar: „Einmalig“, „Täglich“, „Wöchentlich (montags) bis 30.11.2026“. */
 export function wiederholungText(geplant) {
-  if (!geplant || !geplant.wiederholung || geplant.wiederholung === 'keine') return 'Einmalig';
+  if (!geplant || !geplant.wiederholung || geplant.wiederholung === 'keine') return t('wdh.einmalig');
   const zone = geplant.zeitzone || 'UTC';
-  let text = 'Täglich';
+  let text = t('wdh.taeglich');
   if (geplant.wiederholung === 'woechentlich') {
     let tag = '';
     if (geplant.start) {
       const kurz = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: sicherZone(zone) }).format(new Date(geplant.start));
-      tag = WOCHENTAG[['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(kurz)] || '';
+      const nr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(kurz);
+      tag = nr >= 0 ? t(`wdh.tag.${nr}`) : '';
     }
-    text = tag ? `Wöchentlich (${tag})` : 'Wöchentlich';
-  } else if (geplant.wiederholung !== 'taeglich') return 'Einmalig';
-  if (geplant.bis) text += ` bis ${datumText(geplant.bis, zone)}`;
+    text = tag ? t('wdh.woechentlichAm', { tag }) : t('wdh.woechentlich');
+  } else if (geplant.wiederholung !== 'taeglich') return t('wdh.einmalig');
+  if (geplant.bis) text = t('wdh.bis', { text, datum: datumText(geplant.bis, zone) });
   return text;
 }
 
@@ -196,12 +198,13 @@ export function farbeAusText(text) {
   return farben[h % farben.length];
 }
 
+const dezimal = () => (gebiet().startsWith('de') ? ',' : '.');
 export function groesseText(n) {
   n = Number(n) || 0;
   if (n < 1024) return `${n} B`;
-  if (n < 1024 ** 2) return `${(n / 1024).toFixed(1).replace('.', ',')} KB`;
-  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1).replace('.', ',')} MB`;
-  return `${(n / 1024 ** 3).toFixed(2).replace('.', ',')} GB`;
+  if (n < 1024 ** 2) return `${(n / 1024).toFixed(1).replace('.', dezimal())} KB`;
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1).replace('.', dezimal())} MB`;
+  return `${(n / 1024 ** 3).toFixed(2).replace('.', dezimal())} GB`;
 }
 
 // ---------------------------------------------------------------- Layout

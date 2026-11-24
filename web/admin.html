@@ -17,28 +17,28 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/modus.js?v=6"></script>
-  <title>Admin – Agora</title>
+  <title data-t="html.adminAgora">Admin – Agora</title>
   <script type="module" src="/src/admin.js"></script>
 </head>
 <body>
-  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
   <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
   <header class="bar">
-    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
-    <div class="rechts"><a class="pille-link" href="/konto">Mein Konto</a><button class="rund" type="button" data-modus-schalter></button></div>
+    <a class="marke" href="/" aria-label="Agora – Startseite" data-t-aria="html.agoraStartseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <div class="rechts"><a class="pille-link" href="/konto" data-t="html.meinKonto">Mein Konto</a><button class="rund" type="button" data-modus-schalter></button></div>
   </header>
   <main class="breit" id="inhalt">
     <section class="card" aria-labelledby="titel">
-      <div class="zeile zwischen"><h1 class="flach" id="titel">Admin<span class="punkt">.</span></h1><span class="sec klein" id="stand"></span></div>
-      <p class="sec klein">Jede Aktion hier wird im Protokoll festgehalten.</p>
+      <div class="zeile zwischen"><h1 class="flach" id="titel" data-t-html="html.admin">Admin<span class="punkt">.</span></h1><span class="sec klein" id="stand"></span></div>
+      <p class="sec klein" data-t="html.jedeAktionHierWird">Jede Aktion hier wird im Protokoll festgehalten.</p>
     </section>
 
-    <nav class="umschalter reiter admin-reiter" role="tablist" aria-label="Bereiche">
-      <button type="button" role="tab" id="tab-uebersicht" aria-controls="p-uebersicht" aria-selected="true">Übersicht</button>
-      <button type="button" role="tab" id="tab-konten" aria-controls="p-konten" aria-selected="false">Konten</button>
-      <button type="button" role="tab" id="tab-meldungen" aria-controls="p-meldungen" aria-selected="false">Meldungen <span class="zaehler-inline" id="meldungen-zahl" hidden></span></button>
-      <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="false">Meetings</button>
-      <button type="button" role="tab" id="tab-protokoll" aria-controls="p-protokoll" aria-selected="false">Protokoll</button>
+    <nav class="umschalter reiter admin-reiter" role="tablist" aria-label="Bereiche" data-t-aria="html.bereiche">
+      <button type="button" role="tab" id="tab-uebersicht" aria-controls="p-uebersicht" aria-selected="true" data-t="html.uebersicht">Übersicht</button>
+      <button type="button" role="tab" id="tab-konten" aria-controls="p-konten" aria-selected="false" data-t="html.konten">Konten</button>
+      <button type="button" role="tab" id="tab-meldungen" aria-controls="p-meldungen" aria-selected="false"><span data-t="html.meldungen">Meldungen</span> <span class="zaehler-inline" id="meldungen-zahl" hidden></span></button>
+      <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="false" data-t="html.meetings">Meetings</button>
+      <button type="button" role="tab" id="tab-protokoll" aria-controls="p-protokoll" aria-selected="false" data-t="html.protokoll">Protokoll</button>
     </nav>
 
     <div id="p-uebersicht" role="tabpanel" aria-labelledby="tab-uebersicht" class="formular">
@@ -47,11 +47,11 @@
 
     <div id="p-konten" role="tabpanel" aria-labelledby="tab-konten" class="formular" hidden>
       <section class="card" aria-labelledby="h-konten">
-        <h2 id="h-konten">Konten</h2>
+        <h2 id="h-konten" data-t="html.konten">Konten</h2>
         <form class="beitreten" id="f-suche" role="search">
-          <label class="nur-sr" for="suche">Name oder E-Mail</label>
-          <input id="suche" name="q" type="search" placeholder="Name oder E-Mail suchen" autocomplete="off" spellcheck="false">
-          <button class="btn primary" type="submit">Suchen</button>
+          <label class="nur-sr" for="suche" data-t="html.nameOderEMail">Name oder E-Mail</label>
+          <input id="suche" name="q" type="search" placeholder="Name oder E-Mail suchen" autocomplete="off" spellcheck="false" data-t-placeholder="html.nameOderEMail2">
+          <button class="btn primary" type="submit" data-t="html.suchen">Suchen</button>
         </form>
         <p class="sec klein oben" id="konten-info"></p>
         <ul class="liste" id="liste-konten"></ul>
@@ -61,11 +61,11 @@
 
     <div id="p-meldungen" role="tabpanel" aria-labelledby="tab-meldungen" class="formular" hidden>
       <section class="card" aria-labelledby="h-meldungen">
-        <div class="zeile zwischen"><h2 id="h-meldungen">Meldungen</h2>
-          <div class="umschalter admin-filter" role="radiogroup" aria-label="Status">
-            <label><input type="radio" name="m-status" value="offen" checked>Offen</label>
-            <label><input type="radio" name="m-status" value="erledigt">Erledigt</label>
-            <label><input type="radio" name="m-status" value="alle">Alle</label>
+        <div class="zeile zwischen"><h2 id="h-meldungen" data-t="html.meldungen">Meldungen</h2>
+          <div class="umschalter admin-filter" role="radiogroup" aria-label="Status" data-t-aria="html.status">
+            <label><input type="radio" name="m-status" value="offen" checked><span data-t="html.offen">Offen</span></label>
+            <label><input type="radio" name="m-status" value="erledigt"><span data-t="html.erledigt">Erledigt</span></label>
+            <label><input type="radio" name="m-status" value="alle"><span data-t="html.alle">Alle</span></label>
           </div>
         </div>
         <ul class="liste" id="liste-meldungen"></ul>
@@ -74,27 +74,27 @@
 
     <div id="p-meetings" role="tabpanel" aria-labelledby="tab-meetings" class="formular" hidden>
       <section class="card" aria-labelledby="h-meetings">
-        <div class="zeile zwischen"><h2 id="h-meetings">Laufende Meetings</h2><button class="btn klein" type="button" id="meetings-neu">Aktualisieren</button></div>
+        <div class="zeile zwischen"><h2 id="h-meetings" data-t="html.laufendeMeetings">Laufende Meetings</h2><button class="btn klein" type="button" id="meetings-neu" data-t="html.aktualisieren">Aktualisieren</button></div>
         <ul class="liste" id="liste-meetings"></ul>
       </section>
     </div>
 
     <div id="p-protokoll" role="tabpanel" aria-labelledby="tab-protokoll" class="formular" hidden>
       <section class="card" aria-labelledby="h-protokoll">
-        <h2 id="h-protokoll">Protokoll</h2>
+        <h2 id="h-protokoll" data-t="html.protokoll">Protokoll</h2>
         <form class="formular" id="f-protokoll">
           <div class="zwei">
-            <label class="feld"><span>Ereignis enthält</span><input name="q" autocomplete="off" spellcheck="false" placeholder="z. B. angemeldet"></label>
-            <label class="feld"><span>Konto (E-Mail oder ID)</span><input name="benutzer" autocomplete="off" spellcheck="false" autocapitalize="none"></label>
+            <label class="feld"><span data-t="html.ereignisEnthaelt">Ereignis enthält</span><input name="q" autocomplete="off" spellcheck="false" placeholder="z. B. angemeldet" data-t-placeholder="html.zBAngemeldet"></label>
+            <label class="feld"><span data-t="html.kontoEMailOder">Konto (E-Mail oder ID)</span><input name="benutzer" autocomplete="off" spellcheck="false" autocapitalize="none"></label>
           </div>
           <div class="zwei">
-            <label class="feld"><span>Meeting-Code</span><input name="raum" autocomplete="off" spellcheck="false" placeholder="abc-defg-hij" autocapitalize="none"></label>
-            <label class="schalter"><span class="txt"><span>Nur Admin-Aktionen</span></span><input type="checkbox" role="switch" name="nur_admin"></label>
+            <label class="feld"><span data-t="html.meetingCode">Meeting-Code</span><input name="raum" autocomplete="off" spellcheck="false" placeholder="abc-defg-hij" autocapitalize="none"></label>
+            <label class="schalter"><span class="txt"><span data-t="html.nurAdminAktionen">Nur Admin-Aktionen</span></span><input type="checkbox" role="switch" name="nur_admin"></label>
           </div>
-          <button class="btn primary" type="submit">Filtern</button>
+          <button class="btn primary" type="submit" data-t="html.filtern">Filtern</button>
         </form>
         <div class="admin-tabelle-rahmen oben"><table class="admin-tabelle" id="tabelle-protokoll">
-          <thead><tr><th scope="col">Zeit</th><th scope="col">Konto</th><th scope="col">Meeting</th><th scope="col">Ereignis</th></tr></thead>
+          <thead><tr><th scope="col" data-t="html.zeit">Zeit</th><th scope="col" data-t="html.konto">Konto</th><th scope="col" data-t="html.meeting">Meeting</th><th scope="col" data-t="html.ereignis">Ereignis</th></tr></thead>
           <tbody></tbody>
         </table></div>
         <div class="knoepfe oben" id="protokoll-seiten"></div>
@@ -102,8 +102,8 @@
     </div>
   </main>
   <footer>
-    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
-    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+    <p data-t="html.agoraVideokonferenzenImBrowser">Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches" data-t-aria="html.rechtliches"><a href="https://slxt.org/impressum/" data-t="html.impressum">Impressum</a><a href="https://slxt.org/datenschutz/#agora" data-t="html.datenschutz">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora" data-t="html.nutzungsbedingungen">Nutzungsbedingungen</a></nav>
   </footer>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // Aufnahmen (Player, Download, Freigabe-Link mit Ablauf/Passwort, Speicherbalken), Profil (Name, Zeitzone, Sprache),
 // Passwort ändern, Export, Konto löschen.
 import { $, h, api, ichLaden, toast, blatt, bestaetigen, kopieren, beschaeftigt, status, knopf } from './common.js';
-import { t } from './i18n.js';
+import { t, aktuelleSprache, spracheWechseln } from './i18n.js';
 import { icon } from './icons.js';
 import {
   initialen, zeitText, minutenText, wiederholungText, lokalZuUtc, utcZuLokal, groesseText, datumText, uhrzeitText,
@@ -443,6 +443,7 @@ $('#f-profil').addEventListener('submit', (e) => {
     const r = await api('/api/konto/ich', { methode: 'PATCH', json: { name: f.name.value.trim(), zeitzone: f.zeitzone.value, sprache: f.sprache.value, ...(new FormData(f).get('farbe') ? { farbe: new FormData(f).get('farbe') } : {}) } });
     ich = r.ich || { ...ich, name: f.name.value.trim(), zeitzone: f.zeitzone.value, sprache: f.sprache.value };
     kopfZeigen();
+    if (f.sprache.value !== aktuelleSprache() && spracheWechseln(f.sprache.value)) return;   // neue Sprache: Seite lädt neu
     toast(t('konto.gespeichert'), 'ok');
     meetingsLaden();
   });

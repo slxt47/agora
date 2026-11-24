@@ -16,14 +16,14 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/modus.js?v=6"></script>
-  <title>Agora – Videokonferenzen</title>
+  <title data-t="html.agoraVideokonferenzen">Agora – Videokonferenzen</title>
   <script type="module" src="/src/start.js"></script>
 </head>
 <body>
-  <a class="springen" href="#inhalt">Zum Inhalt springen</a>
+  <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
   <div class="sky" aria-hidden="true"><i></i><i></i><canvas></canvas><div class="meteors"></div></div>
   <header class="bar">
-    <a class="marke" href="/" aria-label="Agora – Startseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
+    <a class="marke" href="/" aria-label="Agora – Startseite" data-t-aria="html.agoraStartseite"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ag-m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4aff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#ag-m)"/><rect x="9" y="21" width="32" height="23" rx="7" fill="#fff"/><rect x="43.5" y="13.5" width="4.6" height="4.6" rx="1.3" fill="#fff" fill-opacity="0.75"/><rect x="50" y="8" width="3.4" height="3.4" rx="1" fill="#fff" fill-opacity="0.45"/><path d="M38 32.5L54 23.5L54 41.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M13 40L25 40L11.5 51Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="18.5" cy="29.5" r="3" fill="url(#ag-m)"/></svg><span>Agora<span class="punkt">.</span></span></a>
     <div class="rechts" id="kopf-rechts">
       <a class="pille-link" id="kopf-konto" href="/konto" hidden></a>
       <button class="rund" type="button" data-modus-schalter></button>
@@ -32,21 +32,21 @@
   <main class="breit" id="inhalt">
     <div class="hero">
       <section class="card" aria-labelledby="titel">
-        <h1 id="titel">Treffen ohne Umwege<span class="punkt">.</span></h1>
-        <p class="sec">Videokonferenzen direkt im Browser – ohne Installation. Link schicken, Code eingeben, los geht’s.</p>
+        <h1 id="titel" data-t-html="html.treffenOhneUmwege">Treffen ohne Umwege<span class="punkt">.</span></h1>
+        <p class="sec" data-t="html.videokonferenzenDirektImBrowser">Videokonferenzen direkt im Browser – ohne Installation. Link schicken, Code eingeben, los geht’s.</p>
         <form class="oben" id="f-beitreten" novalidate>
-          <label class="nur-sr" for="code-eingabe">Meeting-Code oder Link</label>
+          <label class="nur-sr" for="code-eingabe" data-t="html.meetingCodeOderLink">Meeting-Code oder Link</label>
           <div class="beitreten">
-            <input id="code-eingabe" name="code" placeholder="Code oder Link einfügen" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" enterkeyhint="go" aria-describedby="code-hinweis">
-            <button class="btn primary" type="submit">Beitreten</button>
+            <input id="code-eingabe" name="code" placeholder="Code oder Link einfügen" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" enterkeyhint="go" aria-describedby="code-hinweis" data-t-placeholder="html.codeOderLinkEinfuegen">
+            <button class="btn primary" type="submit" data-t="html.beitreten">Beitreten</button>
           </div>
-          <p class="sec klein oben" id="code-hinweis">Zum Beispiel <span class="mono">abc-defg-hij</span> oder der ganze Einladungslink.</p>
+          <p class="sec klein oben" id="code-hinweis" data-t-html="html.zumBeispielAbcDefg">Zum Beispiel <span class="mono">abc-defg-hij</span> oder der ganze Einladungslink.</p>
         </form>
         <div class="status oben" id="beitreten-status" role="alert" hidden></div>
         <ul class="vorteile">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.5l5-3v9l-5-3z"/></svg><span><b>Galerie und Sprecheransicht</b><br><span class="sec klein">Bildschirm, Fenster oder Tab teilen, Hand heben, Reaktionen, Chat.</span></span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span><b>Warteraum, Passcode, Sperre</b><br><span class="sec klein">Du entscheidest, wer hereinkommt – Gäste brauchen kein Konto.</span></span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span><b>Aufzeichnen und teilen</b><br><span class="sec klein">Aufnahmen landen in deiner Bibliothek – teilen per Link mit Ablauf und Passwort.</span></span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.5l5-3v9l-5-3z"/></svg><span><b data-t="html.galerieUndSprecheransicht">Galerie und Sprecheransicht</b><br><span class="sec klein" data-t="html.bildschirmFensterOderTab">Bildschirm, Fenster oder Tab teilen, Hand heben, Reaktionen, Chat.</span></span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span><b data-t="html.warteraumPasscodeSperre">Warteraum, Passcode, Sperre</b><br><span class="sec klein" data-t="html.duEntscheidestWerHereinkommt">Du entscheidest, wer hereinkommt – Gäste brauchen kein Konto.</span></span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span><b data-t="html.aufzeichnenUndTeilen">Aufzeichnen und teilen</b><br><span class="sec klein" data-t="html.aufnahmenLandenInDeiner">Aufnahmen landen in deiner Bibliothek – teilen per Link mit Ablauf und Passwort.</span></span></li>
         </ul>
         <div class="app-installieren" id="app-installieren" hidden><span class="app-text"></span><button class="btn klein" type="button"></button></div>
       </section>
@@ -55,82 +55,82 @@
         <div id="angemeldet" hidden>
           <div class="konto-kopf">
             <div class="avatar" id="ich-avatar" aria-hidden="true"></div>
-            <div><h2 class="flach">Angemeldet</h2><p><b id="ich-name"></b></p></div>
+            <div><h2 class="flach" data-t="html.angemeldet">Angemeldet</h2><p><b id="ich-name"></b></p></div>
           </div>
           <div class="kacheln oben">
             <button class="kachel haupt" type="button" id="neues-meeting">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.5l5-3v9l-5-3zM9.25 9.5v5M6.75 12h5"/></svg>
-              <span class="name">Neues Meeting</span><span class="sub">Sofort starten</span>
+              <span class="name" data-t="html.neuesMeeting">Neues Meeting</span><span class="sub" data-t="html.sofortStarten">Sofort starten</span>
             </button>
             <a class="kachel" id="persoenlich-link" href="/konto#meetings">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-              <span class="name">Persönlicher Raum</span><span class="sub" id="persoenlich-code">Immer gleicher Link</span>
+              <span class="name" data-t="html.persoenlicherRaum">Persönlicher Raum</span><span class="sub" id="persoenlich-code" data-t="html.immerGleicherLink">Immer gleicher Link</span>
             </a>
             <a class="kachel" href="/konto#planen">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-              <span class="name">Planen</span><span class="sub">Termin + Einladung</span>
+              <span class="name" data-t="html.planen">Planen</span><span class="sub" data-t="html.terminEinladung">Termin + Einladung</span>
             </a>
             <a class="kachel" href="/konto#aufnahmen">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
-              <span class="name">Aufnahmen</span><span class="sub">Bibliothek</span>
+              <span class="name" data-t="html.aufnahmen">Aufnahmen</span><span class="sub" data-t="html.bibliothek">Bibliothek</span>
             </a>
           </div>
           <div class="knoepfe oben">
-            <a class="btn" href="/konto">Mein Konto</a>
-            <button class="btn leise" type="button" id="abmelden">Abmelden</button>
+            <a class="btn" href="/konto" data-t="html.meinKonto">Mein Konto</a>
+            <button class="btn leise" type="button" id="abmelden" data-t="html.abmelden">Abmelden</button>
           </div>
         </div>
 
         <div id="abgemeldet" hidden>
-          <div class="umschalter" role="tablist" aria-label="Konto">
-            <button type="button" role="tab" id="tab-anmelden" aria-selected="true" aria-controls="f-anmelden">Anmelden</button>
-            <button type="button" role="tab" id="tab-registrieren" aria-selected="false" aria-controls="f-registrieren">Registrieren</button>
+          <div class="umschalter" role="tablist" aria-label="Konto" data-t-aria="html.konto">
+            <button type="button" role="tab" id="tab-anmelden" aria-selected="true" aria-controls="f-anmelden" data-t="html.anmelden">Anmelden</button>
+            <button type="button" role="tab" id="tab-registrieren" aria-selected="false" aria-controls="f-registrieren" data-t="html.registrieren">Registrieren</button>
           </div>
 
           <form class="formular oben" id="f-anmelden" role="tabpanel" aria-labelledby="tab-anmelden">
-            <p class="sec klein">Mit Konto startest und planst du Meetings. Zum Beitreten brauchst du keins.</p>
-            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
-            <label class="feld"><span>Passwort</span><input name="passwort" type="password" autocomplete="current-password" required></label>
-            <button class="btn primary" type="submit">Anmelden</button>
+            <p class="sec klein" data-t="html.mitKontoStartestUnd">Mit Konto startest und planst du Meetings. Zum Beitreten brauchst du keins.</p>
+            <label class="feld"><span data-t="html.eMail">E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <label class="feld"><span data-t="html.passwort">Passwort</span><input name="passwort" type="password" autocomplete="current-password" required></label>
+            <button class="btn primary" type="submit" data-t="html.anmelden">Anmelden</button>
             <div class="knoepfe">
-              <button class="btn leise klein" type="button" data-zeige="f-vergessen">Passwort vergessen?</button>
-              <button class="btn leise klein" type="button" data-zeige="f-erneut">Bestätigungs-Mail erneut senden</button>
+              <button class="btn leise klein" type="button" data-zeige="f-vergessen" data-t="html.passwortVergessen">Passwort vergessen?</button>
+              <button class="btn leise klein" type="button" data-zeige="f-erneut" data-t="html.bestaetigungsMailErneutSenden">Bestätigungs-Mail erneut senden</button>
             </div>
           </form>
 
           <form class="formular oben" id="f-code" hidden>
-            <h3>Bestätigungscode</h3>
-            <p class="sec klein" id="code-text">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
-            <label class="feld"><span>Code</span><input name="code" class="zf-code" autocomplete="one-time-code" inputmode="numeric" autocapitalize="none" spellcheck="false" required maxlength="20" aria-describedby="code-text"></label>
-            <button class="btn primary" type="submit">Anmelden</button>
+            <h3 data-t="html.bestaetigungscode">Bestätigungscode</h3>
+            <p class="sec klein" id="code-text" data-t="html.gibDen6Stelligen">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
+            <label class="feld"><span data-t="html.code">Code</span><input name="code" class="zf-code" autocomplete="one-time-code" inputmode="numeric" autocapitalize="none" spellcheck="false" required maxlength="20" aria-describedby="code-text"></label>
+            <button class="btn primary" type="submit" data-t="html.anmelden">Anmelden</button>
             <div class="knoepfe">
-              <button class="btn leise klein" type="button" id="code-wiederherstellung">Wiederherstellungscode verwenden</button>
-              <button class="btn leise klein" type="button" data-zeige="f-anmelden">Zurück zur Anmeldung</button>
+              <button class="btn leise klein" type="button" id="code-wiederherstellung" data-t="html.wiederherstellungscodeVerwenden">Wiederherstellungscode verwenden</button>
+              <button class="btn leise klein" type="button" data-zeige="f-anmelden" data-t="html.zurueckZurAnmeldung">Zurück zur Anmeldung</button>
             </div>
           </form>
 
           <form class="formular oben" id="f-registrieren" role="tabpanel" aria-labelledby="tab-registrieren" hidden>
-            <label class="feld"><span>Name</span><input name="name" autocomplete="name" required maxlength="60"><small>So sehen dich andere im Meeting.</small></label>
-            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required><small>Wir schicken dir einen Bestätigungslink.</small></label>
-            <label class="feld"><span>Passwort</span><input name="passwort" type="password" autocomplete="new-password" required minlength="10"><small>Mindestens 10 Zeichen.</small></label>
-            <p class="sec klein">Mit „Konto anlegen“ stimmst du den <a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a> zu. Wie wir mit Daten umgehen: <a href="https://slxt.org/datenschutz/#agora">Datenschutz</a>.</p>
-            <button class="btn primary" type="submit">Konto anlegen</button>
+            <label class="feld"><span data-t="html.name">Name</span><input name="name" autocomplete="name" required maxlength="60"><small data-t="html.soSehenDichAndere">So sehen dich andere im Meeting.</small></label>
+            <label class="feld"><span data-t="html.eMail">E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required><small data-t="html.wirSchickenDirEinen">Wir schicken dir einen Bestätigungslink.</small></label>
+            <label class="feld"><span data-t="html.passwort">Passwort</span><input name="passwort" type="password" autocomplete="new-password" required minlength="10"><small data-t="html.mindestens10Zeichen">Mindestens 10 Zeichen.</small></label>
+            <p class="sec klein" data-t-html="html.mitKontoAnlegenStimmst">Mit „Konto anlegen“ stimmst du den <a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a> zu. Wie wir mit Daten umgehen: <a href="https://slxt.org/datenschutz/#agora">Datenschutz</a>.</p>
+            <button class="btn primary" type="submit" data-t="html.kontoAnlegen">Konto anlegen</button>
           </form>
 
           <form class="formular oben" id="f-vergessen" hidden>
-            <h3>Passwort vergessen</h3>
-            <p class="sec klein">Wir schicken dir einen Link, mit dem du ein neues Passwort setzt. Danach bist du überall abgemeldet.</p>
-            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
-            <button class="btn primary" type="submit">Link schicken</button>
-            <button class="btn leise" type="button" data-zeige="f-anmelden">Zurück zur Anmeldung</button>
+            <h3 data-t="html.passwortVergessen2">Passwort vergessen</h3>
+            <p class="sec klein" data-t="html.wirSchickenDirEinen2">Wir schicken dir einen Link, mit dem du ein neues Passwort setzt. Danach bist du überall abgemeldet.</p>
+            <label class="feld"><span data-t="html.eMail">E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <button class="btn primary" type="submit" data-t="html.linkSchicken">Link schicken</button>
+            <button class="btn leise" type="button" data-zeige="f-anmelden" data-t="html.zurueckZurAnmeldung">Zurück zur Anmeldung</button>
           </form>
 
           <form class="formular oben" id="f-erneut" hidden>
-            <h3>Bestätigung erneut senden</h3>
-            <p class="sec klein">Keine Mail bekommen? Schau auch im Spam-Ordner. Höchstens drei Mails pro Stunde.</p>
-            <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
-            <button class="btn primary" type="submit">Erneut senden</button>
-            <button class="btn leise" type="button" data-zeige="f-anmelden">Zurück zur Anmeldung</button>
+            <h3 data-t="html.bestaetigungErneutSenden">Bestätigung erneut senden</h3>
+            <p class="sec klein" data-t="html.keineMailBekommenSchau">Keine Mail bekommen? Schau auch im Spam-Ordner. Höchstens drei Mails pro Stunde.</p>
+            <label class="feld"><span data-t="html.eMail">E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <button class="btn primary" type="submit" data-t="html.erneutSenden">Erneut senden</button>
+            <button class="btn leise" type="button" data-zeige="f-anmelden" data-t="html.zurueckZurAnmeldung">Zurück zur Anmeldung</button>
           </form>
         </div>
 
@@ -139,8 +139,8 @@
     </div>
   </main>
   <footer>
-    <p>Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
-    <nav class="recht" aria-label="Rechtliches"><a href="https://slxt.org/impressum/">Impressum</a><a href="https://slxt.org/datenschutz/#agora">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora">Nutzungsbedingungen</a></nav>
+    <p data-t="html.agoraVideokonferenzenImBrowser">Agora · Videokonferenzen im Browser · ohne Werbung, ohne Tracking</p>
+    <nav class="recht" aria-label="Rechtliches" data-t-aria="html.rechtliches"><a href="https://slxt.org/impressum/" data-t="html.impressum">Impressum</a><a href="https://slxt.org/datenschutz/#agora" data-t="html.datenschutz">Datenschutz</a><a href="https://slxt.org/nutzungsbedingungen/#agora" data-t="html.nutzungsbedingungen">Nutzungsbedingungen</a></nav>
   </footer>
 </body>
 </html>

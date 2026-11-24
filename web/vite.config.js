@@ -39,7 +39,10 @@ const serviceWorker = {
     const offline = bundle['offline.html'];
     if (!offline) this.error('offline.html fehlt im Build');
     const verweise = [...String(offline.source).matchAll(/(?:src|href)="(\/[^/"][^"]*)"/g)].map((m) => m[1]);
-    const vorab = [...new Set(['/offline.html', ...verweise, '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'])];
+    // Wörterbücher (texte-de/-en) lädt i18n.js dynamisch – ohne Netz braucht die Offline-Seite beide im Cache.
+    const woerter = Object.keys(bundle).filter((n) => /^assets\/texte-(de|en)-[\w-]+\.js$/.test(n)).map((n) => '/' + n);
+    if (woerter.length !== 2) this.error('Wörterbücher texte-de/texte-en nicht als eigene Chunks gefunden');
+    const vorab = [...new Set(['/offline.html', ...verweise, ...woerter, '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'])];
     const hash = createHash('sha256');
     for (const n of Object.keys(bundle).sort()) hash.update(n).update(bundle[n].type === 'chunk' ? bundle[n].code : bundle[n].source);
     const vorlage = readFileSync(new URL('./src/sw-vorlage.js', import.meta.url), 'utf8');

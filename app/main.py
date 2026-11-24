@@ -44,7 +44,7 @@ from . import webhooks        # Webhooks (Zustellung im eigenen Hintergrund-Thre
 from . import einbetten       # Einbetten: /e/<code> mit frame-ancestors je Raum, /embed.js
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
-from .kern import LIVEKIT_URL, MAX_TEILNEHMER, TEST, VERSION, WEB, jetzt, livekit_herkunft
+from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
 db.einrichten()      # idempotent; gleich beim Laden, damit auch Tests ohne Lifespan eine Datenbank haben
 
@@ -90,6 +90,10 @@ SICHERHEIT = {
     'Cross-Origin-Resource-Policy': 'same-origin',
     'X-Frame-Options': 'DENY',
 }
+if SEITE.startswith('https://'):
+    # HSTS auch von der App selbst (nicht nur, falls in Cloudflare eingeschaltet): nach dem ersten Besuch nie mehr http://.
+    # Ohne includeSubDomains/preload – andere Subdomains von slxt.dev entscheiden selbst.
+    SICHERHEIT['Strict-Transport-Security'] = 'max-age=31536000'
 
 
 @app.middleware('http')

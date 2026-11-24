@@ -166,3 +166,10 @@ def test_livestream_ziel_mit_eingebetteter_privater_ipv4_abgelehnt():
             egress.ziel_pruefen(url)
         assert e.value.status_code == 400, url
     egress.ziel_pruefen('rtmps://1.1.1.1:443/live')          # öffentlich: kein Fehler
+
+
+
+def test_hsts_bei_https_seite():
+    r = neu_client().get('/api/gesund')        # Tests laufen mit AGORA_SEITE=https://agora.slxt.dev
+    assert r.headers['strict-transport-security'] == 'max-age=31536000'
+    assert neu_client().get('/api/raeume/abc-defg-hij').headers['strict-transport-security'] == 'max-age=31536000'   # auch bei Fehlern

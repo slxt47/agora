@@ -272,18 +272,31 @@ def abschalten(w, grund):
     db.protokollieren(f'Webhook abgeschaltet (#{w["id"]})', w['benutzer_id'])
     b = c.execute('SELECT * FROM benutzer WHERE id = ?', (w['benutzer_id'],)).fetchone()
     if b and grenze.ok('mail:' + b['email'].lower(), 3, 3600):
-        mail.im_hintergrund(abgeschaltet_mail, b['email'], b['name'], w['url'], grund)
+        mail.im_hintergrund(abgeschaltet_mail, b['email'], b['name'], w['url'], grund, b['sprache'])
 
 
-def abgeschaltet_mail(an, name, url, grund):
-    saetze = [f'Hallo {name},', f'dein Webhook an {url} hat {FEHL_GRENZE} Ereignisse in Folge nicht angenommen (je {VERSUCHE} Versuche). '
-              'Wir haben ihn deshalb abgeschaltet – es gehen keine Ereignisse mehr dorthin.',
-              'Prüfe den Empfänger und schalte den Webhook im Konto unter „Entwickler“ wieder ein.']
+_MAIL = {     # Mail an den Besitzer in seiner Konto-Sprache (ADR 0006)
+    'de': {'betreff': 'Webhook abgeschaltet', 'hallo': 'Hallo {name},',
+           'satz': 'dein Webhook an {url} hat {n} Ereignisse in Folge nicht angenommen (je {v} Versuche). '
+                   'Wir haben ihn deshalb abgeschaltet – es gehen keine Ereignisse mehr dorthin.',
+           'tun': 'Prüfe den Empfänger und schalte den Webhook im Konto unter „Entwickler“ wieder ein.',
+           'fehler': 'Letzter Fehler', 'adresse': 'Adresse', 'knopf': 'Zu den Webhooks', 'vorschau': 'Ein Webhook wurde wegen Fehlern abgeschaltet'},
+    'en': {'betreff': 'Webhook disabled', 'hallo': 'Hello {name},',
+           'satz': 'your webhook to {url} did not accept {n} events in a row ({v} attempts each). '
+                   'We have therefore disabled it – no more events are sent there.',
+           'tun': 'Check the receiver and enable the webhook again in your account under “Developers”.',
+           'fehler': 'Last error', 'adresse': 'Address', 'knopf': 'Go to webhooks', 'vorschau': 'A webhook was disabled because of errors'},
+}
+
+
+def abgeschaltet_mail(an, name, url, grund, sprache='de'):
+    m = _MAIL.get(sprache, _MAIL['de'])
+    saetze = [m['hallo'].format(name=name), m['satz'].format(url=url, n=FEHL_GRENZE, v=VERSUCHE), m['tun']]
     link = f'{SEITE}/konto#entwickler'
-    text = '\n\n'.join(saetze) + f'\n\nLetzter Fehler: {grund}\n\n{link}\n'
-    mail.senden(an, f'{mail.MARKE}: Webhook abgeschaltet', text,
-                mail.html_mail('Webhook abgeschaltet', saetze, knopf=('Zu den Webhooks', link), details=[('Adresse', url), ('Letzter Fehler', grund)],
-                               vorschau='Ein Webhook wurde wegen Fehlern abgeschaltet'))
+    text = '\n\n'.join(saetze) + f'\n\n{m["fehler"]}: {grund}\n\n{link}\n'
+    mail.senden(an, f'{mail.MARKE}: {m["betreff"]}', text,
+                mail.html_mail(m['betreff'], saetze, knopf=(m['knopf'], link), details=[(m['adresse'], url), (m['fehler'], grund)],
+                               vorschau=m['vorschau'], sprache=sprache), sprache=sprache)
 
 
 def faellige(t=None, maximal=50):

@@ -230,6 +230,8 @@ def test_wiederholungen_exponentiell_abschalten_mit_mail(empf):
     wh = host.get('/api/konto/webhooks').json()['webhooks'][0]
     assert wh['aktiv'] is False and 'HTTP 503' in wh['deaktiviert_grund']
     assert any('Webhook abgeschaltet' in m[1] for m in mails_an(email))
+    webhooks.abgeschaltet_mail('en@example.org', 'Emma', 'https://x.example/h', 'HTTP 503', 'en')
+    assert mails_an('en@example.org')[-1][1] == 'Agora: Webhook disabled' and 'Hello Emma' in mails_an('en@example.org')[-1][2]
     assert db.verbindung().execute('SELECT COUNT(*) FROM webhook_zustellungen').fetchone()[0] == 0
     n = len(empf.anfragen)
     zugang(host, code)

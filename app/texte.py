@@ -56,6 +56,26 @@ def mit_sprache(s):
 
 # ---------------------------------------------------------------- Fehlermeldungen
 FEHLER_EN = {
+    # ==== Block Öffentliche API, Webhooks, Einbetten ====
+    'Ungültige Herkunft.': 'Invalid origin.',
+    'Zum Einbetten mindestens eine Herkunft angeben (z. B. https://beispiel.de).': 'To embed, provide at least one origin (e.g. https://example.com).',
+    'Dieses Meeting darf nicht eingebettet werden.': 'This meeting may not be embedded.',
+    'Die Adresse ist zu lang (höchstens 500 Zeichen).': 'The address is too long (at most 500 characters).',
+    'Ungültige Adresse.': 'Invalid address.',
+    'Die Adresse muss mit https:// beginnen.': 'The address must start with https://.',
+    'Ungültige Adresse (ohne Benutzername, Passwort und #Fragment).': 'Invalid address (no user name, password or #fragment).',
+    'Der Name lässt sich nicht auflösen.': 'The host name can’t be resolved.',
+    'Adressen im eigenen Netz (localhost, private IPs) sind nicht erlaubt.': 'Addresses in the local network (localhost, private IPs) aren’t allowed.',
+    'Webhook nicht gefunden': 'Webhook not found',
+    'aktiv: true oder false.': 'aktiv: true or false.',
+    'art: sofort, geplant oder persoenlich.': 'art: sofort, geplant or persoenlich.',
+    'Der Medienserver antwortet gerade nicht.': 'The media server isn’t responding right now.',
+    'API-Schlüssel fehlt (Authorization: Bearer agora_…).': 'API key missing (Authorization: Bearer agora_…).',
+    'Zu viele Anfragen mit ungültigem Schlüssel – bitte später wieder.': 'Too many requests with an invalid key – please try again later.',
+    'API-Schlüssel ungültig, abgelaufen oder widerrufen.': 'API key invalid, expired or revoked.',
+    'Gültigkeit: 30, 90 oder 365 Tage oder ohne Ablauf (null).': 'Validity: 30, 90 or 365 days or no expiry (null).',
+    'API-Schlüssel nicht gefunden': 'API key not found',
+    # ==== Ende Block ====
     'Admin-Konten lassen sich hier nicht ändern (Liste AGORA_ADMIN_MAILS).': 'Admin accounts can’t be changed here (list AGORA_ADMIN_MAILS).',
     'Adresse und Schlüssel dürfen keine Leerzeichen enthalten.': 'URL and key must not contain spaces.',
     'Aktion: start oder stopp.': 'Action: start or stop.',
@@ -242,6 +262,19 @@ FEHLER_EN = {
 
 # Meldungen mit Werten (f-Strings im Code). Die Gruppen werden übernommen; „unbekannt“ wird übersetzt.
 MUSTER_EN = [
+    # ==== Block Öffentliche API, Webhooks, Einbetten ====
+    (r'Ungültige Herkunft: (.*)', 'Invalid origin: {0}'),
+    (r'Nur die Herkunft angeben, z\. B\. https://beispiel\.de \(ohne Pfad, ohne \*\): (.*)', 'Only give the origin, e.g. https://example.com (no path, no *): {0}'),
+    (r'Herkünfte müssen mit https:// beginnen \(http:// nur für localhost\): (.*)', 'Origins must start with https:// (http:// only for localhost): {0}'),
+    (r'Höchstens (\d+) Herkünfte\.', 'At most {0} origins.'),
+    (r'Höchstens (\d+) Webhooks je Konto\.', 'At most {0} webhooks per account.'),
+    (r'Unbekanntes Feld: (.*)', 'Unknown field: {0}'),
+    (r'Zu viele Anfragen – höchstens (\d+) pro Minute je Schlüssel\.', 'Too many requests – at most {0} per minute per key.'),
+    (r'Diesem API-Schlüssel fehlt das Recht „(.*)“\.', 'This API key lacks the permission “{0}”.'),
+    (r'Höchstens (\d+) API-Schlüssel je Konto – widerrufe zuerst einen alten\.', 'At most {0} API keys per account – revoke an old one first.'),
+    (r'Bitte mindestens ein gültiges Recht wählen: (.*)', 'Please choose at least one valid permission: {0}'),
+    (r'Bitte mindestens ein gültiges Ereignis wählen: (.*)', 'Please choose at least one valid event: {0}'),
+    # ==== Ende Block ====
     (r'Raum-Nummer: 0 bis (\d+)\.', 'Room number: 0 to {0}.'),
     (r'Dateien vom Typ „\.(.*)“ sind hier nicht erlaubt\.', 'Files of type “.{0}” aren’t allowed here.'),
     (r'Die Datei wurde abgelehnt: Virenprüfung meldet „(.*)“\.', 'The file was rejected: the virus scan reports “{0}”.'),

@@ -365,5 +365,14 @@ export const de = {
   'wb.zeichnetToast': '{name} zeichnet auf dem Whiteboard.', 'wb.leer': 'Das Whiteboard ist noch leer.',
   'wb.textEingabe': 'Text', 'wb.textPlatzhalter': 'Text eingeben …', 'wb.notizText': 'Text des Notizzettels', 'wb.notizPlatzhalter': 'Notiz …',
   'zv.whiteboard': 'Whiteboard', 'zv.whiteboardPng': 'Als PNG speichern',
+  'notizen.tab': 'Notizen', 'notizen.label': 'Gemeinsame Notizen', 'notizen.neu': 'neue Änderungen',
+  'notizen.platzhalter': 'Gemeinsame Notizen – alle können mitschreiben.\n\n# Überschrift\n- Punkt\n- [ ] Aufgabe\n**fett**',
+  'notizen.vorschau': 'Vorschau', 'notizen.bearbeiten': 'Bearbeiten', 'notizen.export': 'Als .md', 'notizen.leer': 'Noch keine Notizen.',
+  'notizen.gespeichert': 'Gespeichert', 'notizen.zuletzt': 'Zuletzt geändert von {name} um {zeit}',
+  'notizen.status.ungespeichert': 'Nicht gespeichert …', 'notizen.status.speichert': 'Wird gespeichert …',
+  'notizen.status.fehler': 'Speichern fehlgeschlagen', 'notizen.status.konflikt': 'Konflikt – bitte wählen',
+  'notizen.konflikt': '{name} hat gleichzeitig dieselbe Stelle geändert. Welche Fassung soll gelten?',
+  'notizen.meineBehalten': 'Meine Fassung behalten', 'notizen.derenUebernehmen': 'Neue Fassung übernehmen',
+  'zv.notizen': 'Notizen', 'zv.notizenMd': 'Als .md speichern',
   // ==== Ende Block „Zusammenarbeit“ ====
 };

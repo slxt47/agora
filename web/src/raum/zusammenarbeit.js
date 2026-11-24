@@ -4,6 +4,7 @@
 import { $, h } from '../common.js';
 import { t } from '../i18n.js';
 import { Whiteboard } from './whiteboard.js';
+import { Notizen } from './notizen.js';
 import './zusammenarbeit.css';
 
 export class Zusammenarbeit {
@@ -11,6 +12,7 @@ export class Zusammenarbeit {
     this.m = m;
     this.module = new Map();          // Reiter-Name → Modul {typen:[…], laden, ereignis, zeigen, rolleGeaendert}
     this.whiteboard = new Whiteboard(m);
+    this.anmelden('notizen', new Notizen(m, this.panelAnlegen('notizen', t('notizen.tab'))));
   }
 
   get panels() { return [...this.module.keys()]; }

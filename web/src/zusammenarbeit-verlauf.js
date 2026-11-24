@@ -1,8 +1,10 @@
-// Meeting-Verlauf (Konto): gespeicherte Inhalte aus „Zusammenarbeit“ – Whiteboard als Bild (mit PNG-Download).
+// Meeting-Verlauf (Konto): gespeicherte Inhalte aus „Zusammenarbeit“ – Whiteboard als Bild (mit PNG-Download),
+// Notizen (Vorschau + .md).
 // Nur bei Räumen mit „Chat speichern“; die Daten kommen aus GET /api/verlauf/{id}/inhalt.
 import { h } from './common.js';
 import { t } from './i18n.js';
 import { exportCanvas } from './raum/whiteboard-zeichnen.js';
+import { bloeckeDom } from './raum/notizen.js';
 import './zusammenarbeit-verlauf.css';
 
 const canvasNeu = (w, hh) => Object.assign(document.createElement('canvas'), { width: w, height: hh });
@@ -25,5 +27,10 @@ export function zusammenarbeitVerlauf(inhalt, r, m) {
         t('zv.whiteboardPng'));
       inhalt.append(h('h4', {}, t('zv.whiteboard')), c, h('div', { class: 'knoepfe' }, laden));
     }
+  }
+  if (r.notizen) {
+    const laden = h('button', { type: 'button', class: 'btn klein', onclick: () => blobSpeichern(new Blob([`${r.notizen}\n`], { type: 'text/markdown;charset=utf-8' }), `notizen-${m.code}.md`) },
+      t('zv.notizenMd'));
+    inhalt.append(h('h4', {}, t('zv.notizen')), h('div', { class: 'verlauf-notizen' }, bloeckeDom(r.notizen)), h('div', { class: 'knoepfe' }, laden));
   }
 }

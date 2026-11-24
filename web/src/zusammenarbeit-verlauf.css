@@ -1,2 +1,5 @@
 /* Meeting-Verlauf: gespeicherte Inhalte aus „Zusammenarbeit“ */
 .verlauf-whiteboard { width: 100%; height: auto; max-height: 60vh; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); background: #fbfaf7; }
+.verlauf-notizen { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); overflow-wrap: anywhere; }
+.verlauf-notizen h3, .verlauf-notizen h4, .verlauf-notizen h5 { margin: 10px 0 4px; }
+.verlauf-notizen li.aufgabe { list-style: none; }

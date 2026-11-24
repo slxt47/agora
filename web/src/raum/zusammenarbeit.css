@@ -1,7 +1,8 @@
 /* Agora – Zusammenarbeit: Whiteboard über der Bühne und weitere Reiter der Seitenleiste (Notizen, Fragen, Dateien). */
 
 /* Mehr Reiter in der Seitenleiste: waagrecht scrollbar statt gequetscht */
-.leiste-kopf .umschalter { grid-auto-columns: minmax(max-content, 1fr); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.seitenleiste { grid-template-columns: minmax(0, 1fr); }
+.leiste-kopf .umschalter { min-width: 0; grid-auto-columns: minmax(max-content, 1fr); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
 .leiste-kopf .umschalter::-webkit-scrollbar { display: none; }
 .leiste-kopf .umschalter button { padding: 0 10px; white-space: nowrap; }
 
@@ -52,3 +53,27 @@
   .wb-knopf, .wb-farbe, .wb-breite { min-width: 44px; height: 44px; }
 }
 
+
+/* ---------------------------------------------------------------- Notizen */
+.notizen-flaeche { display: flex; flex-direction: column; gap: 8px; }
+.notizen-feld { flex: 1; width: 100%; min-height: 240px; resize: none; padding: 12px; border-radius: 12px; border: 1px solid var(--m-linie);
+  background: var(--m-flaeche-2); color: var(--m-text); font: .9375rem/1.5 var(--mono); tab-size: 2; }
+.notizen-feld:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.notizen-feld[hidden], .notizen-vorschau[hidden], .notizen-konflikt[hidden] { display: none; }
+.notizen-vorschau { padding: 4px 4px 12px; overflow-wrap: anywhere; font-size: .9375rem; line-height: 1.5; }
+.notizen-vorschau h3, .notizen-vorschau h4, .notizen-vorschau h5 { margin: 14px 0 4px; font-family: var(--display); }
+.notizen-vorschau h3 { font-size: 1.2rem; } .notizen-vorschau h4 { font-size: 1.05rem; } .notizen-vorschau h5 { font-size: .95rem; }
+.notizen-vorschau p { margin: 6px 0; }
+.notizen-vorschau ul { margin: 6px 0; padding-left: 20px; }
+.notizen-vorschau li.aufgabe { list-style: none; }
+.notizen-vorschau li.erledigt { color: var(--m-sec); text-decoration: line-through; }
+.notizen-vorschau .kasten { margin-right: 6px; }
+.notizen-vorschau code { font: .875rem var(--mono); padding: 1px 5px; border-radius: 6px; background: var(--m-flaeche-2); }
+.notizen-konflikt { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, var(--m-flaeche)); font-size: .875rem; }
+.notizen-konflikt .knoepfe .btn { flex: 1 1 140px; }
+.notizen-fuss { display: grid; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--m-linie); }
+.notizen-fuss .knoepfe { justify-content: flex-end; }
+.notizen-status { color: var(--m-sec); font-size: .8125rem; }
+.notizen-status[data-art="konflikt"], .notizen-status[data-art="fehler"] { color: var(--warn); font-weight: 600; }
+.umschalter button.neu::after { content: ""; position: absolute; top: 8px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }

@@ -329,7 +329,7 @@ Verbundener (Haupt- und Breakout-Räume, minütlich und bei jedem Beitritt gemes
 | Methode + Pfad | Antwort |
 |---|---|
 | GET `/api/verlauf` | `{meetings:[eintrag]}` – nur beendete, neueste zuerst, max. 100 |
-| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt]}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
+| GET `/api/verlauf/{id}/inhalt` | `{meeting, nachrichten:[nachricht], umfragen:[umfrage], whiteboard:[objekt], notizen}` – nur diese Sitzung (öffentliche + eigene private Nachrichten); 404 ohne gespeicherten Chat. Weitere Felder aus „Zusammenarbeit“ siehe unten (Haken `verlauf.INHALT`) |
 | DELETE `/api/verlauf/{id}` | `{ok:true}` |
 
 Server-Haken in `raeume.py` für Module: `BEIM_START`, `BEIM_BEITRITT`, `BEI_ZAEHLUNG(raum, anzahl)` (neben `BEIM_ENDE`).
@@ -365,3 +365,16 @@ Pakete (Topic `whiteboard`, nur vom Server – Clients verwerfen Pakete mit Abse
 `{typ:"neu_laden", seq, von, von_name}` (Paket wäre > 14 KB) · `{typ:"geleert", seq, von_name}` · `{typ:"gesperrt", an, von_name}` ·
 `{typ:"zeigen", von, von_name}`. Passt `von_seq` nicht zu `seq + 1` des Clients, lädt er den Stand per GET. Rückgängig/Wiederholen
 macht der Client (nur eigene Schritte, als Gegen-Operation).
+
+### Notizen
+Ein Text (Markdown light: `#`-Überschriften, `-`/`*`-Listen, `- [ ]`/`- [x]` Aufgaben, `**fett**`, `` `code` ``) je Meeting.
+Verfahren: letzter Schreiber gewinnt mit Versionsprüfung ([ADR 0004](adr/0004-notizen-ohne-ot.md)) – kein OT.
+
+| Methode + Pfad | Wer | Body | Antwort |
+|---|---|---|---|
+| GET `/api/raeume/{code}/notizen` | alle | – | `{text, version, geaendert, von_name}` (leer: `version` 0) |
+| PUT `/api/raeume/{code}/notizen` | alle | `{text (≤ 100 000 Zeichen), version}` (Version, auf der die Änderung beruht) | neuer Stand; 409 `{fehler, konflikt:{text, version, geaendert, von_name}}` wenn inzwischen geändert; 413 zu lang |
+
+60 Speichervorgänge je Minute und Person. Ereignis (Topic `agora`): `{typ:"notizen", version, von, von_name, text?}` – `text` fehlt, wenn
+das Paket zu groß wäre (dann GET). Der Client führt bei 409 bzw. einem Ereignis während eigener ungespeicherter Änderungen beide
+Fassungen zeilenweise zusammen (3-Wege); überschneiden sie sich, wählt die Person „Meine Fassung behalten“ oder „Neue übernehmen“.

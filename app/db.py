@@ -348,6 +348,19 @@ SCHEMA = [
     );
     CREATE INDEX whiteboard_ops_raum ON whiteboard_ops(raum_id, sitzung, id);
     """,
+    # Version 17: Gemeinsame Notizen – ein Text je Meeting, Version für die optimistische Sperre (letzter Schreiber gewinnt,
+    # Konflikt → 409). Mit dem Meeting gelöscht, außer chat_speichern.
+    """
+    CREATE TABLE notizen (
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      geaendert INTEGER NOT NULL,
+      von_name TEXT NOT NULL,          -- wer zuletzt gespeichert hat (Anzeige „zuletzt geändert von“)
+      PRIMARY KEY (raum_id, sitzung)
+    );
+    """,
 ]
 
 

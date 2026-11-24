@@ -45,6 +45,7 @@ def beobachten(page, wer):
     page.on('pageerror', lambda e: fehler.append(f'[{wer}] pageerror: {e}'))
     page.on('console', lambda m: m.type == 'error' and not BEKANNT(m.text) and fehler.append(f'[{wer}] console: {m.text}'))
     page.on('requestfailed', lambda r: print(f'[{wer}] Anfrage fehlgeschlagen: {r.url[:120]} {r.failure}'))
+    page.on('response', lambda r: r.status >= 400 and print(f'[{wer}] HTTP {r.status} {r.request.method} {r.url[:120]}'))
 
 with sync_playwright() as p:
     br = p.chromium.launch(args=['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'])
@@ -321,6 +322,24 @@ with sync_playwright() as p:
         hp.screenshot(path=OUT + '17h-host-whiteboard-gast.png')
         gp.click('.wb [data-aktion=schliessen]'); hp.click('.wb [data-aktion=schliessen]')
         print('Whiteboard: Host zeichnet, Gast sieht es; Sperre wirkt; Gast zeichnet, Host sieht es')
+        # ==== Zusammenarbeit: Notizen – Host schreibt, Gast ergänzt, beide sehen den gemeinsamen Stand ====
+        hp.click('#s-chat'); hp.click('#tab-notizen')
+        hp.fill('#panel-notizen textarea', '# Agenda\n- Punkt A\n- [ ] Protokoll verschicken')
+        hp.wait_for_selector('#panel-notizen .notizen-status[data-art="gespeichert"]', timeout=10000)
+        gp.click('#s-chat'); gp.click('#tab-notizen')
+        gp.wait_for_function("() => (document.querySelector('#panel-notizen textarea')?.value || '').includes('Punkt A')", timeout=10000)
+        gp.click('#panel-notizen textarea'); gp.keyboard.press('Control+End')
+        gp.keyboard.type('\n- Punkt B von **Anna**')
+        hp.wait_for_function("() => document.querySelector('#panel-notizen textarea').value.includes('Punkt B von')", timeout=10000)
+        gp.wait_for_selector('#panel-notizen .notizen-status[data-art="gespeichert"]', timeout=10000)
+        hp.click('#panel-notizen .notizen-fuss button:has-text("Vorschau")')
+        hp.wait_for_selector('#panel-notizen .notizen-vorschau li b:has-text("Anna")')
+        print('Notizen (Host):', hp.input_value('#panel-notizen textarea').replace('\n', ' | '))
+        time.sleep(0.3)
+        hp.screenshot(path=OUT + '17i-host-notizen.png')
+        gp.screenshot(path=OUT + '17j-gast-notizen.png')
+        hp.click('#panel-notizen .notizen-fuss button:has-text("Bearbeiten")')
+        gp.click('#leiste-zu')
         # Breakout-Räume: Host legt 2 Räume an (automatisch, Timer), öffnet; Gast landet im Breakout-Raum und ruft Hilfe;
         # Host besucht ihn über den Hinweis, schickt eine Nachricht an alle Räume und schließt (60 s Countdown) → alle zurück
         def warten_bis(seite, sel, anzahl, sekunden=20):

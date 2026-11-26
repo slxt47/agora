@@ -354,7 +354,7 @@ export class Meeting {
     const vorher = this.aufnahmeInfo;
     this.aufnahmeInfo = info && typeof info === 'object' ? info : (info ? { von_name: '' } : null);
     this.kopfAktualisieren();
-    if (this.aufnahmeInfo && !vorher && !this.rekorder?.laeuft && !this.aufnahmeHinweisGezeigt) {
+    if (this.aufnahmeInfo && !vorher && !this.rekorder?.laeuft && !this.eigeneAufnahmeStartet && !this.aufnahmeHinweisGezeigt) {
       this.aufnahmeHinweisGezeigt = true;
       bestaetigen(t('aufnahme.hinweisTitel'), t('aufnahme.hinweisText', { name: this.aufnahmeInfo.von_name || t('rolle.host') }),
         { ja: t('aufnahme.verstanden'), nein: t('meeting.verlassen') }).then((ok) => { if (!ok) this.verlassen(); });
@@ -592,7 +592,9 @@ export class Meeting {
         resolution: { width: 1920, height: 1080, frameRate: 15 },
       });
     } catch (e) {
-      if (e?.name !== 'NotAllowedError' && e?.name !== 'AbortError') toast(t('meeting.teilenFehler', { text: e?.message || '' }), 'err');
+      // NotFoundError: Firefox ohne Quelle (z. B. Wayland ohne Desktop-Portal) – sonst käme eine englische Browser-Meldung
+      if (e?.name === 'NotFoundError') toast(t('meeting.teilenKeineQuelle'), 'err');
+      else if (e?.name !== 'NotAllowedError' && e?.name !== 'AbortError') toast(t('meeting.teilenFehler', { text: e?.message || '' }), 'err');
     }
     this.steuerAktualisieren();
   }
@@ -837,6 +839,9 @@ export class Meeting {
     const ok = await bestaetigen(t('aufnahme.startTitel'), t('aufnahme.startText') + (this.ich ? '' : ' ' + t('aufnahme.startOhneKonto')), { ja: t('aufnahme.starten') });
     if (!ok) return;
     this.rekorder = new Rekorder(this);
+    // Der Server meldet „Aufnahme läuft“ an alle, oft bevor starten() fertig ist (Firefox/Safari brauchen länger):
+    // der eigene Hinweis „Dieses Meeting wird aufgezeichnet“ darf dann nicht beim Aufnehmenden selbst erscheinen.
+    this.eigeneAufnahmeStartet = true;
     try {
       await this.api(`/api/raeume/${this.code}/aufnahme`, { methode: 'POST', json: { aktiv: true } });
       await this.rekorder.starten();
@@ -846,6 +851,8 @@ export class Meeting {
       this.rekorder = null;
       this.api(`/api/raeume/${this.code}/aufnahme`, { methode: 'POST', json: { aktiv: false } }).catch(() => {});
       toast(e instanceof ApiFehler ? e.message : t('aufnahme.startFehler', { text: e.message }), 'err');
+    } finally {
+      this.eigeneAufnahmeStartet = false;
     }
   }
 

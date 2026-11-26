@@ -51,6 +51,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Deutsch und Englisch: Schalter DE/EN in der Kopfzeile (im Browser gemerkt), für Angemeldete die Sprache aus dem Profil,
     sonst die Browsersprache. Nur das aktive Wörterbuch wird geladen; Datum/Uhrzeit per `Intl`. Fehlermeldungen der API und
     Mails ebenfalls zweisprachig; Impressum/Datenschutz bleiben deutsch (Hinweis „(German)“). Siehe [`docs/adr/0006-sprachen.md`](docs/adr/0006-sprachen.md).
+- **Browser:** Chrome/Edge, Firefox und Safari; automatisch geprüft mit Chromium, Firefox und WebKit – Ergebnis je
+  Funktion und was nur von Hand geht (iOS, echte Kamera, Safari-E2EE): [`docs/BROWSER.md`](docs/BROWSER.md).
 - **App (PWA) und Mobil:**
   - installierbar (Knopf auf der Startseite, auf iPhone/iPad Anleitung „Zum Home-Bildschirm“), Verknüpfungen „Neues Meeting“ und „Beitreten“
   - Service Worker cacht nur App-Hülle und statische Dateien (versioniert; nie `/api`, `/rtc`, Medien oder MediaPipe),
@@ -167,6 +169,7 @@ docker compose up -d --build
 docker build --target test -t agora:test . && docker run --rm agora:test        # 41+ API-Tests
 docker run --rm -v "$PWD/web:/web" -w /web node:22.23.5-alpine sh -c "npm ci --ignore-scripts && npm test"
 sh tests/e2e/lauf.sh       # Browser-E2E: echte LiveKit, zwei Browser mit Kamera-Attrappe
+BROWSER=firefox sh tests/e2e/lauf.sh   # Browser-Matrix (firefox|webkit|chromium), Ergebnis in docs/BROWSER.md
 sh tests/egress/lauf.sh    # Server-Aufnahme + Livestream gegen eigenen Wegwerf-Stapel (Redis, LiveKit, Egress, App)
 sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```

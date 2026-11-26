@@ -133,7 +133,7 @@ export const en = {
   'meeting.duTeilst': 'You’re sharing your screen', 'meeting.entstummenGesperrt': 'The host hasn’t allowed unmuting right now. Raise your hand to speak up.',
   'meeting.sparmodusKamera': 'Note: in “Audio only” data saver mode the others see you, but you don’t see them.',
   'meeting.neuesGeraet': 'New device: {name}', 'meeting.verwenden': 'Use', 'meeting.teiltSchon': '{name} is sharing their screen. Only one person can share at a time.',
-  'meeting.teilenFehler': 'Screen sharing didn’t work. {text}', 'meeting.handFehler': 'Raising your hand didn’t work.',
+  'meeting.teilenFehler': 'Screen sharing didn’t work. {text}', 'meeting.teilenKeineQuelle': 'Screen sharing didn’t work: the browser found no screen or window to share. On Linux with Wayland, Firefox needs the desktop portal (xdg-desktop-portal) for this.', 'meeting.handFehler': 'Raising your hand didn’t work.',
   'meeting.bildImBild': 'Picture in picture', 'meeting.linkKopieren': 'Copy invite link', 'meeting.linkKopiert': 'Invite link copied.',
   'meeting.tastenHinweis': 'Shortcuts don’t work while you’re typing in a field.', 'meeting.selbstAus': 'Self view hidden – the others still see you.',
   'meeting.selbstAn': 'Self view shown again.', 'meeting.rueckgaengig': 'Undo', 'meeting.keinVideo': 'There’s no video for picture in picture right now.',

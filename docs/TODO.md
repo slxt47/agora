@@ -194,7 +194,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 PWA (installierbar)
 - [ ] 🟢 Desktop-App (Electron/Tauri) mit systemweiten Tastenkürzeln — *noch offen*
 - [ ] 🟢 Mobile Apps (iOS/Android oder React Native/Flutter) — *noch offen (PWA vorhanden)*
-- [ ] 🟢 Browser-Kompatibilitätsmatrix testen (insbesondere Safari/iOS) — *automatisch nur Chromium getestet; Safari/iOS-Praxistest offen*
+- [x] 🟢 Browser-Kompatibilitätsmatrix testen (insbesondere Safari/iOS) — *Chromium, Firefox, WebKit automatisch (`BROWSER=… sh tests/e2e/lauf.sh`, [`BROWSER.md`](BROWSER.md)); echter Safari/iOS-Praxistest (Mac/iPhone) bleibt Handarbeit*
 - [x] 🟢 Einbettbares SDK / iFrame / Widget
 
 ---

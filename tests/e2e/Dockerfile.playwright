@@ -1,2 +1,5 @@
 FROM mcr.microsoft.com/playwright/python:v1.64.1-noble
 RUN pip install --break-system-packages --no-cache-dir playwright==1.64.1
+# Browser-Matrix (BROWSER=firefox|webkit): das Basis-Image bringt Chromium, Firefox und WebKit (auch arm64) schon mit;
+# der Aufruf stellt sicher, dass genau die zu Playwright 1.64.1 passenden Builds da sind (sonst lädt er sie nach).
+RUN playwright install chromium firefox webkit

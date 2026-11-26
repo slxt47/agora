@@ -133,7 +133,7 @@ export const de = {
   'meeting.duTeilst': 'Du teilst deinen Bildschirm', 'meeting.entstummenGesperrt': 'Der Host hat das Entstummen gerade nicht erlaubt. Heb die Hand, um dich zu melden.',
   'meeting.sparmodusKamera': 'Hinweis: Im Datensparmodus „Nur Ton“ sehen die anderen dein Bild, du ihres aber nicht.',
   'meeting.neuesGeraet': 'Neues Gerät: {name}', 'meeting.verwenden': 'Verwenden', 'meeting.teiltSchon': '{name} teilt gerade den Bildschirm. Es kann immer nur eine Person teilen.',
-  'meeting.teilenFehler': 'Bildschirm teilen ging nicht. {text}', 'meeting.handFehler': 'Hand heben hat nicht geklappt.',
+  'meeting.teilenFehler': 'Bildschirm teilen ging nicht. {text}', 'meeting.teilenKeineQuelle': 'Bildschirm teilen ging nicht: Der Browser hat keinen Bildschirm und kein Fenster zum Teilen gefunden. Unter Linux mit Wayland braucht Firefox dafür das Desktop-Portal (xdg-desktop-portal).', 'meeting.handFehler': 'Hand heben hat nicht geklappt.',
   'meeting.bildImBild': 'Bild im Bild', 'meeting.linkKopieren': 'Einladungslink kopieren', 'meeting.linkKopiert': 'Einladungslink kopiert.',
   'meeting.tastenHinweis': 'Die Kürzel wirken nicht, während du in ein Feld tippst.', 'meeting.selbstAus': 'Eigenes Bild ausgeblendet – die anderen sehen dich weiterhin.',
   'meeting.selbstAn': 'Eigenes Bild wird wieder angezeigt.', 'meeting.rueckgaengig': 'Rückgängig', 'meeting.keinVideo': 'Gerade gibt es kein Video für Bild im Bild.',

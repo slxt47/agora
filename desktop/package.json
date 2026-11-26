@@ -1,0 +1,106 @@
+{
+  "name": "agora-desktop",
+  "productName": "Agora",
+  "version": "1.0.0",
+  "description": "Agora – Videokonferenzen: Desktop-App (Electron-Hülle um agora.slxt.dev)",
+  "license": "MIT",
+  "author": "slxt <fneubauer@slxt.org>",
+  "homepage": "https://agora.slxt.dev",
+  "private": true,
+  "main": "src/main.js",
+  "desktopName": "agora.desktop",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "bauen:linux": "electron-builder --linux AppImage deb --arm64 --x64 --publish never",
+    "bauen:win": "electron-builder --win nsis zip --x64 --arm64 --publish never",
+    "bauen:mac": "electron-builder --mac dmg zip --x64 --arm64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.3.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "dev.slxt.agora",
+    "productName": "Agora",
+    "copyright": "© slxt",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "icon": "src/icon.png",
+    "protocols": [
+      {
+        "name": "Agora-Meeting",
+        "schemes": [
+          "agora"
+        ]
+      }
+    ],
+    "publish": null,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network;VideoConference",
+      "maintainer": "slxt <fneubauer@slxt.org>",
+      "synopsis": "Videokonferenzen im Browser – als Desktop-App",
+      "executableName": "agora",
+      "artifactName": "Agora-${version}-linux-${arch}.${ext}",
+      "syncDesktopName": true
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2t64 | libasound2"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "artifactName": "Agora-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.business",
+      "identity": null,
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "Agora braucht die Kamera für dein Video im Meeting.",
+        "NSMicrophoneUsageDescription": "Agora braucht das Mikrofon, damit dich die anderen im Meeting hören."
+      },
+      "artifactName": "Agora-${version}-mac-${arch}.${ext}"
+    }
+  }
+}

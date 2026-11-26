@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:">
+  <title>Bildschirm teilen</title>
+  <link rel="stylesheet" href="auswahl.css">
+</head>
+<body>
+  <h1>Was möchtest du teilen?</h1>
+  <div class="reiter" role="tablist">
+    <button type="button" role="tab" id="r-bildschirm" aria-selected="true">Bildschirm</button>
+    <button type="button" role="tab" id="r-fenster" aria-selected="false">Fenster</button>
+  </div>
+  <ul id="liste" role="listbox" aria-label="Quellen"></ul>
+  <div class="fuss">
+    <button type="button" id="abbrechen">Abbrechen</button>
+    <button type="button" id="teilen" class="primaer" disabled>Teilen</button>
+  </div>
+  <script src="auswahl.js"></script>
+</body>
+</html>

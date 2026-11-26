@@ -112,7 +112,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Optimierung für Text vs. Video (Framerate/Auflösung)
 - [x] 🟡 Nur ein Präsentator gleichzeitig (Host kann Mehrfach-Freigabe erlauben)
 - [x] 🟡 Hinweis-Banner „Du teilst deinen Bildschirm“ + Stop-Button
-- [ ] 🟢 Fernsteuerung (Remote Control) — *im Browser nicht möglich (bräuchte Desktop-App)*
+- [ ] 🟢 Fernsteuerung (Remote Control) — *im Browser nicht möglich; die Desktop-App (`desktop/`) wäre die Grundlage, Fernsteuerung selbst noch offen*
 - [x] 🟢 Anmerkungen / Zeichnen auf geteiltem Bildschirm
 
 ---
@@ -192,7 +192,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 
 - [x] 🔴 Web-App (Chrome, Firefox, Safari, Edge)
 - [x] 🟡 PWA (installierbar)
-- [ ] 🟢 Desktop-App (Electron/Tauri) mit systemweiten Tastenkürzeln — *noch offen*
+- [x] 🟢 Desktop-App (Electron/Tauri) mit systemweiten Tastenkürzeln — *Electron in `desktop/`, Linux-Pakete lokal gebaut + Smoke-Test; Windows/macOS nur im Workflow, unsigniert (Zertifikate: Florian), siehe [`DESKTOP.md`](DESKTOP.md)*
 - [ ] 🟢 Mobile Apps (iOS/Android oder React Native/Flutter) — *noch offen (PWA vorhanden)*
 - [x] 🟢 Browser-Kompatibilitätsmatrix testen (insbesondere Safari/iOS) — *Chromium, Firefox, WebKit automatisch (`BROWSER=… sh tests/e2e/lauf.sh`, [`BROWSER.md`](BROWSER.md)); echter Safari/iOS-Praxistest (Mac/iPhone) bleibt Handarbeit*
 - [x] 🟢 Einbettbares SDK / iFrame / Widget

@@ -1,0 +1,49 @@
+# Desktop-App (Electron, desktop/): unsignierte Pakete für Windows, macOS und Linux, nur bei Tags desktop-v*.
+# Ergebnis als Artefakte des Laufs (kein GitHub-Release, kein Auto-Update). Signieren: siehe docs/DESKTOP.md.
+name: Desktop
+on:
+  push:
+    tags: ['desktop-v*']
+permissions:
+  contents: read
+jobs:
+  bauen:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, ziel: linux }
+          - { os: windows-2025, ziel: win }
+          - { os: macos-15, ziel: mac }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run: { working-directory: desktop }
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'      # unsigniert: keine Zertifikate suchen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: desktop/package-lock.json }
+      - name: Abhängigkeiten
+        run: npm ci --no-audit --no-fund
+      - name: Tests
+        run: npm test
+      - name: Version aus dem Tag prüfen
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#desktop-v}"
+          ver="$(node -p "require('./package.json').version")"
+          [ "$tag" = "$ver" ] || { echo "Tag $tag passt nicht zu package.json $ver"; exit 1; }
+      - name: Bauen
+        run: npm run bauen:${{ matrix.ziel }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agora-desktop-${{ matrix.ziel }}
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+          if-no-files-found: error
+          retention-days: 30

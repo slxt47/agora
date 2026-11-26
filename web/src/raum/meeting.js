@@ -30,6 +30,7 @@ import { AudioModi } from './audio-modi.js';
 import { Anmerkungen } from './anmerkungen.js';
 import './anmerkungen.css';
 import { linkMitSchluessel } from '../e2ee-schluessel.js';
+import { desktopKuerzel } from './desktop.js';
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -397,6 +398,7 @@ export class Meeting {
     $('#s-verlassen').addEventListener('click', (e) => this.verlassenMenue(e.currentTarget));
     if (!navigator.mediaDevices?.getDisplayMedia) $('#s-teilen').hidden = true;
     document.addEventListener('keydown', (e) => this.taste(e));
+    desktopKuerzel((k) => this.tastenAktion(k));          // Desktop-App: systemweite Kürzel (nur Mikro, Kamera, Hand)
     this.steuerAktualisieren();
   }
 
@@ -773,14 +775,21 @@ export class Meeting {
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || !this.room) return;
     const ziel = e.target;
     if (ziel.closest?.('input, textarea, select, [contenteditable="true"], dialog[open]')) { if (e.key === 'Escape' && ziel.closest('#seitenleiste')) this.leisteSchliessen(); return; }
-    const k = e.key.toLowerCase();
+    if (!e.repeat && this.tastenAktion(e.key.toLowerCase())) e.preventDefault();
+  }
+
+  /** Aktion zu einer Taste (Tastatur oder systemweites Kürzel der Desktop-App); true, wenn es eine gab. */
+  tastenAktion(k) {
+    if (!this.room) return false;
     const aktionen = {
       m: () => this.micUmschalten(), v: () => this.kameraUmschalten(), h: () => this.handUmschalten(), c: () => this.leisteUmschalten('chat'),
       p: () => this.leisteUmschalten('leute'), s: () => !$('#s-teilen').disabled && !$('#s-teilen').hidden && this.teilenUmschalten(),
       g: () => this.buehne.ansichtSetzen(this.buehne.effektiveAnsicht() === 'galerie' ? 'sprecher' : 'galerie'), f: () => this.vollbild(), '?': () => this.hilfe(),
       escape: () => this.leisteOffen && this.leisteSchliessen(),
     };
-    if (aktionen[k] && !e.repeat) { e.preventDefault(); aktionen[k](); }
+    if (!Object.hasOwn(aktionen, k)) return false;
+    aktionen[k]();
+    return true;
   }
 
   vollbild() {

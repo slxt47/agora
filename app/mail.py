@@ -201,3 +201,15 @@ def erinnerung_mail(an, name, titel, link, wann, minuten, ist_host, kalender=Non
     senden(an, tx(s, 'erinnerung.betreff', titel=titel, n=minuten), text,
            html_mail(tx(s, 'erinnerung.titel'), saetze, knopf=knopf, details=zeilen, hinweis=hinweis,
                      vorschau=tx(s, 'erinnerung.vorschau', titel=titel, n=minuten), links=links, sprache=s), sprache=s)
+
+
+# ---------------------------------------------------------------- Organisationen (orgs.py)
+def org_einladung_mail(an, von_name, org_name, link, sprache='de'):
+    """Einladung in eine Organisation – Sprache der einladenden Seite."""
+    s = sprache
+    saetze = [tx(s, 'org.satz', von=von_name, org=org_name), tx(s, 'org.satz2')]
+    hinweis = tx(s, 'org.hinweis')
+    text = '\n'.join(saetze) + f'\n\n{link}\n\n{hinweis}\n'
+    senden(an, tx(s, 'org.betreff', org=org_name), text,
+           html_mail(tx(s, 'org.titel'), saetze, knopf=(tx(s, 'org.knopf'), link), hinweis=hinweis,
+                     vorschau=tx(s, 'org.vorschau', von=von_name, org=org_name), sprache=s), sprache=s)

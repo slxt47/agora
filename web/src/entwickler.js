@@ -33,7 +33,8 @@ async function schluesselLaden() {
           h('span', { class: 'name' }, k.name),
           h('span', { class: 'info mono' }, `${k.anfang}…`),
           h('span', { class: 'info' }, zeilen.join(' · ')))),
-      h('div', { class: 'zeile' }, k.rechte.map((r) => h('span', { class: 'marker' }, rechtText(r)))),
+      h('div', { class: 'zeile' }, k.org ? h('span', { class: 'marker ok' }, t('dev.orgMarker', { name: k.org.name })) : null,
+        k.rechte.map((r) => h('span', { class: 'marker' }, rechtText(r)))),
       h('div', { class: 'aktionen' }, knopf(t('dev.widerrufen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: async (e) => {
         const el = e.currentTarget;
         if (!await bestaetigen(t('dev.widerrufenTitel'), t('dev.widerrufenText', { name: k.name }), { ja: t('dev.widerrufen'), gefahr: true })) return;
@@ -42,7 +43,9 @@ async function schluesselLaden() {
   }
 }
 
-function neuDialog() {
+async function neuDialog() {
+  // Organisationen, in denen ich owner/admin bin: Schlüssel kann auch nur für eine davon gelten (ohne Webhooks)
+  const orgs = await api('/api/orgs').then((d) => d.orgs.filter((o) => o.rolle !== 'mitglied')).catch(() => []);
   const { inhalt, schliessen } = blatt(t('dev.apiNeuTitel'), { onclose: schluesselLaden });
   const st = statusFeld();
   const f = h('form', { class: 'formular', novalidate: true },
@@ -52,6 +55,9 @@ function neuDialog() {
       API_RECHTE.map((r) => h('label', { class: 'dev-recht' },
         h('input', { type: 'checkbox', name: 'recht', value: r, checked: r === 'meetings:lesen' }),
         h('span', {}, h('code', {}, r), h('small', {}, rechtText(r)))))),
+    orgs.length ? h('label', { class: 'feld' }, h('span', {}, t('dev.feldBereich')),
+      h('select', { name: 'org' }, [['', t('dev.bereichKonto')], ...orgs.map((o) => [o.slug, o.name])].map(([w, text]) => h('option', { value: w }, text))),
+      h('small', {}, t('dev.bereichHinweis'))) : null,
     h('label', { class: 'feld' }, h('span', {}, t('dev.feldGueltig')),
       h('select', { name: 'gueltig' }, [['', t('dev.ohneAblauf')], ['30', t('dev.tage', { n: 30 })], ['90', t('dev.tage', { n: 90 })], ['365', t('dev.tage', { n: 365 })]]
         .map(([w, text]) => h('option', { value: w, selected: w === '90' }, text)))),
@@ -68,7 +74,7 @@ function neuDialog() {
     if (!rechte.length) { status(st, t('dev.rechteFehlen'), 'err'); return; }
     beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
       const r = await api('/api/konto/api-schluessel', { methode: 'POST',
-        json: { name: f.name.value.trim(), rechte, gueltig_tage: f.gueltig.value ? Number(f.gueltig.value) : null } });
+        json: { name: f.name.value.trim(), rechte, gueltig_tage: f.gueltig.value ? Number(f.gueltig.value) : null, ...(f.org?.value ? { org: f.org.value } : {}) } });
       geheimZeigen(inhalt, schliessen, r.token, t('dev.apiEinmal'),
         `curl -H "Authorization: Bearer ${r.token}" ${location.origin}/api/v1/meetings`);
     }, st);

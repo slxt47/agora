@@ -24,6 +24,7 @@ def zustellbar(e):
 FARBE_RE = re.compile(r'^#[0-9a-f]{6}$')
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
 EXPORT = []                   # f(benutzer) → dict, wird in den Datenexport übernommen
+VOR_LOESCHEN = []             # async f(benutzer) – vor dem Löschen eines Kontos (Organisationen: Daten übergeben)
 BESTAETIGEN_S = 48 * 3600
 PASSWORT_S = 3600
 KONTO_FEHL = 20                # Fehlversuche je Konto und 15 min (alle IPs zusammen)
@@ -272,7 +273,7 @@ def export(req: Request):
     b = benutzer_aus_sitzung(req)
     c = db.verbindung()
     raum_liste = []
-    for r in c.execute('SELECT * FROM raeume WHERE besitzer_id = ?', (b['id'],)).fetchall():
+    for r in c.execute('SELECT * FROM raeume WHERE besitzer_id = ? AND org_id IS NULL', (b['id'],)).fetchall():
         j = raeume.raum_json(r, b)
         j['chat_verlauf'] = [raeume.nachricht_json(n) | {'sitzung': n['sitzung']} for n in c.execute(
             'SELECT * FROM nachrichten WHERE raum_id = ? AND (an IS NULL OR von_benutzer = ? OR an_benutzer = ?) ORDER BY id',
@@ -282,7 +283,8 @@ def export(req: Request):
         'erstellt': iso(jetzt()),
         'konto': ich_json(b) | {'registriert': iso(b['erstellt']), 'letzte_anmeldung': iso(b['letzte_anmeldung'])},
         'raeume': raum_liste,
-        'aufnahmen': [aufnahmen.aufnahme_json(a) for a in c.execute('SELECT * FROM aufnahmen WHERE benutzer_id = ?', (b['id'],)).fetchall()],
+        'aufnahmen': [aufnahmen.aufnahme_json(a) for a in c.execute('SELECT * FROM aufnahmen WHERE benutzer_id = ? AND org_id IS NULL',
+                                                                    (b['id'],)).fetchall()],
         'protokoll': [{'zeit': iso(p['zeit']), 'raum': p['raum_code'], 'ereignis': p['ereignis']} for p in c.execute(
             'SELECT * FROM protokoll WHERE benutzer_id = ? ORDER BY zeit', (b['id'],)).fetchall()],
     }
@@ -308,6 +310,8 @@ async def konto_loeschen(req: Request):
 async def konto_entfernen(b):
     """Konto samt Räumen, Aufnahmen und Protokoll löschen (selbst oder durch einen Admin)."""
     c = db.verbindung()
+    for f in VOR_LOESCHEN:        # Organisationen: Räume/Aufnahmen der Organisation gehen an einen owner über
+        await f(b)
     for r in c.execute('SELECT * FROM raeume WHERE besitzer_id = ? AND aktiv = 1', (b['id'],)).fetchall():
         await raeume.meeting_beenden(r)
     for a in c.execute('SELECT id FROM aufnahmen WHERE benutzer_id = ?', (b['id'],)).fetchall():

@@ -110,9 +110,11 @@ def registrieren(e, info):
     i = secrets.token_urlsafe(16)
     groesse = os.path.getsize(quelle)
     c = db.verbindung()
-    c.execute('INSERT INTO aufnahmen (id, benutzer_id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    org_id = aufnahmen.ziel(e['benutzer_id'], e['raum_code'])['org_id']
+    c.execute('INSERT INTO aufnahmen (id, benutzer_id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf, org_id) '
+              'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
               (i, e['benutzer_id'], e['titel'] or 'Server-Aufnahme', e['raum_code'], groesse, 'video/mp4', info.get('dauer'), jetzt(),
-               jetzt() + aufnahmen.AUFBEWAHRUNG_S))
+               jetzt() + aufnahmen.AUFBEWAHRUNG_S, org_id))
     shutil.move(quelle, aufnahmen.pfad(i))       # gleiches Dateisystem: umbenennen, sonst kopieren + löschen
     db.protokollieren('Server-Aufnahme in der Bibliothek', e['benutzer_id'], e['raum_code'])
     for f in aufnahmen.NACH_NEU:
@@ -228,8 +230,9 @@ async def aufnahme(code: str, req: Request):
         fehler(409, 'Auf dem Server wird schon aufgezeichnet.')
     if r['aufnahme_von']:
         fehler(409, 'Es läuft schon eine Aufnahme im Browser.')
-    if aufnahmen.belegt(r['besitzer_id']) >= aufnahmen.KONTINGENT:
-        fehler(507, 'Der Speicher für Aufnahmen des Besitzers ist voll (5 GB).')
+    z = aufnahmen.ziel(r['besitzer_id'], r['code'])      # Raum einer Organisation → deren Bibliothek
+    if z['belegt']() >= z['kontingent']:
+        fehler(507, 'Der Speicher für Aufnahmen des Besitzers ist voll (5 GB).' if not z['org_id'] else z['voll'])
     os.makedirs(AUSGABE, exist_ok=True)
     try:
         os.chmod(AUSGABE, 0o2770)                # Egress schreibt als 1001:1000 (Gruppe der App)

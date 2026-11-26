@@ -32,8 +32,23 @@ def pfad(i):
     return os.path.join(db.DATEN, 'aufnahmen', i)
 
 
+ZIEL = []                  # f(benutzer_id, raum_code) → Ziel-Dict (Bibliothek einer Organisation) oder None (orgs.py)
+VOLL = 'Dein Speicher für Aufnahmen ist voll (5 GB). Lösche alte Aufnahmen.'
+
+
 def belegt(benutzer_id):
-    return db.verbindung().execute('SELECT COALESCE(SUM(groesse), 0) FROM aufnahmen WHERE benutzer_id = ?', (benutzer_id,)).fetchone()[0]
+    """Eigene Bibliothek (ohne Aufnahmen, die einer Organisation gehören)."""
+    return db.verbindung().execute('SELECT COALESCE(SUM(groesse), 0) FROM aufnahmen WHERE benutzer_id = ? AND org_id IS NULL',
+                                   (benutzer_id,)).fetchone()[0]
+
+
+def ziel(benutzer_id, raum_code):
+    """Wohin kommt eine Aufnahme aus diesem Raum? {org_id, belegt(), kontingent, voll} – Organisation oder eigene Bibliothek."""
+    for f in ZIEL:
+        z = f(benutzer_id, raum_code)
+        if z:
+            return z
+    return {'org_id': None, 'belegt': lambda: belegt(benutzer_id), 'kontingent': KONTINGENT, 'voll': VOLL}
 
 
 def freigabe_link(token):
@@ -61,7 +76,8 @@ def aufnahme_entfernen(i):
 
 def eigene(req, i):
     b = benutzer_aus_sitzung(req)
-    a = db.verbindung().execute('SELECT * FROM aufnahmen WHERE id = ? AND benutzer_id = ?', (i, b['id'])).fetchone() if ID_RE.match(i) else None
+    a = db.verbindung().execute('SELECT * FROM aufnahmen WHERE id = ? AND benutzer_id = ? AND org_id IS NULL', (i, b['id'])).fetchone() \
+        if ID_RE.match(i) else None
     if not a:
         fehler(404, 'Aufnahme nicht gefunden')
     return b, a
@@ -94,8 +110,9 @@ async def hochladen(req: Request):
         laenge = 0
     if laenge > MAX_DATEI:
         fehler(413, 'Die Aufnahme ist größer als 500 MB.')
-    if belegt(b['id']) + max(laenge, 1) > KONTINGENT:
-        fehler(507, 'Dein Speicher für Aufnahmen ist voll (5 GB). Lösche alte Aufnahmen.')
+    z = ziel(b['id'], code)          # Raum einer Organisation → deren Bibliothek und Kontingent
+    if z['belegt']() + max(laenge, 1) > z['kontingent']:
+        fehler(507, z['voll'])
     i = secrets.token_urlsafe(16)
     tmp = os.path.join(db.DATEN, 'tmp', i)
     n = 0
@@ -110,11 +127,12 @@ async def hochladen(req: Request):
             fehler(400, 'Leere Datei')
         c = db.verbindung()
         c.execute('BEGIN IMMEDIATE')
-        if belegt(b['id']) + n > KONTINGENT:          # nochmal unter Sperre (parallele Uploads)
+        if z['belegt']() + n > z['kontingent']:          # nochmal unter Sperre (parallele Uploads)
             c.execute('ROLLBACK')
-            fehler(507, 'Dein Speicher für Aufnahmen ist voll (5 GB). Lösche alte Aufnahmen.')
-        c.execute('INSERT INTO aufnahmen (id, benutzer_id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf) '
-                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', (i, b['id'], titel, code or None, n, typ, dauer, jetzt(), jetzt() + AUFBEWAHRUNG_S))
+            fehler(507, z['voll'])
+        c.execute('INSERT INTO aufnahmen (id, benutzer_id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf, org_id) '
+                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (i, b['id'], titel, code or None, n, typ, dauer, jetzt(), jetzt() + AUFBEWAHRUNG_S,
+                                                            z['org_id']))
         os.replace(tmp, pfad(i))
         c.execute('COMMIT')
     finally:
@@ -130,7 +148,8 @@ async def hochladen(req: Request):
 @router.get('/api/aufnahmen')
 def liste(req: Request):
     b = benutzer_aus_sitzung(req)
-    rows = db.verbindung().execute('SELECT * FROM aufnahmen WHERE benutzer_id = ? ORDER BY erstellt DESC', (b['id'],)).fetchall()
+    rows = db.verbindung().execute('SELECT * FROM aufnahmen WHERE benutzer_id = ? AND org_id IS NULL ORDER BY erstellt DESC',
+                                   (b['id'],)).fetchall()
     return {'aufnahmen': [aufnahme_json(a) for a in rows], 'belegt': belegt(b['id']), 'kontingent': KONTINGENT}
 
 

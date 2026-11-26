@@ -923,6 +923,90 @@ def umleitung(br):
         c.close()
 
 
+# ================================================================= 13. Organisationen (Autorisierung über Organisationen hinweg)
+def orgs():
+    """Alice (owner von A), Mia (mitglied von A), Bob (owner von B): Bob kommt an nichts von A heran – weder über A's
+    Kurznamen noch über seine eigene Organisation mit A's IDs; Mia darf in A nur lesen."""
+    alice, mia, bob = konto_anlegen('Alice Org'), konto_anlegen('Mia Org'), konto_anlegen('Bob Org')
+    a = alice.post('/api/orgs', {'name': 'Angriff A ' + secrets.token_hex(3)}).json()['org']['slug']
+    b = bob.post('/api/orgs', {'name': 'Angriff B ' + secrets.token_hex(3)}).json()['org']['slug']
+    alice.post(f'/api/orgs/{a}/einladungen', {'emails': [mia.email]})
+    eid = mia.get('/api/orgs').json()['einladungen'][0]['id']
+    pruefen('Gegenprobe: Mia nimmt ihre Einladung an', mia.post(f'/api/org-einladungen/{eid}/annehmen').status == 200)
+    code = alice.post(f'/api/orgs/{a}/raeume', {'titel': 'Vertraulich A', 'chat_speichern': True}).json()['raum']['code']
+    vid = alice.post(f'/api/orgs/{a}/vorlagen', {'name': 'Vorlage A'}).json()['vorlage']['id']
+    rec = alice('POST', '/api/aufnahmen', body=b'\x1aE\xdf\xa3' + b'\0' * 1000, kopf={'Content-Type': 'video/webm', 'X-Raum': code})
+    aid = rec.json()['aufnahme']['id'] if rec.status == 200 else 'A' * 22
+    pruefen('Gegenprobe: Aufnahme landet in der Bibliothek von A', rec.status == 200 and
+            [x['id'] for x in mia.get(f'/api/orgs/{a}/aufnahmen').json()['aufnahmen']] == [aid])
+    alice.post(f'/api/orgs/{a}/einladungen', {'emails': ['opfer@example.org']})
+    offen = alice.get(f'/api/orgs/{a}/einladungen').json()['einladungen'][0]['id']
+    mia_id, alice_id = mia.get('/api/konto/ich').json()['ich']['id'], alice.id
+
+    # Bob (fremde Organisation): alles unter /api/orgs/<A> → 404, A's Raum nicht verwaltbar
+    versuche = [('GET', f'/api/orgs/{a}', None), ('PATCH', f'/api/orgs/{a}', {'name': 'x'}), ('DELETE', f'/api/orgs/{a}', {'bestaetigung': a}),
+                ('GET', f'/api/orgs/{a}/raeume', None), ('POST', f'/api/orgs/{a}/raeume', {'titel': 'x'}),
+                ('GET', f'/api/orgs/{a}/vorlagen', None), ('PUT', f'/api/orgs/{a}/vorlagen/{vid}', {'name': 'x'}),
+                ('POST', f'/api/orgs/{a}/vorlagen/{vid}/raum', {'ziel': 'konto'}), ('GET', f'/api/orgs/{a}/aufnahmen', None),
+                ('GET', f'/api/orgs/{a}/aufnahmen/{aid}/datei', None), ('DELETE', f'/api/orgs/{a}/aufnahmen/{aid}', None),
+                ('GET', f'/api/orgs/{a}/einladungen', None), ('POST', f'/api/orgs/{a}/einladungen', {'emails': ['x@example.org']}),
+                ('DELETE', f'/api/orgs/{a}/einladungen/{offen}', None), ('PATCH', f'/api/orgs/{a}/mitglieder/{bob.id}', {'rolle': 'owner'}),
+                ('DELETE', f'/api/orgs/{a}/mitglieder/{mia_id}', None), ('POST', f'/api/orgs/{a}/beitreten', None),
+                ('POST', f'/api/orgs/{a}/verlassen', None),
+                # A's IDs über Bobs eigene Organisation
+                ('PUT', f'/api/orgs/{b}/vorlagen/{vid}', {'name': 'x'}), ('DELETE', f'/api/orgs/{b}/vorlagen/{vid}', None),
+                ('POST', f'/api/orgs/{b}/vorlagen/{vid}/raum', {}), ('GET', f'/api/orgs/{b}/aufnahmen/{aid}/datei', None),
+                ('DELETE', f'/api/orgs/{b}/aufnahmen/{aid}', None), ('DELETE', f'/api/orgs/{b}/einladungen/{offen}', None),
+                ('PATCH', f'/api/orgs/{b}/mitglieder/{mia_id}', {'rolle': 'mitglied'}), ('DELETE', f'/api/orgs/{b}/mitglieder/{alice_id}', None),
+                ('POST', f'/api/orgs/{b}/vorlagen', {'name': 'x', 'aus_raum': code}),
+                # A's Raum direkt
+                ('PATCH', f'/api/raeume/{code}', {'titel': 'übernommen'}), ('DELETE', f'/api/raeume/{code}', None),
+                ('GET', f'/api/raeume/{code}/verlauf', None), ('POST', f'/api/raeume/{code}/einladen', {'emails': ['x@example.org']}),
+                ('PUT', f'/api/raeume/{code}/einbetten', {'erlaubt': True, 'herkuenfte': ['https://b.example']}),
+                ('GET', f'/api/aufnahmen/{aid}/datei', None), ('POST', '/api/vorlagen', {'name': 'x', 'aus_raum': code}),
+                ('POST', f'/api/org-einladungen/{offen}/annehmen', None), ('POST', f'/api/org-einladungen/{offen}/ablehnen', None)]
+    for m, p, j in versuche:
+        r = bob(m, p, j)
+        pruefen(f'Bob (Org B) → {m} {p.replace(a, "<A>").replace(b, "<B>").replace(code, "<raum>").replace(aid, "<aufn>")}', abgelehnt(r), r)
+    pruefen('Bob ist im Raum von A kein Host', not bob.get(f'/api/raeume/{code}').json()['raum']['ist_host'])
+    r = bob.post('/api/konto/api-schluessel', {'name': 'x', 'rechte': ['meetings:lesen'], 'gueltig_tage': 30, 'org': a})
+    pruefen('Bob: API-Schlüssel für Organisation A → 404', r.status == 404, r)
+    tok_b = bob.post('/api/konto/api-schluessel', {'name': 'b', 'rechte': ['meetings:lesen', 'meetings:schreiben', 'aufnahmen:lesen'],
+                                                   'gueltig_tage': 30, 'org': b}).json()['token']
+    for m, p in (('GET', f'/api/v1/meetings/{code}'), ('PATCH', f'/api/v1/meetings/{code}'), ('DELETE', f'/api/v1/meetings/{code}'),
+                 ('GET', f'/api/v1/aufnahmen/{aid}'), ('GET', f'/api/v1/aufnahmen/{aid}/download')):
+        r = roh(m, p, b'{}' if m == 'PATCH' else None, {'Authorization': 'Bearer ' + tok_b, 'Content-Type': 'application/json',
+                                                         'CF-Connecting-IP': zufalls_ip()})
+        pruefen(f'API v1 (Schlüssel von Org B) → {m} {p.replace(code, "<A>").replace(aid, "<aufn>")}', r.status in (403, 404), r)
+    r = roh('GET', '/api/v1/meetings', kopf={'Authorization': 'Bearer ' + tok_b})
+    pruefen('API v1 (Org B): Liste ohne Meetings von A', r.status == 200 and all(x['code'] != code for x in r.json()['meetings']), r)
+    r = bob.post('/api/konto/api-schluessel', {'name': 'w', 'rechte': ['webhooks'], 'gueltig_tage': 30, 'org': b})
+    pruefen('Schlüssel einer Organisation ohne Webhooks', r.status == 400, r)
+
+    # Mia (mitglied von A): lesen ja, verwalten nein
+    pruefen('Gegenprobe: Mia sieht die Meetings von A', [x['code'] for x in mia.get(f'/api/orgs/{a}/raeume').json()['geplant']] == [code])
+    for m, p, j in (('PATCH', f'/api/orgs/{a}', {'einstellungen': {'warteraum_extern': False}}), ('DELETE', f'/api/orgs/{a}', {'bestaetigung': a}),
+                    ('POST', f'/api/orgs/{a}/raeume', {'titel': 'x'}), ('POST', f'/api/orgs/{a}/einladungen', {'emails': ['x@example.org']}),
+                    ('GET', f'/api/orgs/{a}/einladungen', None), ('PATCH', f'/api/orgs/{a}/mitglieder/{mia_id}', {'rolle': 'owner'}),
+                    ('DELETE', f'/api/orgs/{a}/mitglieder/{alice_id}', None), ('DELETE', f'/api/orgs/{a}/aufnahmen/{aid}', None),
+                    ('POST', f'/api/orgs/{a}/vorlagen', {'name': 'x'}), ('DELETE', f'/api/orgs/{a}/vorlagen/{vid}', None),
+                    ('POST', f'/api/orgs/{a}/vorlagen/{vid}/raum', {'ziel': 'org'}), ('PATCH', f'/api/raeume/{code}', {'titel': 'x'}),
+                    ('DELETE', f'/api/raeume/{code}', None), ('GET', f'/api/raeume/{code}/verlauf', None),
+                    ('POST', '/api/konto/api-schluessel', {'name': 'x', 'rechte': ['meetings:lesen'], 'gueltig_tage': 30, 'org': a})):
+        r = mia(m, p, j)
+        pruefen(f'Mia (mitglied) → {m} {p.replace(a, "<A>").replace(code, "<raum>").replace(aid, "<aufn>")}', abgelehnt(r), r)
+    pruefen('Mia: E-Mail-Adressen anderer Mitglieder verborgen', all('email' not in x for x in mia.get(f'/api/orgs/{a}').json()['org']['mitglieder']))
+    # Einladungs-Link einer anderen Adresse und erfundene Token
+    for t in ('A' * 43, '../' * 10, ''):
+        r = bob.post('/api/org-einladungen/link', {'token': t})
+        pruefen(f'Einladungs-Link mit erfundenem Token {t[:8]!r} → abgelehnt', r.status in (400, 403, 404, 429), r)
+    # Domain: fremde Domain lässt sich nicht beanspruchen (sonst „Selbst-Beitritt“ für fremde Firmen)
+    for dom in ('slxt.dev', 'gmail.com', 'example.org.evil.test'):
+        r = bob.patch(f'/api/orgs/{b}', {'einstellungen': {'domain': dom}})
+        pruefen(f'Domain {dom} ohne passende eigene Adresse → 400', r.status == 400, r)
+    pruefen('Gegenprobe: Alice verwaltet weiter', alice.patch(f'/api/raeume/{code}', {'titel': 'Bleibt'}).status == 200)
+
+
 # ================================================================= Ablauf
 def main():
     print(f'Sicherheitstest gegen {B} (LiveKit {LK_URL})', flush=True)
@@ -932,7 +1016,7 @@ def main():
     ctx = adm = None
     schritte = [('kopfzeilen', kopfzeilen), ('csrf', csrf), ('anmeldung', anmeldung), ('idor', idor), ('rollen', rollen),
                 ('token', None), ('ssrf', ssrf), ('pfade', None), ('groessen', groessen), ('brute', brute), ('sqli', sqli),
-                ('einbetten', einbetten), ('browser', None)]
+                ('einbetten', einbetten), ('orgs', orgs), ('browser', None)]
     abbrueche = []
     noetig = set(NUR)
     for n in list(NUR):

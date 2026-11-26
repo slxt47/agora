@@ -29,9 +29,20 @@ def meeting_json(r):
             'naechster_termin': j['naechster_termin'], 'erstellt': iso(r['erstellt'])}
 
 
-def eigenes_meeting(b, code):
+def bereich(b, k):
+    """Schlüssel einer Organisation → org_id (nur solange das Konto dort owner/admin ist), persönlicher Schlüssel → None."""
+    if not k['org_id']:
+        return None
+    from .orgs import rolle
+    if rolle(k['org_id'], b['id']) not in ('owner', 'admin'):
+        fehler(403, 'Dieser API-Schlüssel gehört zu einer Organisation, in der du kein Admin mehr bist.')
+    return k['org_id']
+
+
+def eigenes_meeting(b, k, code):
     r = raeume.raum_laden(code)
-    if r['besitzer_id'] != b['id']:
+    org = bereich(b, k)
+    if (r['org_id'] != org) if org else (r['besitzer_id'] != b['id'] or r['org_id']):
         fehler(404, 'Dieses Meeting gibt es nicht.')        # fremde Räume sehen wie nicht vorhanden aus
     return r
 
@@ -47,10 +58,11 @@ async def felder(req, b):
 # ---------------------------------------------------------------- Meetings
 @router.get('/api/v1/meetings')
 def meetings(req: Request, art: str = ''):
-    b, _k = pruefen(req, 'meetings:lesen')
+    b, k = pruefen(req, 'meetings:lesen')
     if art and art not in ('sofort', 'geplant', 'persoenlich'):
         fehler(400, 'art: sofort, geplant oder persoenlich.')
-    q, p = 'SELECT * FROM raeume WHERE besitzer_id = ?', [b['id']]
+    org = bereich(b, k)
+    q, p = ('SELECT * FROM raeume WHERE org_id = ?', [org]) if org else ('SELECT * FROM raeume WHERE besitzer_id = ? AND org_id IS NULL', [b['id']])
     if art:
         q, p = q + ' AND art = ?', p + [art]
     rows = db.verbindung().execute(q + ' ORDER BY erstellt DESC, id DESC LIMIT 500', p).fetchall()
@@ -59,11 +71,15 @@ def meetings(req: Request, art: str = ''):
 
 @router.post('/api/v1/meetings', status_code=201)
 async def meeting_neu(req: Request):
-    b, _k = pruefen(req, 'meetings:schreiben')
+    b, k = pruefen(req, 'meetings:schreiben')
+    org = bereich(b, k)
     f = await felder(req, b)
     grenze.pruefen(f'raum:{b["id"]}', 60, 3600)       # gleiche Grenze wie im Konto
     art = 'geplant' if 'start' in f else 'sofort'
     titel = f.pop('titel', '') or (f'Meeting von {b["name"]}' if art == 'sofort' else 'Geplantes Meeting')
+    if org:                                           # Raum der Organisation mit deren Standard-Rechten
+        from .orgs import raum_vorgaben
+        f |= raum_vorgaben(org) | {'org_id': org}
     r = raeume.raum_anlegen(b['id'], art, titel[:120], f)
     db.protokollieren(f'Raum angelegt ({art}, API)', b['id'], r['code'])
     return {'meeting': meeting_json(r)}
@@ -71,14 +87,14 @@ async def meeting_neu(req: Request):
 
 @router.get('/api/v1/meetings/{code}')
 def meeting_info(code: str, req: Request):
-    b, _k = pruefen(req, 'meetings:lesen')
-    return {'meeting': meeting_json(eigenes_meeting(b, code))}
+    b, k = pruefen(req, 'meetings:lesen')
+    return {'meeting': meeting_json(eigenes_meeting(b, k, code))}
 
 
 @router.patch('/api/v1/meetings/{code}')
 async def meeting_aendern(code: str, req: Request):
-    b, _k = pruefen(req, 'meetings:schreiben')
-    r = eigenes_meeting(b, code)
+    b, k = pruefen(req, 'meetings:schreiben')
+    r = eigenes_meeting(b, k, code)
     f = await felder(req, b)
     if 'start' in f and r['art'] != 'geplant':
         fehler(400, 'Nur geplante Meetings haben einen Termin.')
@@ -92,8 +108,8 @@ async def meeting_aendern(code: str, req: Request):
 
 @router.delete('/api/v1/meetings/{code}')
 async def meeting_loeschen(code: str, req: Request):
-    b, _k = pruefen(req, 'meetings:schreiben')
-    r = eigenes_meeting(b, code)
+    b, k = pruefen(req, 'meetings:schreiben')
+    r = eigenes_meeting(b, k, code)
     if r['art'] == 'persoenlich':
         fehler(400, 'Der persönliche Raum kann nicht gelöscht werden.')
     await raeume.meeting_beenden(r, 'gelöscht (API)')
@@ -104,16 +120,16 @@ async def meeting_loeschen(code: str, req: Request):
 
 @router.get('/api/v1/meetings/{code}/link')
 def beitrittslink(code: str, req: Request):
-    b, _k = pruefen(req, 'meetings:lesen')
-    r = eigenes_meeting(b, code)
+    b, k = pruefen(req, 'meetings:lesen')
+    r = eigenes_meeting(b, k, code)
     return {'code': r['code'], 'link': raeume.link(r['code']), 'passcode_noetig': bool(r['passcode_hash']), 'e2ee': bool(r['e2ee']),
             'naechster_termin': iso(raeume.termin(r))}
 
 
 @router.get('/api/v1/meetings/{code}/teilnehmer')
 async def teilnehmer(code: str, req: Request):
-    b, _k = pruefen(req, 'meetings:lesen')
-    r = eigenes_meeting(b, code)
+    b, k = pruefen(req, 'meetings:lesen')
+    r = eigenes_meeting(b, k, code)
     if not r['aktiv']:
         return {'aktiv': False, 'teilnehmer': []}
     liste = await lk.teilnehmer(r['code'])
@@ -135,9 +151,11 @@ def aufnahme_json(a):
             'dauer': a['dauer'], 'erstellt': iso(a['erstellt']), 'ablauf': iso(a['ablauf'])}
 
 
-def eigene_aufnahme(b, i):
-    a = db.verbindung().execute('SELECT * FROM aufnahmen WHERE id = ? AND benutzer_id = ?', (i, b['id'])).fetchone() \
-        if aufnahmen.ID_RE.match(i) else None
+def eigene_aufnahme(b, k, i):
+    org = bereich(b, k)
+    q = ('SELECT * FROM aufnahmen WHERE id = ? AND org_id = ?', (i, org)) if org else \
+        ('SELECT * FROM aufnahmen WHERE id = ? AND benutzer_id = ? AND org_id IS NULL', (i, b['id']))
+    a = db.verbindung().execute(*q).fetchone() if aufnahmen.ID_RE.match(i) else None
     if not a:
         fehler(404, 'Aufnahme nicht gefunden')
     return a
@@ -149,24 +167,27 @@ def signatur(i, benutzer_id, bis):
 
 @router.get('/api/v1/aufnahmen')
 def aufnahmen_liste(req: Request):
-    b, _k = pruefen(req, 'aufnahmen:lesen')
-    rows = db.verbindung().execute('SELECT * FROM aufnahmen WHERE benutzer_id = ? ORDER BY erstellt DESC', (b['id'],)).fetchall()
+    b, k = pruefen(req, 'aufnahmen:lesen')
+    org = bereich(b, k)
+    q = ('SELECT * FROM aufnahmen WHERE org_id = ? ORDER BY erstellt DESC', (org,)) if org else \
+        ('SELECT * FROM aufnahmen WHERE benutzer_id = ? AND org_id IS NULL ORDER BY erstellt DESC', (b['id'],))
+    rows = db.verbindung().execute(*q).fetchall()
     return {'aufnahmen': [aufnahme_json(a) for a in rows]}
 
 
 @router.get('/api/v1/aufnahmen/{aufnahme_id}')
 def aufnahme_info(aufnahme_id: str, req: Request):
-    b, _k = pruefen(req, 'aufnahmen:lesen')
-    return {'aufnahme': aufnahme_json(eigene_aufnahme(b, aufnahme_id))}
+    b, k = pruefen(req, 'aufnahmen:lesen')
+    return {'aufnahme': aufnahme_json(eigene_aufnahme(b, k, aufnahme_id))}
 
 
 @router.get('/api/v1/aufnahmen/{aufnahme_id}/download')
 def download_link(aufnahme_id: str, req: Request):
     """Kurzlebiger, signierter Link (15 min) – zum Weitergeben an einen Download-Dienst ohne den API-Schlüssel."""
-    b, _k = pruefen(req, 'aufnahmen:lesen')
-    a = eigene_aufnahme(b, aufnahme_id)
+    b, k = pruefen(req, 'aufnahmen:lesen')
+    a = eigene_aufnahme(b, k, aufnahme_id)
     bis = jetzt() + DOWNLOAD_S
-    return {'url': f'{SEITE}/api/v1/download/{a["id"]}?bis={bis}&sig={signatur(a["id"], b["id"], bis)}', 'gueltig_bis': iso(bis)}
+    return {'url': f'{SEITE}/api/v1/download/{a["id"]}?bis={bis}&sig={signatur(a["id"], a["benutzer_id"], bis)}', 'gueltig_bis': iso(bis)}
 
 
 @router.get('/api/v1/download/{aufnahme_id}')

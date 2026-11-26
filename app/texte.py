@@ -76,6 +76,35 @@ FEHLER_EN = {
     'Gültigkeit: 30, 90 oder 365 Tage oder ohne Ablauf (null).': 'Validity: 30, 90 or 365 days or no expiry (null).',
     'API-Schlüssel nicht gefunden': 'API key not found',
     # ==== Ende Block ====
+    # ==== Block Teams / Organisationen (app/orgs.py) ====
+    'Diese Organisation gibt es nicht.': 'This organization doesn’t exist.',
+    'Das darf nur ein Owner der Organisation.': 'Only an owner of the organization can do that.',
+    'Dafür brauchst du Admin-Rechte in dieser Organisation.': 'You need admin rights in this organization for that.',
+    'Bitte einen Namen für die Organisation eingeben (mindestens 2 Zeichen).': 'Please enter a name for the organization (at least 2 characters).',
+    'Kurzname: 3 bis 40 Zeichen aus a–z, 0–9 und Bindestrich.': 'Short name: 3 to 40 characters from a–z, 0–9 and hyphen.',
+    'Dieser Kurzname ist schon vergeben.': 'This short name is already taken.',
+    'Ungültige Domain (z. B. firma.de).': 'Invalid domain (e.g. company.com).',
+    'Domains öffentlicher Mail-Anbieter sind für den Selbst-Beitritt nicht erlaubt.': 'Domains of public email providers aren’t allowed for self-join.',
+    'Die Domain muss zu deiner eigenen E-Mail-Adresse passen.': 'The domain must match your own email address.',
+    'Zum Löschen bitte den Kurznamen der Organisation eingeben.': 'To delete, please enter the organization’s short name.',
+    'Du bist der letzte Owner: Ernenne zuerst einen anderen Owner oder lösche die Organisation.':
+        'You’re the last owner: make someone else an owner first or delete the organization.',
+    'Rolle: owner, admin oder mitglied.': 'Role: owner, admin or mitglied.',
+    'Rolle: admin oder mitglied.': 'Role: admin or mitglied.',
+    'Mitglied nicht gefunden': 'Member not found',
+    'Die Organisation braucht mindestens einen Owner.': 'The organization needs at least one owner.',
+    'Zum Austreten bitte „Organisation verlassen“ benutzen.': 'To leave, please use “Leave organization”.',
+    'Einladung nicht gefunden': 'Invitation not found',
+    'Diese Einladung gilt für eine andere E-Mail-Adresse. Melde dich mit dem eingeladenen Konto an.':
+        'This invitation is for a different email address. Sign in with the invited account.',
+    'Diese Einladung gibt es nicht (mehr).': 'This invitation doesn’t exist (anymore).',
+    'Ziel: org oder konto.': 'Target: org or konto.',
+    'Der Speicher der Organisation für Aufnahmen ist voll. Ein Admin kann alte Aufnahmen löschen.':
+        'The organization’s recording storage is full. An admin can delete old recordings.',
+    'Schlüssel einer Organisation können keine Webhooks verwalten.': 'Organization keys can’t manage webhooks.',
+    'Dieser API-Schlüssel gehört zu einer Organisation, in der du kein Admin mehr bist.':
+        'This API key belongs to an organization in which you’re no longer an admin.',
+    # ==== Ende Block Teams / Organisationen ====
     'Admin-Konten lassen sich hier nicht ändern (Liste AGORA_ADMIN_MAILS).': 'Admin accounts can’t be changed here (list AGORA_ADMIN_MAILS).',
     'Adresse und Schlüssel dürfen keine Leerzeichen enthalten.': 'URL and key must not contain spaces.',
     'Aktion: start oder stopp.': 'Action: start or stop.',
@@ -275,6 +304,8 @@ MUSTER_EN = [
     (r'Bitte mindestens ein gültiges Recht wählen: (.*)', 'Please choose at least one valid permission: {0}'),
     (r'Bitte mindestens ein gültiges Ereignis wählen: (.*)', 'Please choose at least one valid event: {0}'),
     # ==== Ende Block ====
+    (r'Höchstens (\d+) eigene Organisationen\.', 'At most {0} own organizations.'),
+    (r'Höchstens (\d+) Mitglieder je Organisation\.', 'At most {0} members per organization.'),
     (r'Raum-Nummer: 0 bis (\d+)\.', 'Room number: 0 to {0}.'),
     (r'Dateien vom Typ „\.(.*)“ sind hier nicht erlaubt\.', 'Files of type “.{0}” aren’t allowed here.'),
     (r'Die Datei wurde abgelehnt: Virenprüfung meldet „(.*)“\.', 'The file was rejected: the virus scan reports “{0}”.'),
@@ -357,6 +388,13 @@ MAIL = {
         'ics.wiederholt': 'Wiederholt sich {wie} – alle Termine auf einmal: {url}', 'ics.abo': 'Meetings aus Agora',
         # Standard-Titel neuer Räume (gespeichert in der Sprache, in der sie angelegt werden)
         'titel.persoenlich': 'Persönlicher Raum von {name}', 'titel.sofort': 'Meeting von {name}', 'titel.geplant': 'Geplantes Meeting',
+        # Organisationen (orgs.py)
+        'org.satz': '{von} lädt dich in die Organisation „{org}“ bei Agora ein.',
+        'org.satz2': 'Als Mitglied siehst du die Meetings der Organisation, nutzt gemeinsame Vorlagen und die Aufnahmen-Bibliothek.',
+        'org.hinweis': 'Melde dich mit dieser E-Mail-Adresse an (oder registriere dich damit) und nimm die Einladung an. Der Link gilt 7 Tage. '
+                       'Wenn du das nicht erwartet hast, ignoriere diese Mail einfach.',
+        'org.betreff': 'Einladung in „{org}“', 'org.titel': 'Einladung in eine Organisation', 'org.knopf': 'Einladung ansehen',
+        'org.vorschau': '{von} lädt dich in „{org}“ ein',
     },
     'en': {
         'hallo': 'Hi {name},',
@@ -396,6 +434,12 @@ MAIL = {
         'ics.beitreten': 'Join: {link}', 'ics.code': 'Meeting code: {code}', 'ics.alarm': 'Meeting starts',
         'ics.wiederholt': 'Repeats {wie} – all dates at once: {url}', 'ics.abo': 'Meetings from Agora',
         'titel.persoenlich': '{name}’s personal room', 'titel.sofort': '{name}’s meeting', 'titel.geplant': 'Scheduled meeting',
+        'org.satz': '{von} invites you to the organization “{org}” on Agora.',
+        'org.satz2': 'As a member you see the organization’s meetings and use shared templates and the recordings library.',
+        'org.hinweis': 'Sign in with this email address (or sign up with it) and accept the invitation. The link is valid for 7 days. '
+                       'If you didn’t expect this, just ignore this email.',
+        'org.betreff': 'Invitation to “{org}”', 'org.titel': 'Invitation to an organization', 'org.knopf': 'View invitation',
+        'org.vorschau': '{von} invites you to “{org}”',
     },
 }
 

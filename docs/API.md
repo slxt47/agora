@@ -541,3 +541,41 @@ Beschreibung: [`EINBETTEN.md`](EINBETTEN.md).
 Vorbelegung und löst `agora:beigetreten` / `agora:verlassen` (CustomEvent auf `document`) aus; `raum/einbetten.js`
 leitet sie unter `/e/` als `{quelle:'agora', typ, code, …}` an die erlaubte Eltern-Herkunft weiter.
 
+## Teams / Organisationen (app/orgs.py)
+Alles mit Cookie (+ `X-Agora` bei Änderungen). Wer nicht Mitglied ist, bekommt unter `/api/orgs/{slug}…` immer 404
+`Diese Organisation gibt es nicht.`, Mitglieder ohne nötige Rolle 403. Rollen: `owner` > `admin` > `mitglied`.
+
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| POST `/api/orgs` | angemeldet | `{name 2–80, slug?: ^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$, farbe?: #rrggbb}` → `{org}`; 409 Kurzname vergeben / 10 eigene; 10/h |
+| GET `/api/orgs` | angemeldet | `{orgs:[{slug, name, farbe, rolle, mitglieder}], einladungen:[{id, org, rolle, von_name, erstellt, gueltig_bis}], beitretbar:[{slug, name, farbe}]}` |
+| GET `/api/orgs/{slug}` | mitglied | `{org:{slug, name, farbe, rolle, erstellt, einstellungen:{rechte, warteraum_extern, domain}, mitglieder:[{id, name, farbe, rolle, seit, ich, email (nur für admin/owner)}], belegt, kontingent, raeume}}` |
+| PATCH `/api/orgs/{slug}` | admin | `{name?, farbe?, einstellungen?: {rechte?, warteraum_extern?, domain?: null\|"firma.de"}}` – Domain nur die der eigenen Adresse, keine Freemail-Anbieter |
+| DELETE `/api/orgs/{slug}` | owner | `{bestaetigung: slug}` → beendet laufende Meetings, löscht Räume, Vorlagen, Aufnahmen, Schlüssel |
+| POST `/api/orgs/{slug}/verlassen` | mitglied | 409 für den letzten owner |
+| PATCH `/api/orgs/{slug}/mitglieder/{id}` | owner | `{rolle}` → `{org}`; 409 ohne owner; Herabstufen zu `mitglied` löscht dessen Schlüssel der Organisation |
+| DELETE `/api/orgs/{slug}/mitglieder/{id}` | admin (mitglieder), owner (alle) | → `{org}`; sich selbst: 400 (→ verlassen) |
+| POST `/api/orgs/{slug}/beitreten` | Konto mit passender Domain | → `{org}` als `mitglied` (sonst 404) |
+| POST `/api/orgs/{slug}/einladungen` | admin (`rolle: admin` nur owner) | `{emails:[1–20], rolle?: mitglied\|admin}` → `{ok, gesendet, schon_mitglied}`; Mail mit `/konto?einladung=<token>#teams` (7 Tage); 100/Tag je Organisation |
+| GET `/api/orgs/{slug}/einladungen` | admin | `{einladungen:[{id, email, rolle, erstellt, gueltig_bis}]}` |
+| DELETE `/api/orgs/{slug}/einladungen/{id}` | admin | `{ok}` |
+| POST `/api/org-einladungen/link` | angemeldet | `{token}` → `{einladung}`; 403, wenn die Einladung an eine andere Adresse ging |
+| POST `/api/org-einladungen/{id}/annehmen` · `/ablehnen` | Konto mit der eingeladenen Adresse | → `{org}` bzw. `{ok}` |
+| GET `/api/orgs/{slug}/raeume` | mitglied | `{geplant:[raum_json], vergangen:[…]}` (`ist_host` nur für owner/admin) |
+| POST `/api/orgs/{slug}/raeume` | admin | wie POST `/api/raeume`, Raum gehört der Organisation (Standard-Rechte aus den Einstellungen) |
+| GET/POST `/api/orgs/{slug}/vorlagen`, PUT/DELETE `…/vorlagen/{id}` | lesen: mitglied, sonst admin | wie `/api/vorlagen` (höchstens 50) |
+| POST `/api/orgs/{slug}/vorlagen/{id}/raum` | mitglied (`ziel: konto`), admin (`ziel: org`, Standard) | wie POST `/api/vorlagen/{id}/raum` |
+| GET `/api/orgs/{slug}/aufnahmen` | mitglied | `{aufnahmen, belegt, kontingent}` |
+| GET `/api/orgs/{slug}/aufnahmen/{id}/datei[?download=1]` | mitglied | Datei (Range) |
+| DELETE `/api/orgs/{slug}/aufnahmen/{id}` | admin | `{ok}` |
+| GET `/api/admin/orgs?q=` | Admin (sonst 404) | `{orgs:[{id, slug, name, farbe, erstellt, mitglieder, raeume, belegt, kontingent, domain, owner}], gesamt}` |
+
+Räume einer Organisation: `raeume.org_id`; verwalten (PATCH/DELETE/einladen/Webinar/Transkript/Einbetten …) darf jeder
+owner/admin, im Meeting sind sie Host (`raeume.darf_verwalten`). `raum_json` hat dann `org: {slug, name, farbe, rolle}`.
+„Warteraum für Externe“ (`raeume.WARTERAUM_REGEL`): Mitglieder kommen ohne Warteraum hinein, alle anderen warten.
+Aufnahmen aus einem Raum der Organisation (Upload eines Mitglieds mit `X-Raum` oder Server-Aufnahme) landen in deren
+Bibliothek (`aufnahmen.org_id`, Kontingent der Organisation, 507 wenn voll) und nicht in der eigenen.
+API-Schlüssel: POST `/api/konto/api-schluessel` mit `org: "<slug>"` (nur admin/owner, ohne Recht `webhooks`) → Schlüssel
+sieht in `/api/v1` nur Meetings/Aufnahmen der Organisation, legt Meetings dort an; gilt nur, solange das Konto dort
+admin/owner ist (sonst 403, beim Austritt/Herabstufen gelöscht). `schluessel_json` hat `org: {slug, name}|null`.
+Datenexport: `organisationen` (slug, name, farbe, rolle, seit) und `organisationen_einladungen`.

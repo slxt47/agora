@@ -559,6 +559,49 @@ SCHEMA = [
     ALTER TABLE raeume ADD COLUMN einbetten_herkunft TEXT;                -- JSON-Liste geprüfter Origins (frame-ancestors)
     """,
     # ======== Ende Block „Einbetten“ ========
+    # ======== Block „Teams / Organisationen“ (app/orgs.py) – Version 26 (beim Zusammenführen ggf. neu nummerieren) ========
+    # Organisationen mit Rollen owner | admin | mitglied. Räume, Vorlagen, Aufnahmen und API-Schlüssel bekommen eine
+    # optionale org_id: gesetzt = gehört der Organisation (benutzer_id/besitzer_id = wer es angelegt hat; geht beim
+    # Austritt an einen owner über). Löschen der Organisation löscht ihre Räume/Vorlagen/Aufnahmen/Schlüssel (CASCADE).
+    """
+    CREATE TABLE orgs (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE COLLATE NOCASE,   -- Kurzname in Adressen (/api/orgs/<slug>)
+      farbe TEXT NOT NULL,                         -- Logo-Farbe #rrggbb
+      einstellungen TEXT NOT NULL DEFAULT '{}',    -- JSON: rechte (Standard-Rechte neuer Räume), warteraum_extern, domain
+      kontingent INTEGER NOT NULL,                 -- Bytes für die Aufnahmen-Bibliothek
+      erstellt INTEGER NOT NULL
+    );
+    CREATE TABLE org_mitglieder (
+      org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      rolle TEXT NOT NULL,                         -- owner | admin | mitglied
+      seit INTEGER NOT NULL,
+      PRIMARY KEY (org_id, benutzer_id)
+    );
+    CREATE INDEX org_mitglieder_benutzer ON org_mitglieder(benutzer_id);
+    CREATE TABLE org_einladungen (                 -- offene Einladungen (7 Tage), Link-Token nur als Hash
+      id INTEGER PRIMARY KEY,
+      org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+      email TEXT NOT NULL COLLATE NOCASE,
+      rolle TEXT NOT NULL,                         -- admin | mitglied
+      token_hash TEXT NOT NULL UNIQUE,
+      von_id INTEGER REFERENCES benutzer(id) ON DELETE SET NULL,
+      erstellt INTEGER NOT NULL,
+      gueltig_bis INTEGER NOT NULL,
+      UNIQUE (org_id, email)
+    );
+    CREATE INDEX org_einladungen_email ON org_einladungen(email);
+    ALTER TABLE raeume ADD COLUMN org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE;
+    ALTER TABLE vorlagen ADD COLUMN org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE;
+    ALTER TABLE aufnahmen ADD COLUMN org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE;
+    ALTER TABLE api_schluessel ADD COLUMN org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE;
+    CREATE INDEX raeume_org ON raeume(org_id);
+    CREATE INDEX vorlagen_org ON vorlagen(org_id);
+    CREATE INDEX aufnahmen_org ON aufnahmen(org_id);
+    """,
+    # ======== Ende Block „Teams / Organisationen“ ========
 ]
 
 

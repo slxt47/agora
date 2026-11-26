@@ -20,6 +20,7 @@
   <script type="module" src="/src/konto.js"></script>
   <script type="module" src="/src/konto-sicherheit.js"></script>
   <script type="module" src="/src/entwickler.js"></script>
+  <script type="module" src="/src/org-konto.js"></script>
 </head>
 <body>
   <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
@@ -46,6 +47,7 @@
     <nav class="umschalter reiter" role="tablist" aria-label="Bereiche" data-t-aria="html.bereiche">
       <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="true" data-t="html.meetings">Meetings</button>
       <button type="button" role="tab" id="tab-aufnahmen" aria-controls="p-aufnahmen" aria-selected="false" data-t="html.aufnahmen">Aufnahmen</button>
+      <button type="button" role="tab" id="tab-teams" aria-controls="p-teams" aria-selected="false" data-t="org.reiter">Teams</button>
       <button type="button" role="tab" id="tab-profil" aria-controls="p-profil" aria-selected="false" data-t="html.profil">Profil</button>
       <button type="button" role="tab" id="tab-entwickler" aria-controls="p-entwickler" aria-selected="false" data-t="dev.reiter">Entwickler</button>
     </nav>
@@ -86,6 +88,25 @@
         <h2 id="h-aufnahmen" data-t="html.aufnahmen">Aufnahmen</h2>
         <ul class="liste" id="liste-aufnahmen"></ul>
       </section>
+    </div>
+
+    <div id="p-teams" role="tabpanel" aria-labelledby="tab-teams" class="formular" hidden>
+      <div id="org-uebersicht" class="formular">
+        <section class="card" id="org-einladungen" aria-labelledby="h-org-einladungen" hidden>
+          <h2 id="h-org-einladungen" data-t="org.einladungen">Einladungen</h2>
+          <ul class="liste" id="liste-org-einladungen"></ul>
+        </section>
+        <section class="card" id="org-beitretbar" aria-labelledby="h-org-beitretbar" hidden>
+          <h2 id="h-org-beitretbar" data-t="org.beitretbar">Organisationen deiner Domain</h2>
+          <ul class="liste" id="liste-org-beitretbar"></ul>
+        </section>
+        <section class="card" aria-labelledby="h-orgs">
+          <div class="zeile zwischen"><h2 id="h-orgs" data-t="org.titel">Organisationen</h2><button class="btn klein" type="button" id="org-neu" data-t="org.neu">Neue Organisation</button></div>
+          <p class="sec klein" data-t="org.text">Mit einer Organisation teilt ihr Meetings, Vorlagen und Aufnahmen im Team. Owner und Admins verwalten, alle Mitglieder sehen die Meetings.</p>
+          <ul class="liste" id="liste-orgs"></ul>
+        </section>
+      </div>
+      <div id="org-detail" class="formular" hidden></div>
     </div>
 
     <div id="p-profil" role="tabpanel" aria-labelledby="tab-profil" class="formular" hidden>

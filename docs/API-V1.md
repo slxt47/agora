@@ -23,6 +23,11 @@ Schlüssel nutzen.
 Die Rechte sind getrennt: Ein Schlüssel nur mit `meetings:schreiben` kann anlegen (die Antwort enthält das Meeting),
 aber nicht auflisten.
 
+**Schlüssel für eine Organisation:** Owner und Admins wählen beim Anlegen „Gilt für: <Organisation>“. So ein Schlüssel
+sieht und ändert nur die Meetings und Aufnahmen dieser Organisation (neue Meetings gehören ihr, mit ihren
+Standard-Rechten), kann keine Webhooks verwalten und gilt nur, solange das Konto dort Owner oder Admin ist (sonst 403;
+beim Austritt oder Herabstufen wird er gelöscht). Persönliche Schlüssel sehen die Meetings einer Organisation nicht.
+
 ## Grundregeln
 
 - `Authorization: Bearer agora_…` bei jeder Anfrage. Cookies zählen hier nicht, ein `X-Agora`-Kopf ist nicht nötig.

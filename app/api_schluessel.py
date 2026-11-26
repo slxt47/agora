@@ -25,8 +25,12 @@ PRO_MINUTE = 120
 
 
 def schluessel_json(k):
+    org = None
+    if k['org_id']:            # Schlüssel einer Organisation (nur deren Meetings/Aufnahmen)
+        o = db.verbindung().execute('SELECT slug, name FROM orgs WHERE id = ?', (k['org_id'],)).fetchone()
+        org = {'slug': o['slug'], 'name': o['name']} if o else None
     return {'id': k['id'], 'name': k['name'], 'anfang': k['anfang'], 'rechte': json.loads(k['rechte']),
-            'erstellt': iso(k['erstellt']), 'gueltig_bis': iso(k['gueltig_bis']), 'benutzt': iso(k['benutzt'])}
+            'erstellt': iso(k['erstellt']), 'gueltig_bis': iso(k['gueltig_bis']), 'benutzt': iso(k['benutzt']), 'org': org}
 
 
 def _abgelehnt(code, text, **kopf):
@@ -78,14 +82,20 @@ async def anlegen(req: Request):
     tage = d.get('gueltig_tage')
     if tage not in TAGE or isinstance(tage, bool):
         fehler(400, 'Gültigkeit: 30, 90 oder 365 Tage oder ohne Ablauf (null).')
+    org_id = None
+    if d.get('org') is not None:      # Schlüssel für eine Organisation: nur owner/admin, ohne Webhooks (die gehören zum Konto)
+        from .orgs import mitgliedschaft
+        org_id = mitgliedschaft(b, d['org'], 'admin')['id']
+        if 'webhooks' in rechte:
+            fehler(400, 'Schlüssel einer Organisation können keine Webhooks verwalten.')
     c = db.verbindung()
     if c.execute('SELECT COUNT(*) FROM api_schluessel WHERE benutzer_id = ?', (b['id'],)).fetchone()[0] >= MAX_JE_KONTO:
         fehler(409, f'Höchstens {MAX_JE_KONTO} API-Schlüssel je Konto – widerrufe zuerst einen alten.')
     token = PRAEFIX + secrets.token_urlsafe(32)
     t = jetzt()
-    i = c.execute('INSERT INTO api_schluessel (benutzer_id, name, anfang, schluessel_hash, rechte, erstellt, gueltig_bis) '
-                  'VALUES (?, ?, ?, ?, ?, ?, ?)', (b['id'], name, token[:12], h(token), json.dumps([r for r in RECHTE if r in rechte]),
-                                                   t, t + tage * 86400 if tage else None)).lastrowid
+    i = c.execute('INSERT INTO api_schluessel (benutzer_id, name, anfang, schluessel_hash, rechte, erstellt, gueltig_bis, org_id) '
+                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (b['id'], name, token[:12], h(token), json.dumps([r for r in RECHTE if r in rechte]),
+                                                      t, t + tage * 86400 if tage else None, org_id)).lastrowid
     db.protokollieren(f'API-Schlüssel erstellt ({token[:12]}…)', b['id'])
     k = c.execute('SELECT * FROM api_schluessel WHERE id = ?', (i,)).fetchone()
     return {'schluessel': schluessel_json(k), 'token': token}      # token nur in dieser Antwort

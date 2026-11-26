@@ -41,6 +41,7 @@ RAUM_JSON_EXTRA = []          # f(raum, benutzer|None) → dict, wird in raum_js
 VOR_ENDE = []                 # f(raum) beim Meeting-Ende, solange Teilnahmen noch da sind (Webhooks: teilnehmer.gegangen)
 NACH_ZUGANG = []              # f(raum, identity, name, rolle) nach jedem ausgegebenen Zugang (Webhooks)
 BEI_LISTE = []                # f(raum, liste) – minütlich die Verbundenen laut LiveKit (Webhooks)
+WARTERAUM_REGEL = []          # Organisationen: f(raum, benutzer|None) → True (muss warten), False (direkt hinein) oder None
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -106,7 +107,7 @@ def raum_json(r, b=None):
         geplant = {'start': iso(r['start']), 'dauer_min': r['dauer_min'], 'zeitzone': r['zeitzone'],
                    'beschreibung': r['beschreibung'] or '', 'wiederholung': r['wiederholung'], 'bis': iso(r['bis'])}
     return {'code': r['code'], 'titel': r['titel'], 'besitzer_name': besitzer['name'] if besitzer else '',
-            'ist_host': bool(b) and b['id'] == r['besitzer_id'], 'passcode_noetig': bool(r['passcode_hash']),
+            'ist_host': darf_verwalten(r, b), 'passcode_noetig': bool(r['passcode_hash']),
             'warteraum': bool(r['warteraum']), 'gesperrt': bool(r['gesperrt']), 'aktiv': bool(r['aktiv']),
             'persoenlich': r['art'] == 'persoenlich', 'chat_speichern': bool(r['chat_speichern']), 'dauer_chat': bool(r['dauer_chat']),
             'beendet': bool(r['beendet']), 'geplant': geplant, 'naechster_termin': iso(termin(r)), 'link': link(r['code']),
@@ -207,10 +208,21 @@ def persoenlichen_raum_anlegen(benutzer_id, name):
     return raum_anlegen(benutzer_id, 'persoenlich', texte.tx(texte.sprache(), 'titel.persoenlich', name=name)[:120])
 
 
+def darf_verwalten(r, b):
+    """Darf dieses Konto den Raum verwalten (und ist im Meeting Host)? Eigener Raum: nur der Besitzer.
+    Raum einer Organisation: jeder owner/admin der Organisation (app/orgs.py) – auch wer ihn nicht angelegt hat."""
+    if not b:
+        return False
+    if r['org_id']:
+        from .orgs import rolle         # spät importiert (orgs importiert raeume)
+        return rolle(r['org_id'], b['id']) in ('owner', 'admin')
+    return b['id'] == r['besitzer_id']
+
+
 def besitzer_raum(req, code):
     b = benutzer_aus_sitzung(req)
     r = raum_laden(code)
-    if r['besitzer_id'] != b['id']:
+    if not darf_verwalten(r, b):
         fehler(403, 'Nur der Besitzer darf das.')
     return b, r
 
@@ -285,7 +297,7 @@ async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None):
     """Neue Teilnahme + LiveKit-Token. Der Besitzer wird Host (ein anderer Host wird dann Co-Host)."""
     c = db.verbindung()
     b = c.execute('SELECT * FROM benutzer WHERE id = ?', (benutzer_id,)).fetchone() if benutzer_id else None
-    if b and b['id'] == r['besitzer_id']:
+    if b and darf_verwalten(r, b):
         rolle = 'host'
         for t in teilnahmen(r, ('host',)):
             if t['benutzer_id'] == b['id']:
@@ -358,6 +370,11 @@ def aufraeumen(t=None):
 async def raum_neu(req: Request):
     b = benutzer_aus_sitzung(req)
     d = await json_body(req)
+    return {'raum': raum_json(await raum_aus_body(b, d), b)}
+
+
+async def raum_aus_body(b, d, org_id=None, vorgaben=None):
+    """Neuer Raum aus dem Body von POST /api/raeume (auch für Räume einer Organisation: org_id + Vorgaben wie Rechte)."""
     grenze.pruefen(f'raum:{b["id"]}', 60, 3600)
     f = await einstellungen_lesen(d, b, True)
     if f.pop('dauer_chat', 0):
@@ -365,16 +382,15 @@ async def raum_neu(req: Request):
     art = 'geplant' if 'start' in f else 'sofort'
     titel = f.pop('titel', '') or (texte.tx(texte.sprache(), 'titel.sofort', name=b['name']) if art == 'sofort'
                                      else texte.tx(texte.sprache(), 'titel.geplant'))
+    if org_id:
+        f |= (vorgaben or {}) | {'org_id': org_id}
     r = raum_anlegen(b['id'], art, titel[:120], f)
     db.protokollieren(f'Raum angelegt ({art})', b['id'], r['code'])
-    return {'raum': raum_json(r, b)}
+    return r
 
 
-@router.get('/api/raeume')
-def raeume_liste(req: Request):
-    b = benutzer_aus_sitzung(req)
-    c = db.verbindung()
-    rows = c.execute('SELECT * FROM raeume WHERE besitzer_id = ? ORDER BY erstellt DESC', (b['id'],)).fetchall()
+def einteilen(rows, b):
+    """Räume → (anstehend, vergangen, persönlich) als raum_json (auch für die Räume einer Organisation)."""
     geplant, vergangen, persoenlich = [], [], None
     for r in rows:
         if r['art'] == 'persoenlich':
@@ -384,6 +400,15 @@ def raeume_liste(req: Request):
         else:
             (vergangen if r['beendet'] else geplant).append(raum_json(r, b))
     geplant.sort(key=lambda x: x['naechster_termin'] or '0')      # offene Sofort-Meetings zuerst, dann nach Termin
+    return geplant, vergangen, persoenlich
+
+
+@router.get('/api/raeume')
+def raeume_liste(req: Request):
+    b = benutzer_aus_sitzung(req)
+    c = db.verbindung()
+    rows = c.execute('SELECT * FROM raeume WHERE besitzer_id = ? AND org_id IS NULL ORDER BY erstellt DESC', (b['id'],)).fetchall()
+    geplant, vergangen, persoenlich = einteilen(rows, b)
     if persoenlich is None:
         persoenlich = raum_json(persoenlichen_raum_anlegen(b['id'], b['name']), b)
     return {'geplant': geplant, 'persoenlich': persoenlich, 'vergangen': vergangen[:50]}
@@ -512,7 +537,7 @@ async def beitreten(code: str, req: Request):
     name = text_feld(d, 'name', 60).replace('\n', ' ') or (b['name'] if b else '')
     if not name:
         fehler(400, 'Bitte einen Namen eingeben.')
-    besitzer = bool(b) and b['id'] == r['besitzer_id']
+    besitzer = darf_verwalten(r, b)
     extra = {}
     if not besitzer:
         for f in BEITRITT_PRUEFEN:
@@ -533,7 +558,11 @@ async def beitreten(code: str, req: Request):
         fehler(403, 'Du wurdest aus diesem Meeting entfernt.')
     if await voll(r):
         fehler(403, 'Meeting ist voll')
-    if r['warteraum'] and not besitzer and not extra.get('warteraum_frei'):
+    warten = bool(r['warteraum'])
+    for f in WARTERAUM_REGEL:          # Organisation: „Warteraum für Externe“ (Mitglieder direkt, alle anderen warten)
+        x = f(r, b)
+        warten = warten if x is None else x
+    if warten and not besitzer and not extra.get('warteraum_frei'):
         anfrage, geheim = secrets.token_urlsafe(12), secrets.token_urlsafe(24)
         db.verbindung().execute('INSERT INTO anfragen (id, geheim_hash, raum_id, sitzung, name, benutzer_id, ip, erstellt) '
                                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (anfrage, h(geheim), r['id'], r['sitzung'], name,

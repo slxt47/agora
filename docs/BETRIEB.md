@@ -178,6 +178,12 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
   Anwesenheits-Merker für `teilnehmer.gegangen` (identity, Name, Rolle): nur bei Konten mit passendem Webhook und nur bis
   zum Ende des Meetings.
 - Einbetten: je Raum nur „an/aus“ und die Liste der erlaubten Herkünfte, bis der Besitzer sie ändert oder den Raum löscht.
+- Organisationen (Name, Kurzname, Farbe, Einstellungen, Mitglieder mit Rolle und Beitrittszeit): bis ein owner sie löscht.
+  Einladungen (Adresse, Rolle, wer eingeladen hat, Link nur als Hash): bis zum Annehmen/Ablehnen/Zurückziehen, höchstens
+  7 Tage. Räume, Vorlagen und Aufnahmen der Organisation folgen den üblichen Fristen (Aufnahmen 90 Tage) und verschwinden
+  mit der Organisation. Austritt/Entfernen/Konto löschen: Mitgliedschaft und Schlüssel der Organisation weg, Räume/Vorlagen/
+  Aufnahmen/Meeting-Verlauf der Organisation gehen an einen owner über; war es das letzte Mitglied, wird die Organisation
+  gelöscht. Mitglieder sehen Namen und Rollen der anderen, E-Mail-Adressen nur owner/admin.
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 - Anmerkungen auf geteilten Bildschirmen: nicht gespeichert (nur im Browser, weg mit dem Ende der Freigabe); der Server
   kennt nur das Recht „erlaubt“ für das laufende Meeting.

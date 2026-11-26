@@ -96,6 +96,14 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 - **Melden und Blockieren:** Jede Person im Meeting kann eine andere melden (Grund + optionaler Text); die Meldung geht an die
   Admins (`AGORA_ADMIN_MAILS`), der Host sieht einen Hinweis (ohne den Namen der meldenden Person). Angemeldete blockieren
   Konten: Blockierte betreten ihre Meetings nicht mehr und können ihnen nicht privat schreiben (Verwalten im Profil).
+- **Teams / Organisationen** (Konto → „Teams“): Ein Konto legt Organisationen an (Name, Kurzname, Logo-Farbe) und lädt
+  per E-Mail ein (Link 7 Tage, annehmen/ablehnen, nur mit genau dieser Adresse). Rollen owner/admin/mitglied. Räume der
+  Organisation verwaltet jeder owner/admin (und ist darin Host), alle Mitglieder sehen die Meeting-Liste. Gemeinsame
+  Vorlagen (Mitglieder starten daraus eigene Meetings), Aufnahmen-Bibliothek der Organisation mit eigenem Kontingent
+  (Standard 20 GB, `AGORA_ORG_KONTINGENT_GB`), Einstellungen: Standard-Rechte neuer Räume, Warteraum für Externe,
+  E-Mail-Domain für Selbst-Beitritt (nur die eigene, keine Freemail-Anbieter). API-Schlüssel können nur für eine
+  Organisation gelten. Austritt/Entfernen: Eigenes bleibt beim Konto, was für die Organisation angelegt wurde, bleibt in
+  ihr. Der Admin-Bereich listet die Organisationen, der Datenexport enthält die Mitgliedschaften.
 - **Admin-Bereich** `/admin` (nur Konten aus `AGORA_ADMIN_MAILS`, für alle anderen 404): Übersicht (Konten, laufende Meetings
   und Teilnehmende live aus LiveKit, Meetings der letzten 7/30 Tage, Speicher der Aufnahmen), Konten suchen, sperren,
   2FA zurücksetzen, löschen, Meldungen bearbeiten, Protokoll mit Filter, laufende Meetings beenden. Jede Aktion wird protokolliert.

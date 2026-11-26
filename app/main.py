@@ -42,6 +42,7 @@ from . import api_schluessel  # Öffentliche API: persönliche API-Schlüssel
 from . import api_v1          # Öffentliche API /api/v1 (Bearer)
 from . import webhooks        # Webhooks (Zustellung im eigenen Hintergrund-Thread)
 from . import einbetten       # Einbetten: /e/<code> mit frame-ancestors je Raum, /embed.js
+from . import orgs            # Teams / Organisationen (Räume, Vorlagen, Aufnahmen, Schlüssel einer Organisation)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -146,6 +147,7 @@ app.include_router(api_schluessel.router)
 app.include_router(api_v1.router)
 app.include_router(webhooks.router)
 app.include_router(einbetten.router)
+app.include_router(orgs.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -192,6 +194,7 @@ def aufraeumen():
     untertitel.aufraeumen(t)
     api_schluessel.aufraeumen(t)   # abgelaufene API-Schlüssel (30 Tage nach Ablauf)
     webhooks.aufraeumen(t)         # Zustell-Protokoll 14 Tage, verwaiste Warteschlange/Anwesenheit
+    orgs.aufraeumen(t)             # abgelaufene Einladungen in Organisationen (7 Tage)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Request
 from . import db
 from . import livekit_dienst as lk
 from .kern import benutzer_aus_sitzung, fehler, grenze, h, iso, jetzt, json_body, text_feld
-from .raeume import (RANG, grundrolle, meeting_beenden, meta, nachricht_json, neu_laden, raum_laden, rechte, teilnahmen,
+from .raeume import (RANG, darf_verwalten, grundrolle, meeting_beenden, meta, nachricht_json, neu_laden, raum_laden, rechte, teilnahmen,
                      warteraum_melden, wartend)
 
 router = APIRouter()
@@ -268,7 +268,7 @@ def verlauf(code: str, req: Request):
     """Gespeicherter Chat (Raum-Einstellung chat_speichern) – für den Besitzer: öffentliche und eigene private Nachrichten."""
     b = benutzer_aus_sitzung(req)
     r = raum_laden(code)
-    if r['besitzer_id'] != b['id']:
+    if not darf_verwalten(r, b):
         fehler(403, 'Nur der Besitzer darf das.')
     rows = db.verbindung().execute('SELECT * FROM nachrichten WHERE raum_id = ? AND (an IS NULL OR von_benutzer = ? OR an_benutzer = ?) '
                                    'ORDER BY id', (r['id'], b['id'], b['id'])).fetchall()

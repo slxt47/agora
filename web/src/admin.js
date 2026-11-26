@@ -11,8 +11,9 @@ const ZONE = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZ
 const zeit = (iso) => (iso ? zeitText(iso, ZONE) : '–');
 
 // ---------------------------------------------------------------- Reiter
-const REITER = ['uebersicht', 'konten', 'meldungen', 'meetings', 'protokoll'];
-const LADEN = { uebersicht: uebersichtLaden, konten: () => kontenLaden(), meldungen: meldungenLaden, meetings: meetingsLaden, protokoll: () => protokollLaden() };
+const REITER = ['uebersicht', 'konten', 'meldungen', 'meetings', 'orgs', 'protokoll'];
+const LADEN = { uebersicht: uebersichtLaden, konten: () => kontenLaden(), meldungen: meldungenLaden, meetings: meetingsLaden, orgs: () => orgsLaden(),
+  protokoll: () => protokollLaden() };
 function reiter(name, fokus = false) {
   if (!REITER.includes(name)) name = 'uebersicht';
   for (const r of REITER) {
@@ -227,6 +228,30 @@ async function meetingsLaden() {
 async function meetingBeenden(r) {
   if (!await bestaetigen(t('admin.meetingBeenden'), t('admin.meetingBeendenText', { titel: r.titel }), { ja: t('admin.meetingBeenden'), gefahr: true })) return;
   await beschaeftigt(null, async () => { await api(`/api/admin/meetings/${r.code}/beenden`, { methode: 'POST' }); toast(t('admin.erledigt'), 'ok'); meetingsLaden(); });
+}
+
+// ---------------------------------------------------------------- Organisationen (nur ansehen)
+let orgSuche = '';
+$('#f-org-suche').addEventListener('submit', (e) => { e.preventDefault(); orgSuche = $('#org-suche').value.trim(); orgsLaden(); });
+
+async function orgsLaden() {
+  const ul = $('#liste-admin-orgs');
+  try {
+    const r = await api(`/api/admin/orgs?${new URLSearchParams({ q: orgSuche })}`);
+    $('#orgs-info').textContent = t('admin.orgsGesamt', { n: adminZahl(r.gesamt) });
+    ul.replaceChildren(...(r.orgs.length ? r.orgs.map((o) => {
+      const punkt = h('span', { class: 'admin-org-punkt', 'aria-hidden': 'true' });
+      punkt.style.background = o.farbe;
+      return h('li', { dataset: { org: o.slug } },
+        h('div', { class: 'kopf' }, h('div', { class: 'text' },
+          h('span', { class: 'name' }, punkt, o.name, h('span', { class: 'sec' }, ` · #${o.id}`)),
+          h('span', { class: 'info mono' }, o.slug),
+          h('span', { class: 'info' }, [t('admin.seit', { zeit: zeit(o.erstellt) }), t('admin.orgMitglieder', { n: o.mitglieder }),
+            t('admin.raeumeN', { n: o.raeume }), `${groesseText(o.belegt)} / ${groesseText(o.kontingent)}`].join(' · ')),
+          o.owner ? h('span', { class: 'info' }, t('admin.orgOwner', { name: o.owner.name, email: o.owner.email })) : null)),
+        o.domain ? h('div', { class: 'zeile' }, h('span', { class: 'marker' }, t('admin.orgDomain', { domain: o.domain }))) : null);
+    }) : [h('li', { class: 'leer' }, t('admin.keineOrgs'))]));
+  } catch (e) { fehlerZeile(ul, e); }
 }
 
 // ---------------------------------------------------------------- Protokoll

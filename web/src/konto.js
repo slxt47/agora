@@ -24,7 +24,7 @@ const zone = () => ich?.zeitzone || browserZone;
 const raumLink = (raum) => e2eeLink(raum, raum.link || `${location.origin}/r/${raum.code}`);
 
 // ---------------------------------------------------------------- Reiter (#meetings, #aufnahmen, #profil, #entwickler, #planen)
-const REITER = ['meetings', 'aufnahmen', 'profil', 'entwickler'];      // entwickler: entwickler.js (API, Webhooks)
+const REITER = ['meetings', 'aufnahmen', 'teams', 'profil', 'entwickler'];   // teams: org-konto.js, entwickler: entwickler.js
 function reiter(name, fokus = false) {
   if (!REITER.includes(name)) name = 'meetings';
   for (const r of REITER) {
@@ -35,6 +35,7 @@ function reiter(name, fokus = false) {
   if (fokus) $(`#tab-${name}`).focus();
   if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
   if (name === 'aufnahmen') aufnahmenLaden();
+  if (name === 'teams') dispatchEvent(new Event('agora:teams-zeigen'));     // org-konto.js lädt neu
 }
 for (const r of REITER) $(`#tab-${r}`).addEventListener('click', () => reiter(r));
 $('.reiter').addEventListener('keydown', (e) => {
@@ -170,7 +171,11 @@ function naechsteHalbeStunde() {
   return d.toISOString();
 }
 
-function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {}) {
+// Organisationen (org-konto.js) nutzen denselben Dialog: ziel = POST-Adresse für neue Räume, danach = Liste neu laden.
+addEventListener('agora:org-planen', (e) => planenDialog(e.detail.raum || null, { ziel: e.detail.ziel, danach: e.detail.danach }));
+addEventListener('agora:org-einladen', (e) => einladenDialog(e.detail.raum));
+
+function planenDialog(raum = null, { persoenlich = false, vorlage = null, ziel = null, danach = null } = {}) {
   if (location.hash === '#planen') history.replaceState(null, '', '#meetings');
   const ve = vorlage?.einstellungen;          // Planen aus Vorlage: Felder vorbelegen, Rechte/Stumm setzt der Server
   if (ve) raum = null;
@@ -249,9 +254,10 @@ function planenDialog(raum = null, { persoenlich = false, vorlage = null } = {})
     beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
       const r = raum
         ? await api(`/api/raeume/${raum.code}`, { methode: 'PATCH', json: body })
-        : await api(ve ? `/api/vorlagen/${vorlage.id}/raum` : '/api/raeume', { methode: 'POST', json: body });
+        : await api(ve ? `/api/vorlagen/${vorlage.id}/raum` : (ziel || '/api/raeume'), { methode: 'POST', json: body });
       r.raum = await e2eeNachSpeichern(r.raum, f.e2ee.checked);
       schliessen();
+      if (danach) { danach(r.raum); toast(raum ? t('konto.gespeichert') : t('konto.geplant'), 'ok'); return; }
       if (ve && r.passcode) passcodeZeigen(r.raum, r.passcode);
       toast(raum ? t('konto.gespeichert') : t('konto.geplant'), 'ok', raum ? {} : { aktion: { text: t('konto.einladen'), fn: () => einladenDialog(r.raum) } });
       await meetingsLaden();
@@ -500,7 +506,7 @@ $('#planen-knopf').addEventListener('click', () => planenDialog());
 // ---------------------------------------------------------------- Start
 (async () => {
   ich = await ichLaden();
-  if (!ich) { location.replace(`/?weiter=${encodeURIComponent('/konto' + location.hash)}`); return; }
+  if (!ich) { location.replace(`/?weiter=${encodeURIComponent('/konto' + location.search + location.hash)}`); return; }
   kopfZeigen();
   kalenderAboEinrichten();
   vorlagenEinrichten({ planen: (vorlage) => planenDialog(null, { vorlage }) });

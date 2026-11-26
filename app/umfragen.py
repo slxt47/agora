@@ -20,7 +20,7 @@ from . import db
 from . import livekit_dienst as lk
 from .kern import benutzer_aus_sitzung, fehler, grenze, iso, jetzt, json_body, text_feld
 from .meeting import protokoll, steuernd, teilnahme
-from .raeume import BEIM_ENDE, raum_laden, teilnahmen
+from .raeume import BEIM_ENDE, darf_verwalten, raum_laden, teilnahmen
 
 router = APIRouter()
 MAX_JE_MEETING = 50
@@ -97,7 +97,7 @@ def verlauf(code: str, req: Request):
     """Gespeicherte Umfragen (Raum mit chat_speichern) – nur für den Besitzer, mit Ergebnis."""
     b = benutzer_aus_sitzung(req)
     r = raum_laden(code)
-    if r['besitzer_id'] != b['id']:
+    if not darf_verwalten(r, b):
         fehler(403, 'Nur der Besitzer darf das.')
     rows = db.verbindung().execute("SELECT * FROM umfragen WHERE raum_id = ? AND status != 'entwurf' ORDER BY id", (r['id'],)).fetchall()
     return {'umfragen': [umfrage_json(u, mod=True) | {'sitzung': u['sitzung']} for u in rows]}

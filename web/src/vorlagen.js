@@ -109,7 +109,7 @@ function schalter(name, text, hinweis, an) {
 }
 
 /** Vorlage anlegen oder bearbeiten. */
-export function vorlageDialog(v = null) {
+export function vorlageDialog(v = null, { basis = '/api/vorlagen', danach = vorlagenLaden } = {}) {
   const e = v?.einstellungen || { dauer_min: 60, rechte: {} };
   const { inhalt, schliessen } = blatt(v ? t('vorlage.bearbeitenTitel') : t('vorlage.neuTitel'));
   const statusEl = h('div', { class: 'status', role: 'status', hidden: true });
@@ -144,9 +144,9 @@ export function vorlageDialog(v = null) {
     };
     beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
       const body = { name: f.name.value.trim(), einstellungen };
-      if (v) await api(`/api/vorlagen/${v.id}`, { methode: 'PUT', json: body });
-      else await api('/api/vorlagen', { methode: 'POST', json: body });
-      schliessen(); toast(t('vorlage.gespeichert'), 'ok'); await vorlagenLaden();
+      if (v) await api(`${basis}/${v.id}`, { methode: 'PUT', json: body });
+      else await api(basis, { methode: 'POST', json: body });
+      schliessen(); toast(t('vorlage.gespeichert'), 'ok'); await danach();
     }, statusEl);
   });
 }

@@ -59,7 +59,7 @@ def erlaubt(r):
 
 
 def _json(r, b):
-    if not b or b['id'] != r['besitzer_id']:
+    if not raeume.darf_verwalten(r, b):
         return {}
     return {'einbetten': {'erlaubt': erlaubt(r), 'herkuenfte': herkuenfte(r), 'link': f'{SEITE}/e/{r["code"]}'}}
 

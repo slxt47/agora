@@ -252,7 +252,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 ## 15. Zusatzfunktionen (Backlog)
 
 - [x] 🟢 Admin-Dashboard (Nutzer, Nutzung, Statistiken)
-- [ ] 🟢 Teams / Organisationen / Workspaces — *noch offen*
+- [x] 🟢 Teams / Organisationen / Workspaces — *Organisationen mit Rollen, Einladungen, Räumen, Vorlagen, Aufnahmen, Schlüsseln*
 - [ ] 🟢 Abrechnung & Pläne (Free/Pro, Zeitlimits) — *Geschäftsentscheidung (Florian)*
 - [ ] 🟢 Telefon-Einwahl (SIP / PSTN) — *braucht SIP-Anbieter (Florian)*
 - [x] 🟢 Integrationen (Slack, Teams, Webhooks, öffentliche API)

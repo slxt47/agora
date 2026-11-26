@@ -74,7 +74,7 @@ def vorlage_json(v):
 
 
 def laden(b, vid):
-    v = db.verbindung().execute('SELECT * FROM vorlagen WHERE id = ? AND benutzer_id = ?', (vid, b['id'])).fetchone()
+    v = db.verbindung().execute('SELECT * FROM vorlagen WHERE id = ? AND benutzer_id = ? AND org_id IS NULL', (vid, b['id'])).fetchone()
     if not v:
         fehler(404, 'Vorlage nicht gefunden')
     return v
@@ -92,7 +92,8 @@ def name_feld(d, pflicht):
 @router.get('/api/vorlagen')
 def liste(req: Request):
     b = benutzer_aus_sitzung(req)
-    rows = db.verbindung().execute('SELECT * FROM vorlagen WHERE benutzer_id = ? ORDER BY name COLLATE NOCASE, id', (b['id'],)).fetchall()
+    rows = db.verbindung().execute('SELECT * FROM vorlagen WHERE benutzer_id = ? AND org_id IS NULL ORDER BY name COLLATE NOCASE, id',
+                                   (b['id'],)).fetchall()
     return {'vorlagen': [vorlage_json(v) for v in rows]}
 
 
@@ -105,13 +106,13 @@ async def neu(req: Request):
     name = name_feld(d, True)
     if d.get('aus_raum') is not None:
         r = raeume.raum_laden(d['aus_raum'] if isinstance(d['aus_raum'], str) else '')
-        if r['besitzer_id'] != b['id']:
+        if not raeume.darf_verwalten(r, b):
             fehler(403, 'Nur der Besitzer darf das.')
         e = aus_raum(r)
     else:
         e = einstellungen_pruefen(d.get('einstellungen', {}))
     c = db.verbindung()
-    if c.execute('SELECT COUNT(*) FROM vorlagen WHERE benutzer_id = ?', (b['id'],)).fetchone()[0] >= MAX_VORLAGEN:
+    if c.execute('SELECT COUNT(*) FROM vorlagen WHERE benutzer_id = ? AND org_id IS NULL', (b['id'],)).fetchone()[0] >= MAX_VORLAGEN:
         fehler(409, f'Höchstens {MAX_VORLAGEN} Vorlagen.')
     vid = c.execute('INSERT INTO vorlagen (benutzer_id, name, einstellungen, erstellt, geaendert) VALUES (?, ?, ?, ?, ?)',
                     (b['id'], name, json.dumps(e), jetzt(), jetzt())).lastrowid
@@ -145,6 +146,12 @@ async def raum_aus_vorlage(vid: int, req: Request):
     b = benutzer_aus_sitzung(req)
     e = vorlage_json(laden(b, vid))['einstellungen']
     d = await json_body(req)
+    r, passcode = await raum_aus_einstellungen(b, e, d)
+    return {'raum': raeume.raum_json(r, b), 'passcode': passcode}
+
+
+async def raum_aus_einstellungen(b, e, d, org_id=None):
+    """Raum aus Vorlagen-Einstellungen e + Body d → (raum, passcode oder None). org_id: Raum der Organisation."""
     grenze.pruefen(f'raum:{b["id"]}', 60, 3600)
     felder = {'titel': d['titel'] if isinstance(d.get('titel'), str) and d['titel'].strip() else e['titel'],
               'warteraum': d.get('warteraum', e['warteraum']), 'chat_speichern': d.get('chat_speichern', e['chat_speichern'])}
@@ -165,14 +172,16 @@ async def raum_aus_vorlage(vid: int, req: Request):
                                      else texte.tx(texte.sprache(), 'titel.geplant'))
     rechte = json.dumps(e['rechte'])
     f |= {'rechte': rechte, 'rechte_standard': rechte, 'stumm_beitritt': int(e['stumm_beitritt'])}
+    if org_id:
+        f['org_id'] = org_id
     r = raeume.raum_anlegen(b['id'], art, titel[:120], f)
     db.protokollieren(f'Raum angelegt ({art}, Vorlage)', b['id'], r['code'])
-    return {'raum': raeume.raum_json(r, b), 'passcode': passcode or (felder.get('passcode') or None)}
+    return r, passcode or (felder.get('passcode') or None)
 
 
 def export(b):
     """Für den Datenexport (GET /api/konto/export)."""
-    rows = db.verbindung().execute('SELECT * FROM vorlagen WHERE benutzer_id = ? ORDER BY id', (b['id'],)).fetchall()
+    rows = db.verbindung().execute('SELECT * FROM vorlagen WHERE benutzer_id = ? AND org_id IS NULL ORDER BY id', (b['id'],)).fetchall()
     return {'vorlagen': [vorlage_json(v) for v in rows]}
 
 

@@ -256,7 +256,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [ ] 🟢 Abrechnung & Pläne (Free/Pro, Zeitlimits) — *Geschäftsentscheidung (Florian)*
 - [ ] 🟢 Telefon-Einwahl (SIP / PSTN) — *braucht SIP-Anbieter (Florian)*
 - [x] 🟢 Integrationen (Slack, Teams, Webhooks, öffentliche API)
-- [ ] 🟢 Benachrichtigungen (Push, E-Mail-Erinnerungen) — *E-Mail-Erinnerungen fertig, Push offen*
+- [x] 🟢 Benachrichtigungen (Push, E-Mail-Erinnerungen)
 - [x] 🟢 Persistenter Raum-Chat außerhalb von Meetings
 
 ---

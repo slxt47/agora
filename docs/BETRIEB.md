@@ -151,6 +151,21 @@ einen zweiten whisper.cpp-Container (gleiches Image, gleiches Modell-Volume nur 
 Image; RAM je nach Modell: base ≈ 400 MB, small ≈ 1 GB) und `AGORA_WHISPER_URL=http://127.0.0.1:8095/v1/audio/transcriptions`
 setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben und `--convert` ergänzen (Änderung dort).
 
+## Push-Benachrichtigungen (Web Push)
+
+Nichts einzurichten: Beim ersten Bedarf erzeugt die App ein VAPID-Schlüsselpaar (P-256) und legt es in
+`daten/push-vapid.json` (0600) ab – es ist im Backup. Alternativ fest vorgeben: `AGORA_VAPID_PRIVAT` (32-Byte-Skalar,
+Base64url). Geht der Schlüssel verloren oder ändert er sich, nehmen die Push-Dienste die alten Abos nicht mehr an
+(Geräte bekommen 403, nach 10 Fehlschlägen werden sie gelöscht) – Nutzer schalten Push dann neu ein.
+Optional: `AGORA_VAPID_SUBJEKT` (Kontakt für die Push-Dienste, `mailto:…` oder `https://…`, Standard `AGORA_SEITE`),
+`AGORA_PUSH_DIENSTE` (Komma-Liste erlaubter Host-Endungen, Standard `fcm.googleapis.com, android.googleapis.com,
+push.services.mozilla.com, push.apple.com, notify.windows.com`).
+
+Ausgehend verbindet die App sich zu den Push-Diensten der Browser-Hersteller (Google, Mozilla, Apple, Microsoft) – wie
+bei Webhooks nur zu öffentlichen IPs, ohne Weiterleitungen. Der Inhalt ist Ende-zu-Ende verschlüsselt (RFC 8291): Der
+Dienst sieht Zeitpunkt, Größe und Gerät, nicht den Text. iPhone/iPad bekommen Push nur in der installierten App
+(„Zum Home-Bildschirm“, iOS 16.4+), nicht im Safari-Tab. Zähler `agora_push_total{ergebnis=ok|weg|fehler}` in `/api/metriken`.
+
 ## Aufbewahrung
 
 - Nicht bestätigte Konten: 48 h
@@ -172,6 +187,9 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
   (verschlüsselt): nur solange der Stream läuft; verwaiste Dateien im Egress-Ausgabeordner: 1 Tag
 - Dauer-Chat (persönlicher Raum, nur wenn der Besitzer ihn einschaltet): öffentliche Nachrichten bleiben, bis der Besitzer ihn leert oder ausschaltet (oder mit dem Konto), höchstens die neuesten 1000 Nachrichten.
 - Meeting-Verlauf (Titel, Code, Beginn, Ende, Spitzenzahl, Zahl der Beitritte – keine Namen, keine IPs): 90 Tage, einzeln löschbar, mit dem Konto weg. Wird der Raum gelöscht, bleibt der Eintrag ohne Chat-Verweis.
+- Push-Abos (Adresse beim Push-Dienst, Schlüssel des Browsers, Gerätename, Zeitpunkt des Einschaltens und der letzten
+  Zustellung) und die gewählten Ereignisse: bis man sie im Profil ausschaltet, der Dienst die Adresse für ungültig
+  erklärt (404/410), nach 10 Fehlschlägen in Folge oder mit dem Konto. Inhalte von Benachrichtigungen werden nicht gespeichert.
 - Erinnerungen: Einstellung im Profil, bis man sie ausschaltet (oder mit dem Konto). Adressen von Eingeladenen nur, wenn der Host „Erinnerung schicken“ ankreuzt – gelöscht nach dem Ende des Termins, zu dem eingeladen wurde (spätestens mit dem Meeting, Sicherheitsnetz 400 Tage). Versand-Merker (nur Hash aus Raum, Termin, Empfänger): 2 Tage.
 - Meeting-Vorlagen: bis der Besitzer sie löscht (oder mit dem Konto); enthalten keine Passcodes, nur „Passcode an/aus“. Im Datenexport enthalten.
 - Kalender-Abo: Nur wer es im Profil einschaltet. Gespeichert werden Salz, Hash des Links, Zeitpunkt des Einschaltens und des letzten Abrufs (keine IP). Weg beim Ausschalten, bei „Neuer Link“ (ersetzt) und mit dem Konto.

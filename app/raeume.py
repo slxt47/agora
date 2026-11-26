@@ -42,6 +42,8 @@ VOR_ENDE = []                 # f(raum) beim Meeting-Ende, solange Teilnahmen no
 NACH_ZUGANG = []              # f(raum, identity, name, rolle) nach jedem ausgegebenen Zugang (Webhooks)
 BEI_LISTE = []                # f(raum, liste) – minütlich die Verbundenen laut LiveKit (Webhooks)
 WARTERAUM_REGEL = []          # Organisationen: f(raum, benutzer|None) → True (muss warten), False (direkt hinein) oder None
+NEUE_ANFRAGE = []             # async f(raum, name) – jemand wartet neu im Warteraum (Push)
+NACH_EINLADUNG = []           # f(raum, benutzer, adressen) – Einladungs-Mails sind unterwegs (Push)
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -510,6 +512,8 @@ async def einladen(code: str, req: Request):
                                 kalender_links(r), texte.sprache())     # Sprache der einladenden Seite
             gesendet += 1
     db.protokollieren(f'Einladungen verschickt ({gesendet})', b['id'], code)
+    for f in NACH_EINLADUNG:
+        f(r, b, verschickt)
     if erinnerung:
         from .erinnerungen import vormerken
         return {'ok': True, 'gesendet': gesendet, 'erinnerung': vormerken(r, verschickt, erinnerung_min)}
@@ -568,6 +572,8 @@ async def beitreten(code: str, req: Request):
                                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (anfrage, h(geheim), r['id'], r['sitzung'], name,
                                                                     b['id'] if b else None, ip, jetzt()))
         await warteraum_melden(r)
+        for f in NEUE_ANFRAGE:
+            await f(r, name)
         return {'status': 'wartet', 'anfrage': anfrage, 'anfrage_geheim': geheim}
     if besitzer:
         db.protokollieren('Meeting betreten (Host)', b['id'], code)

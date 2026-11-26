@@ -87,6 +87,9 @@ const P = {
   schluessel: '<circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.8-8.8M16.5 6.5l2.5 2.5M14 9l2 2"/>',
   code: '<path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/>',
   // ==== Ende Block „Öffentliche API, Webhooks, Einbetten“ ====
+  // ==== Block „Push“ ====
+  glocke: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  // ==== Ende Block „Push“ ====
 };
 
 /** SVG-Zeichenkette für ein Symbol. */

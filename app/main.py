@@ -45,6 +45,7 @@ from . import einbetten       # Einbetten: /e/<code> mit frame-ancestors je Raum
 from . import orgs            # Teams / Organisationen (Räume, Vorlagen, Aufnahmen, Schlüssel einer Organisation)
 from . import status          # Öffentliche Status-Seite /status, /api/status (eigener Prüf-Thread jede Minute)
 from . import android         # Android-TWA: /.well-known/assetlinks.json (nur mit AGORA_ANDROID_SHA256)
+from . import push            # Push-Benachrichtigungen (Web Push, opt-in je Gerät)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -153,6 +154,7 @@ app.include_router(einbetten.router)
 app.include_router(orgs.router)
 app.include_router(status.router)
 app.include_router(android.router)
+app.include_router(push.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -215,6 +217,7 @@ def hintergrund():
             asyncio.run(raeume.leere_pruefen())
             asyncio.run(breakout.faellige_pruefen())     # Timer/Countdown, falls die geplante Aufgabe verloren ging
             erinnerungen.pruefen()                        # Erinnerungs-Mails (idempotent je Termin)
+            push.erinnerungen_pruefen()                   # Erinnerungen als Push (nur Konten mit Geräten)
             asyncio.run(egress.alle_abgleichen())         # Server-Aufnahmen in die Bibliothek, Livestream-Fehler
             if time.time() - letztes_aufraeumen > 300:
                 aufraeumen()

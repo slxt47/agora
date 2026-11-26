@@ -17,6 +17,7 @@ import { webinarKnopf, webinarMarke } from './webinar-konto.js';      // Webinar
 import { transkriptKnopf, aufnahmeTranskript } from './transkript-konto.js';   // Untertitel-Transkripte, Whisper
 import { e2eeLink, e2eeMarker, e2eeSchalter, e2eeNachSpeichern, e2eeEinladenHinweis } from './e2ee-konto.js';
 import { einbettenKnopf, einbettenMarke } from './einbetten-konto.js';     // Einbetten auf fremden Seiten
+import { pushEinrichten } from './push-konto.js';      // Push-Benachrichtigungen (opt-in je Gerät)
 
 let ich = null;
 const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
@@ -511,6 +512,7 @@ $('#planen-knopf').addEventListener('click', () => planenDialog());
   kalenderAboEinrichten();
   vorlagenEinrichten({ planen: (vorlage) => planenDialog(null, { vorlage }) });
   erinnerungEinrichten();
+  pushEinrichten();
   verlaufEinrichten({ zeitzone: zone });
   const ziel = location.hash.slice(1);
   reiter(ziel === 'planen' ? 'meetings' : ziel);

@@ -56,6 +56,15 @@ def mit_sprache(s):
 
 # ---------------------------------------------------------------- Fehlermeldungen
 FEHLER_EN = {
+    # ==== Block Push-Benachrichtigungen ====
+    'Ungültige Push-Adresse.': 'Invalid push address.',
+    'Dieser Push-Dienst ist nicht freigegeben.': 'This push service isn’t allowed.',
+    'Ungültige Push-Schlüssel.': 'Invalid push keys.',
+    'Höchstens 10 Geräte je Konto – entferne zuerst ein altes.': 'At most 10 devices per account – remove an old one first.',
+    'Gerät nicht gefunden': 'Device not found',
+    'Ereignisse: erinnerung, warteraum, einladung, fertig.': 'Events: erinnerung, warteraum, einladung, fertig.',
+    'Auf keinem Gerät eingeschaltet.': 'Not turned on on any device.',
+    # ==== Ende Block Push-Benachrichtigungen ====
     # ==== Block Öffentliche API, Webhooks, Einbetten ====
     'Ungültige Herkunft.': 'Invalid origin.',
     'Zum Einbetten mindestens eine Herkunft angeben (z. B. https://beispiel.de).': 'To embed, provide at least one origin (e.g. https://example.com).',
@@ -403,6 +412,14 @@ MAIL = {
                        'Wenn du das nicht erwartet hast, ignoriere diese Mail einfach.',
         'org.betreff': 'Einladung in „{org}“', 'org.titel': 'Einladung in eine Organisation', 'org.knopf': 'Einladung ansehen',
         'org.vorschau': '{von} lädt dich in „{org}“ ein',
+        # ==== Block Push-Benachrichtigungen (app/push.py) ====
+        'push.erinnerung.titel': '{titel} beginnt bald', 'push.erinnerung.text': '{wann} – in {n} Minuten. Tippen zum Beitreten.',
+        'push.warteraum.titel': 'Jemand wartet: {titel}', 'push.warteraum.text': '{name} wartet im Warteraum deines Meetings.',
+        'push.einladung.titel': 'Einladung: {titel}', 'push.einladung.text': '{name} hat dich eingeladen.',
+        'push.aufnahme.titel': 'Aufnahme fertig', 'push.aufnahme.text': '„{titel}“ liegt jetzt in deiner Bibliothek.',
+        'push.transkript.titel': 'Transkript fertig', 'push.transkript.text': 'Das Transkript zu „{titel}“ ist fertig.',
+        'push.test.titel': 'Agora', 'push.test.text': 'So sehen Benachrichtigungen von Agora aus.',
+        # ==== Ende Block Push-Benachrichtigungen ====
     },
     'en': {
         'hallo': 'Hi {name},',
@@ -448,6 +465,14 @@ MAIL = {
                        'If you didn’t expect this, just ignore this email.',
         'org.betreff': 'Invitation to “{org}”', 'org.titel': 'Invitation to an organization', 'org.knopf': 'View invitation',
         'org.vorschau': '{von} invites you to “{org}”',
+        # ==== Block Push-Benachrichtigungen (app/push.py) ====
+        'push.erinnerung.titel': '{titel} starts soon', 'push.erinnerung.text': '{wann} – in {n} minutes. Tap to join.',
+        'push.warteraum.titel': 'Someone is waiting: {titel}', 'push.warteraum.text': '{name} is waiting in your meeting’s waiting room.',
+        'push.einladung.titel': 'Invitation: {titel}', 'push.einladung.text': '{name} invited you.',
+        'push.aufnahme.titel': 'Recording ready', 'push.aufnahme.text': '“{titel}” is now in your library.',
+        'push.transkript.titel': 'Transcript ready', 'push.transkript.text': 'The transcript for “{titel}” is ready.',
+        'push.test.titel': 'Agora', 'push.test.text': 'This is what notifications from Agora look like.',
+        # ==== Ende Block Push-Benachrichtigungen ====
     },
 }
 

@@ -21,6 +21,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
     speichern und daraus sofort starten oder planen
   - Einladung per E-Mail mit `.ics`
   - Erinnerungs-Mails (opt-in): für eigene Termine 10/15/30/60 min vorher, für Eingeladene nur mit Haken „Erinnerung schicken“
+  - Push-Benachrichtigungen (Web Push, opt-in je Gerät im Profil): Erinnerung vor eigenen Terminen, „Jemand wartet im
+    Warteraum“ (nur wenn weder Host noch Co-Host im Meeting ist), Einladungen, Server-Aufnahme/Transkript fertig. Eigene
+    kleine RFC-8291/8292-Umsetzung auf `cryptography` (Inhalt für das Gerät verschlüsselt, VAPID-Schlüssel selbst erzeugt);
+    der Service Worker zeigt die Benachrichtigung und öffnet die passende Seite. iPhone/iPad: nur als installierte App (ab iOS 16.4).
   - Kalender ohne OAuth: „Zu Google Kalender“, „Zu Outlook/Office 365“, „Zu Outlook.com“ (mit Join-Link, Google auch mit Wiederholung) und `.ics`;
     privates Kalender-Abo (iCal-Feed mit geheimem Link, neu erzeugbar) für Apple, Google und Outlook
 - **Audio und Video:**

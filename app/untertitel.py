@@ -33,6 +33,7 @@ WHISPER_URL = os.environ.get('AGORA_WHISPER_URL', '').strip()
 WHISPER_MODELL = os.environ.get('AGORA_WHISPER_MODELL', 'whisper-1')
 WHISPER_TIMEOUT_S = int(os.environ.get('AGORA_WHISPER_TIMEOUT', '3600'))
 _whisper_lock = threading.Lock()
+NACH_TRANSKRIPT = []          # f(aufnahme_zeile) – Whisper-Transkript fertig (Push)
 
 
 def _meta(r):
@@ -201,6 +202,10 @@ def _job(aufnahme_id, pfad, typ):
                 f.write(vtt)
             os.replace(tmp, vtt_pfad(aufnahme_id))
             c.execute("UPDATE aufnahme_transkript SET status = 'fertig', fehler = NULL, fertig = ? WHERE aufnahme_id = ?", (jetzt(), aufnahme_id))
+            a = c.execute('SELECT * FROM aufnahmen WHERE id = ?', (aufnahme_id,)).fetchone()
+            for f in NACH_TRANSKRIPT:
+                if a:
+                    f(a)
         except Exception as e:   # noqa: BLE001
             print(f'whisper-fehler {type(e).__name__}', flush=True)
             c.execute("UPDATE aufnahme_transkript SET status = 'fehler', fehler = ? WHERE aufnahme_id = ?",

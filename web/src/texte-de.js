@@ -793,4 +793,21 @@ export const de = {
   'status.feldEnde': 'Ende (optional)', 'status.zeitHinweis': 'Zeiten in der Zeitzone dieses Browsers. Ohne Beginn gilt jetzt; „Behoben“/„Abgeschlossen“ ohne Ende setzt das Ende auf jetzt.',
   'status.titelFehlt': 'Bitte einen Titel eingeben.',
   // ==== Ende Block Status-Seite ====
+  // ==== Block Push-Benachrichtigungen (web/src/push-konto.js) ====
+  'html.push': 'Push-Benachrichtigungen',
+  'push.text': 'Lass dich auf diesem Gerät benachrichtigen – auch wenn Agora gerade nicht offen ist. Für jedes Gerät einzeln einschalten.',
+  'push.hierAn': 'Auf diesem Gerät einschalten', 'push.hierAus': 'Auf diesem Gerät ausschalten',
+  'push.anOk': 'Push ist auf diesem Gerät eingeschaltet.', 'push.ausOk': 'Push ist auf diesem Gerät ausgeschaltet.',
+  'push.nichtMoeglich': 'Dieser Browser kann keine Push-Benachrichtigungen.',
+  'push.iosHinweis': 'Auf iPhone und iPad geht Push nur in der installierten App: im Teilen-Menü „Zum Home-Bildschirm“ wählen (ab iOS 16.4), Agora von dort öffnen und hier einschalten.',
+  'push.blockiert': 'Benachrichtigungen sind für Agora blockiert. Erlaube sie in den Website-Einstellungen deines Browsers.',
+  'push.ereignisse': 'Worüber?', 'push.geraete': 'Geräte', 'push.unbenannt': 'Gerät', 'push.diesesGeraet': 'dieses Gerät',
+  'push.zuletzt': 'zuletzt benachrichtigt {zeit}', 'push.seit': 'eingeschaltet {zeit}', 'push.entfernen': 'Gerät entfernen?',
+  'push.test': 'Test senden', 'push.testOk': 'Test an {n} Gerät(e) geschickt.',
+  'push.erinnerung': 'Erinnerung vor eigenen Terminen', 'push.erinnerungHinweis': 'Zur selben Zeit wie die Erinnerungs-Mail, sonst 10 Minuten vorher.',
+  'push.warteraum': 'Jemand wartet im Warteraum', 'push.warteraumHinweis': 'Nur wenn du (und kein Co-Host) gerade nicht im Meeting bist.',
+  'push.einladung': 'Einladungen', 'push.einladungHinweis': 'Wenn jemand deine Adresse zu einem Meeting einlädt.',
+  'push.fertig': 'Aufnahme, Transkript oder Zusammenfassung fertig', 'push.fertigHinweis': 'Für Server-Aufnahmen und Arbeiten im Hintergrund.',
+  'push.datenschutz': 'Datenschutz: Zugestellt wird über den Push-Dienst deines Browser-Herstellers (z. B. Google, Mozilla, Apple, Microsoft). Der Inhalt ist für dein Gerät verschlüsselt – der Dienst sieht nur, dass und wann eine Nachricht kommt.',
+  // ==== Ende Block Push-Benachrichtigungen ====
 };

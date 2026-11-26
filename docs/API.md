@@ -596,3 +596,19 @@ Zustände: Störung `untersuchung → erkannt → beobachtung → behoben`, Wart
 den letzten 14 Tagen beendet. `gesamt`: `stoerung` bei einem ausgefallenen Dienst oder einer offenen Störungs-Meldung,
 `eingeschraenkt` bei einem gestörten Dienst, `wartung` bei laufender Wartung. Uptime = Anteil erfolgreicher Proben (null =
 keine Messung).
+## Push-Benachrichtigungen (app/push.py, app/webpush.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/push` | angemeldet | `{schluessel (VAPID, Base64url, 65 Byte), ereignisse:[…], alle_ereignisse:["erinnerung","warteraum","einladung","fertig"], geraete:[{id, geraet, kennung, erstellt, benutzt}]}` – `kennung` = erste 16 Hex-Zeichen von SHA-256(Adresse), die Adresse selbst kommt nie zurück |
+| POST `/api/push/abo` | angemeldet | wie `PushSubscription.toJSON()`: `{endpoint, keys:{p256dh, auth}, geraet?, alt?}` → `{geraet}`. Nur `https://` bei bekannten Push-Diensten (`AGORA_PUSH_DIENSTE`), Schlüssel geprüft (Punkt auf P-256, 16 Byte auth); gleiches Gerät ersetzt; `alt` = alte Adresse nach `pushsubscriptionchange`; höchstens 10 Geräte; 30/h |
+| DELETE `/api/push/abo/{id}` | angemeldet (eigene) | `{ok}` |
+| PUT `/api/push/ereignisse` | angemeldet | `{ereignisse:[…]}` (Teilmenge) → `{ereignisse}`; ohne Eintrag gelten alle |
+| POST `/api/push/test` | angemeldet | `{geraete: n}`; 400 ohne Gerät; 10/h |
+
+Nutzlast (verschlüsselt, RFC 8291 aes128gcm, VAPID RFC 8292 mit `sub` = `AGORA_VAPID_SUBJEKT` bzw. `AGORA_SEITE`):
+`{titel, text, url, tag}` – `url` ist immer ein Pfad dieser Seite (`/r/<code>`, `/konto#aufnahmen`); der Service Worker
+öffnet nur Pfade der eigenen Herkunft. Kopfzeilen: `TTL` (Erinnerung: Minuten bis zum Termin, Warteraum 30 min, sonst 1 Tag),
+`Urgency` (`high` beim Warteraum), `Topic` (= `tag`). Antwort 404/410 → Gerät gelöscht.
+Hooks: `raeume.NEUE_ANFRAGE` (async f(raum, name)), `raeume.NACH_EINLADUNG` (f(raum, benutzer, adressen)),
+`egress.NACH_SERVER_AUFNAHME`, `untertitel.NACH_TRANSKRIPT` (f(aufnahme_zeile)).
+

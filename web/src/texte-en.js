@@ -789,4 +789,21 @@ export const en = {
   'status.feldEnde': 'End (optional)', 'status.zeitHinweis': 'Times in this browser’s time zone. Without a start, now applies; “Resolved”/“Completed” without an end sets the end to now.',
   'status.titelFehlt': 'Please enter a title.',
   // ==== Ende Block Status-Seite ====
+  // ==== Block Push-Benachrichtigungen (web/src/push-konto.js) ====
+  'html.push': 'Push notifications',
+  'push.text': 'Get notified on this device – even when Agora isn’t open. Turn it on for each device separately.',
+  'push.hierAn': 'Turn on for this device', 'push.hierAus': 'Turn off for this device',
+  'push.anOk': 'Push is on for this device.', 'push.ausOk': 'Push is off for this device.',
+  'push.nichtMoeglich': 'This browser can’t receive push notifications.',
+  'push.iosHinweis': 'On iPhone and iPad, push only works in the installed app: choose “Add to Home Screen” in the share menu (iOS 16.4 or later), open Agora from there and turn it on here.',
+  'push.blockiert': 'Notifications are blocked for Agora. Allow them in your browser’s site settings.',
+  'push.ereignisse': 'About what?', 'push.geraete': 'Devices', 'push.unbenannt': 'Device', 'push.diesesGeraet': 'this device',
+  'push.zuletzt': 'last notified {zeit}', 'push.seit': 'turned on {zeit}', 'push.entfernen': 'Remove device?',
+  'push.test': 'Send test', 'push.testOk': 'Test sent to {n} device(s).',
+  'push.erinnerung': 'Reminder before your own meetings', 'push.erinnerungHinweis': 'At the same time as the reminder email, otherwise 10 minutes before.',
+  'push.warteraum': 'Someone is in the waiting room', 'push.warteraumHinweis': 'Only when neither you nor a co-host is in the meeting.',
+  'push.einladung': 'Invitations', 'push.einladungHinweis': 'When someone invites your address to a meeting.',
+  'push.fertig': 'Recording, transcript or summary ready', 'push.fertigHinweis': 'For server recordings and background jobs.',
+  'push.datenschutz': 'Privacy: delivery goes through your browser maker’s push service (e.g. Google, Mozilla, Apple, Microsoft). The content is encrypted for your device – the service only sees that and when a message arrives.',
+  // ==== Ende Block Push-Benachrichtigungen ====
 };

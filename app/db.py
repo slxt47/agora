@@ -631,6 +631,28 @@ SCHEMA = [
     CREATE INDEX status_meldungen_beginn ON status_meldungen(beginn);
     """,
     # ======== Ende Block „Status-Seite“ ========
+    # ======== Block „Push-Benachrichtigungen“ (app/push.py, app/webpush.py) – Version 28 ========
+    # Je Gerät eine Subscription (Adresse beim Push-Dienst + Schlüssel des Browsers). Nur nach ausdrücklichem Einschalten,
+    # weg beim Ausschalten, wenn der Dienst 404/410 meldet, nach 10 Fehlschlägen in Folge und mit dem Konto.
+    """
+    CREATE TABLE push_abos (
+      id INTEGER PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      endpunkt TEXT NOT NULL UNIQUE,   -- https-Adresse beim Push-Dienst (Fähigkeits-URL)
+      p256dh TEXT NOT NULL,            -- öffentlicher Schlüssel des Browsers (Base64url)
+      auth TEXT NOT NULL,              -- Auth-Geheimnis des Browsers (Base64url)
+      geraet TEXT NOT NULL DEFAULT '', -- Bezeichnung, z. B. „Chrome · Android“
+      erstellt INTEGER NOT NULL,
+      benutzt INTEGER,                 -- letzte erfolgreiche Zustellung
+      fehler_folge INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX push_abos_benutzer ON push_abos(benutzer_id);
+    CREATE TABLE push_einstellung (    -- welche Ereignisse (JSON-Liste); fehlt die Zeile, gelten alle
+      benutzer_id INTEGER PRIMARY KEY REFERENCES benutzer(id) ON DELETE CASCADE,
+      ereignisse TEXT NOT NULL
+    );
+    """,
+    # ======== Ende Block „Push-Benachrichtigungen“ ========
 ]
 
 

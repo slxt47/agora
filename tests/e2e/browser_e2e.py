@@ -1170,6 +1170,96 @@ window.addEventListener('message', function (e) {{ if (e.origin !== '{B}') windo
         se.close()
         print('Status-Seite: Meldung angelegt und sichtbar, Balken 90/24, JSON ohne Interna, Englisch')
         # ==== Ende Block Status-Seite ====
+        # ==== Block Push: Chromium headless hat keinen Push-Dienst (FCM) – Knopf versuchen, dann den Server-Weg prüfen:
+        # Schlüssel per WebCrypto, Abo mit lokalem Fake-Dienst (AGORA_WEBHOOK_LOKAL), „Test senden“ und Warteraum-Ereignis;
+        # die Nachricht entschlüsselt der Browser selbst nach RFC 8291 (WebCrypto) – das prüft die Server-Verschlüsselung.
+        push_empfangen = []
+
+        class PushDienst(BaseHTTPRequestHandler):
+            def do_POST(self):
+                push_empfangen.append((dict(self.headers), self.rfile.read(int(self.headers.get('content-length') or 0))))
+                self.send_response(201); self.end_headers()
+
+            def log_message(self, *a):
+                pass
+        push_server = ThreadingHTTPServer(('127.0.0.1', 0), PushDienst)
+        threading.Thread(target=push_server.serve_forever, daemon=True).start()
+        host.grant_permissions(['notifications'], origin=B)
+        hp.goto(B + '/konto#profil'); hp.reload()
+        hp.wait_for_selector('#push p.sec')
+        hp.screenshot(path=OUT + '53a-push-aus.png', full_page=True)
+        print('Push im Profil:', hp.inner_text('#push').replace('\n', ' | ')[:300])
+        if hp.locator('#push-hier').count():
+            hp.click('#push-hier')
+            try:
+                hp.wait_for_selector('#push-geraete li', timeout=8000)
+                print('Push: echtes Abo im Browser angelegt')
+            except Exception:      # noqa: BLE001 – erwartet ohne FCM
+                print('Push: Browser-Abo nicht möglich (headless ohne Push-Dienst) – prüfe den Server-Weg')
+        time.sleep(0.5)
+        schl = hp.evaluate("""async () => {
+            const k = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+            const roh = new Uint8Array(await crypto.subtle.exportKey('raw', k.publicKey));
+            const auth = crypto.getRandomValues(new Uint8Array(16));
+            const b64 = (a) => btoa(String.fromCharCode(...a)).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
+            return { jwk: await crypto.subtle.exportKey('jwk', k.privateKey), p256dh: b64(roh), auth: b64(auth) };
+        }""")
+        r = hp.request.post(B + '/api/push/abo', headers={'X-Agora': '1'}, data={
+            'endpoint': f'http://127.0.0.1:{push_server.server_address[1]}/push/e2e', 'keys': {'p256dh': schl['p256dh'], 'auth': schl['auth']},
+            'geraet': 'E2E · Fake-Dienst'})
+        if r.status != 200: fehler.append(f'Push-Abo: {r.status} {r.text()[:120]}')
+        hp.reload()
+        hp.wait_for_selector('#push-geraete li:has-text("E2E · Fake-Dienst")')
+        hp.click('#push-test')
+        hp.wait_for_selector('.toast:has-text("Test an")')
+        hp.screenshot(path=OUT + '53b-push-geraete.png', full_page=True)
+        ENTSCHLUESSELN = """async ([body64, jwk, auth64]) => {
+            const ab = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+            const cat = (...t) => { const o = new Uint8Array(t.reduce((n, x) => n + x.length, 0)); let i = 0; for (const x of t) { o.set(x, i); i += x.length; } return o; };
+            const enc = (s) => new TextEncoder().encode(s);
+            const hm = async (k, d) => new Uint8Array(await crypto.subtle.sign('HMAC', await crypto.subtle.importKey('raw', k, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']), d));
+            const b = ab(body64), salz = b.slice(0, 16), idlen = b[20], asPub = b.slice(21, 21 + idlen), geheim = b.slice(21 + idlen);
+            const priv = await crypto.subtle.importKey('jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+            const { d, ...pubJwk } = jwk;
+            const uaPub = new Uint8Array(await crypto.subtle.exportKey('raw', await crypto.subtle.importKey('jwk', { ...pubJwk, key_ops: [] }, { name: 'ECDH', namedCurve: 'P-256' }, true, [])));
+            const asKey = await crypto.subtle.importKey('raw', asPub, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+            const ecdh = new Uint8Array(await crypto.subtle.deriveBits({ name: 'ECDH', public: asKey }, priv, 256));
+            const ikm = await hm(await hm(ab(auth64), ecdh), cat(enc('WebPush: info\\0'), uaPub, asPub, new Uint8Array([1])));
+            const prk = await hm(salz, ikm);
+            const cek = (await hm(prk, enc('Content-Encoding: aes128gcm\\0\\x01'))).slice(0, 16);
+            const nonce = (await hm(prk, enc('Content-Encoding: nonce\\0\\x01'))).slice(0, 12);
+            const k = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt']);
+            let klar = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, k, geheim));
+            let n = klar.length; while (n && klar[n - 1] === 0) n--;
+            if (klar[n - 1] !== 2) throw new Error('kein Ende-Begrenzer');
+            return JSON.parse(new TextDecoder().decode(klar.slice(0, n - 1)));
+        }"""
+        ende = time.time() + 10
+        while not push_empfangen and time.time() < ende: time.sleep(0.2)
+        if not push_empfangen: fehler.append('Push: Test kam beim Fake-Dienst nicht an')
+        else:
+            kopf, body = push_empfangen[-1]
+            if kopf.get('Content-Encoding') != 'aes128gcm' or not kopf.get('Authorization', '').startswith('vapid t='): fehler.append(f'Push: Kopfzeilen {kopf}')
+            n = hp.evaluate(ENTSCHLUESSELN, [base64.urlsafe_b64encode(body).decode().rstrip('='), schl['jwk'], schl['auth']])
+            print('Push (Test), im Browser entschlüsselt:', n)
+            if n.get('titel') != 'Agora' or n.get('url') != '/konto#profil': fehler.append(f'Push-Inhalt falsch: {n}')
+        # Warteraum: Host ist nicht im Meeting → Push „Jemand wartet“
+        r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Push-Warteraum', warteraum:true})})).json())""")
+        pcode = r['raum']['code']
+        vorher = len(push_empfangen)
+        wk = br.new_context()
+        w = wk.request.post(B + f'/api/raeume/{pcode}/beitreten', headers={'X-Agora': '1'}, data={'name': 'Wanda Wartend'})
+        if w.json().get('status') != 'wartet': fehler.append(f'Push-Warteraum: {w.text()[:120]}')
+        ende = time.time() + 10
+        while len(push_empfangen) <= vorher and time.time() < ende: time.sleep(0.2)
+        if len(push_empfangen) <= vorher: fehler.append('Push: Warteraum-Benachrichtigung fehlt')
+        else:
+            n = hp.evaluate(ENTSCHLUESSELN, [base64.urlsafe_b64encode(push_empfangen[-1][1]).decode().rstrip('='), schl['jwk'], schl['auth']])
+            print('Push (Warteraum):', n)
+            if 'Wanda Wartend' not in n.get('text', '') or n.get('url') != f'/r/{pcode}': fehler.append(f'Push-Warteraum-Inhalt falsch: {n}')
+        wk.close()
+        push_server.shutdown()
+        # ==== Ende Block Push ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

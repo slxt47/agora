@@ -90,6 +90,9 @@ const P = {
   // ==== Block „Push“ ====
   glocke: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   // ==== Ende Block „Push“ ====
+  // ==== Block „Dolmetschen“ ====
+  sprache: '<path d="M4 5h9M8.5 3v2M6 5c.5 3.5 2.5 6 5.5 7.5M11 5c-.8 3.6-3 6.4-6.5 8"/><path d="m12 20 4-9 4 9M13.4 17h5.2"/>',
+  // ==== Ende Block „Dolmetschen“ ====
 };
 
 /** SVG-Zeichenkette für ein Symbol. */

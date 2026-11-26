@@ -28,6 +28,7 @@ import { Untertitel } from './untertitel.js';     // Live-Untertitel (Web Speech
 import { e2eeVorbereiten, E2eeAnzeige } from './e2ee.js';
 import { AudioModi } from './audio-modi.js';
 import { Anmerkungen } from './anmerkungen.js';
+import { Dolmetschen } from './dolmetsch.js';      // Dolmetscher-Kanäle (Spur dolmetsch:<sprache>)
 import './anmerkungen.css';
 import { linkMitSchluessel } from '../e2ee-schluessel.js';
 import { desktopKuerzel } from './desktop.js';
@@ -113,6 +114,7 @@ export class Meeting {
     this.egress = new ServerAufnahme(this);
     this.untertitel = new Untertitel(this);
     this.anmerkungen = new Anmerkungen(this);   // Anmerkungen auf geteilten Bildschirmen
+    this.dolmetsch = new Dolmetschen(this);     // Dolmetscher-Kanäle
     this.audioModi = new AudioModi(this);     // Musik-Modus, RNNoise (setzt Raum-Optionen vor dem Veröffentlichen)
     await e2ee.aktivieren(this.room);
     if (this.schluessel) this.e2eeAnzeige = new E2eeAnzeige(this);
@@ -185,6 +187,7 @@ export class Meeting {
     if ('aufnahme' in md) this.aufnahmeSetzen(md.aufnahme || null);
     this.egress?.metadaten(md);
     this.untertitel?.metadaten(md);
+    this.dolmetsch?.metadaten(md);
     if ('anmerkungen' in md) this.anmerkungen?.erlaubtSetzen(md.anmerkungen, false);
   }
 
@@ -203,10 +206,11 @@ export class Meeting {
         this.buehne.sync(); this.chat.empfaengerAktualisieren(); this.leute.planen(); this.rekorder?.audioAbgleichen();
         if (this.buehne.spotlightIdentity === p.identity) this.buehne.spotlight(null);
       })
-      .on(RoomEvent.TrackPublished, (pub, p) => { this.sparenAnwenden(pub); this.buehne.sync(); neuZeichnen(p); })
+      .on(RoomEvent.TrackPublished, (pub, p) => { this.sparenAnwenden(pub); this.buehne.sync(); neuZeichnen(p); this.dolmetsch?.abgleichen(); })
       .on(RoomEvent.TrackUnpublished, (_pub, p) => { this.buehne.sync(); neuZeichnen(p); this.steuerAktualisieren(); })
       .on(RoomEvent.TrackSubscribed, (track, pub, p) => {
-        if (track.kind === Track.Kind.Audio) { const el = track.attach(); el.dataset.sid = pub.trackSid; $('#audio-ablage').append(el); this.rekorder?.audioAbgleichen(); }
+        if (this.dolmetsch?.abonniert(track, pub, p)) { neuZeichnen(p); return; }    // Dolmetsch-Spur: nur der gewählte Kanal
+        if (track.kind === Track.Kind.Audio) { const el = track.attach(); el.dataset.sid = pub.trackSid; $('#audio-ablage').append(el); this.rekorder?.audioAbgleichen(); this.dolmetsch?.lautstaerke(); }
         this.sparenAnwenden(pub);
         neuZeichnen(p);
       })
@@ -316,6 +320,7 @@ export class Meeting {
       case 'meldung': this.melden?.ereignis(d); break;
       case 'egress': this.egress?.ereignis(d); break;
       case 'transkript': this.untertitel?.metadaten({ transkript: !!d.an }); break;
+      case 'dolmetsch': this.dolmetsch?.ereignis(d); break;
       case 'anmerkungen': this.anmerkungen?.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
@@ -736,6 +741,7 @@ export class Meeting {
         deaktiviert: !aufnahmeMoeglich || (!!this.aufnahmeInfo && !this.rekorder?.laeuft), aktion: () => this.aufnahmeUmschalten() } : null,
       ...(this.egress?.menueEintraege() || []),
       ...(this.untertitel?.menueEintraege() || []),
+      ...(this.dolmetsch?.menueEintraege() || []),
       { text: t('effekte.titel'), symbol: 'hintergrund', aktion: () => effektePanel(anker) },
       { text: t('meeting.bildImBild'), symbol: 'bildImBild', deaktiviert: !document.pictureInPictureEnabled, aktion: () => this.bildImBild() },
       { text: t('meeting.sprecheransicht'), symbol: 'sprecher', an: this.buehne.effektiveAnsicht() === 'sprecher', aktion: () => this.buehne.ansichtSetzen('sprecher') },
@@ -925,6 +931,7 @@ export class Meeting {
     this.leute.planen();
     this.steuerAktualisieren();
     this.zustandLaden();
+    this.dolmetsch?.abgleichen();
     document.dispatchEvent(new CustomEvent('agora:raumwechsel', { detail: { room: this.room } }));
   }
 
@@ -936,6 +943,7 @@ export class Meeting {
     clearInterval(this.pegelTimer);
     this.statistik?.stoppen();
     this.untertitel?.stoppen();
+    this.dolmetsch?.stoppen();
     menueSchliessen();
     let blob = null, dauer = 0;
     if (this.rekorder?.laeuft) {

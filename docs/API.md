@@ -612,3 +612,19 @@ Nutzlast (verschlüsselt, RFC 8291 aes128gcm, VAPID RFC 8292 mit `sub` = `AGORA_
 Hooks: `raeume.NEUE_ANFRAGE` (async f(raum, name)), `raeume.NACH_EINLADUNG` (f(raum, benutzer, adressen)),
 `egress.NACH_SERVER_AUFNAHME`, `untertitel.NACH_TRANSKRIPT` (f(aufnahme_zeile)).
 
+## Dolmetscher-Kanäle (app/dolmetsch.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/dolmetsch` | X-Teilnahme | Zustand `{sprachen:[…], dolmetscher:{identity:{name, a, b, sprache, aktiv}}, kanaele:{sprache: identity}}` |
+| PUT `/api/raeume/{code}/dolmetsch/sprachen` | Host/Co-Host | `{sprachen:["de","en",…]}` (ISO 639, `^[a-z]{2,3}$`, höchstens 8; doppelte entfernt) → Zustand; 400 wenn eine entfernte Sprache noch zugewiesen ist |
+| POST `/api/raeume/{code}/dolmetsch` | Host/Co-Host | `{ziel: identity, a, b}` (zwei verschiedene Sprachen aus der Liste) → Zustand; neue Zielsprache = `b`; auf Sendung, wenn im Paar noch niemand sendet, sonst Bereitschaft; setzt die LiveKit-Rechte neu (Quelle Mikrofon dazu) und Attribut `dolmetsch=1`; höchstens 20 |
+| DELETE `/api/raeume/{code}/dolmetsch/{identity}` | Host/Co-Host | → Zustand; Bereitschaft desselben Paares übernimmt; Rechte zurück, Attribut `dolmetsch` leer |
+| POST `/api/raeume/{code}/dolmetsch/kanal` | der Dolmetscher selbst | `{sprache}` (a oder b) → Zustand |
+| POST `/api/raeume/{code}/dolmetsch/uebergabe` | Dolmetscher bzw. Host/Co-Host | `{an?}`: auf Sendung → an `an` oder die erste Bereitschaft; in Bereitschaft ohne `an` → selbst übernehmen; Host/Co-Host: `an` auf Sendung. Kanal (Zielsprache) bleibt gleich |
+
+Jede Änderung: Raum-Metadaten `dolmetsch` (Zustand oder `null`) und Ereignis `{typ:"dolmetsch", zustand}` (Topic `agora`).
+Spurname `dolmetsch:<sprache>`, Quelle Mikrofon. Zuhörende abonnieren nur die Spur von `kanaele[sprache]`; der Server
+schaltet minütlich (Hook `raeume.BEI_LISTE_ASYNC`) jede andere `dolmetsch:`-Spur stumm (`livekit_dienst.spur_stumm`).
+`livekit_dienst.teilnehmer()` liefert je Spur zusätzlich `name`; `livekit_dienst.extra_quellen(code, identity)` (von
+dolmetsch.py gesetzt) ergänzt die Quellen bei jedem `aktualisieren` mit Rolle.
+

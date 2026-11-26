@@ -190,6 +190,8 @@ Dienst sieht Zeitpunkt, Größe und Gerät, nicht den Text. iPhone/iPad bekommen
 - Push-Abos (Adresse beim Push-Dienst, Schlüssel des Browsers, Gerätename, Zeitpunkt des Einschaltens und der letzten
   Zustellung) und die gewählten Ereignisse: bis man sie im Profil ausschaltet, der Dienst die Adresse für ungültig
   erklärt (404/410), nach 10 Fehlschlägen in Folge oder mit dem Konto. Inhalte von Benachrichtigungen werden nicht gespeichert.
+- Dolmetscher-Kanäle: Sprachliste am Raum, bis Host/Co-Host sie ändern (oder der Raum gelöscht wird); Zuweisungen
+  (identity, Name, Sprachpaar, Kanal, auf Sendung) nur für das laufende Meeting, beim Ende gelöscht. Ton wird nicht gespeichert.
 - Erinnerungen: Einstellung im Profil, bis man sie ausschaltet (oder mit dem Konto). Adressen von Eingeladenen nur, wenn der Host „Erinnerung schicken“ ankreuzt – gelöscht nach dem Ende des Termins, zu dem eingeladen wurde (spätestens mit dem Meeting, Sicherheitsnetz 400 Tage). Versand-Merker (nur Hash aus Raum, Termin, Empfänger): 2 Tage.
 - Meeting-Vorlagen: bis der Besitzer sie löscht (oder mit dem Konto); enthalten keine Passcodes, nur „Passcode an/aus“. Im Datenexport enthalten.
 - Kalender-Abo: Nur wer es im Profil einschaltet. Gespeichert werden Salz, Hash des Links, Zeitpunkt des Einschaltens und des letzten Abrufs (keine IP). Weg beim Ausschalten, bei „Neuer Link“ (ersetzt) und mit dem Konto.

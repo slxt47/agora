@@ -90,6 +90,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Pfeiltasten bedienbar, Esc beendet. Host, Co-Hosts und die teilende Person können Anmerkungen für andere sperren
   (Recht vom Server in den Raum-Metadaten). Die teilende Person sieht die Anmerkungen auf einer Vorschau ihres Bildschirms.
   Striche laufen direkt zwischen den Browsern (normiert, begrenzt) und werden nicht gespeichert.
+- **Dolmetscher-Kanäle (Simultanübersetzung):** Host/Co-Host legen Sprachen fest und machen Teilnehmende zu Dolmetschern
+  mit Sprachpaar (auch Webinar-Zuschauer – das Mikrofon-Recht gibt nur der Server per LiveKit-UpdateParticipant).
+  Dolmetscher senden eine eigene Spur `dolmetsch:<sprache>` über ihr Pult (Kanal wechseln, starten/stoppen, Übergabe
+  zwischen zwei Dolmetschern desselben Paares); Zuhörende wählen einen Sprachkanal, hören genau diese Spur und den Saal
+  leise (20 %). Welche Spur zu welchem Kanal gehört, steht nur in den Raum-Metadaten des Servers; fremde
+  `dolmetsch:`-Spuren schaltet der Server stumm. Funktioniert auch im Webinar.
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Whiteboard:** gemeinsame Tafel über der Bühne – Stift, Linie, Pfeil, Rechteck, Ellipse, Text, Notizzettel, Radierer,
   Auswählen/Verschieben, Rückgängig/Wiederholen (je Person), Farben, Strichstärke, Zoom/Verschieben, Export als PNG. Änderungen gehen als

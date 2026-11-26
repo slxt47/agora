@@ -810,4 +810,23 @@ export const de = {
   'push.fertig': 'Aufnahme, Transkript oder Zusammenfassung fertig', 'push.fertigHinweis': 'Für Server-Aufnahmen und Arbeiten im Hintergrund.',
   'push.datenschutz': 'Datenschutz: Zugestellt wird über den Push-Dienst deines Browser-Herstellers (z. B. Google, Mozilla, Apple, Microsoft). Der Inhalt ist für dein Gerät verschlüsselt – der Dienst sieht nur, dass und wann eine Nachricht kommt.',
   // ==== Ende Block Push-Benachrichtigungen ====
+  // ==== Block Dolmetscher-Kanäle (web/src/raum/dolmetsch.js) ====
+  'dm.pult': 'Dolmetsch-Pult', 'dm.duBist': 'Du dolmetschst in diesem Meeting: {a} ⇄ {b}. Starte im Pult, wenn du so weit bist.',
+  'dm.nichtMehr': 'Du dolmetschst nicht mehr.', 'dm.original': 'Du hörst den Originalton.',
+  'dm.kanalLeer': 'Gerade dolmetscht niemand nach {sprache} – du hörst den Originalton, bis jemand übernimmt.',
+  'dm.kanalAn': 'Du hörst den Kanal {sprache}; der Saal ist leiser.', 'dm.pilleOriginal': '{sprache} (Original)',
+  'dm.saalStumm': 'Dein Saal-Mikrofon ist stumm, solange du dolmetschst.', 'dm.fehler': 'Dolmetschen ging nicht: {text}',
+  'dm.sendet': 'Auf Sendung: Kanal {sprache}', 'dm.aufSendung': 'Du bist dran (Kanal {sprache}) – starte, wenn du bereit bist.',
+  'dm.bereitschaft': 'Bereitschaft – auf Sendung ist {name}.', 'dm.starten': 'Dolmetschen starten', 'dm.stoppen': 'Dolmetschen stoppen',
+  'dm.kanalWechseln': 'Nach {sprache} wechseln', 'dm.uebergeben': 'Übergabe', 'dm.uebernehmen': 'Übernehmen',
+  'dm.kanalMenue': 'Sprachkanal wählen …', 'dm.kanalMenueAn': 'Sprachkanal: {sprache}', 'dm.verwalten': 'Dolmetschen verwalten …',
+  'dm.kanalTitel': 'Sprachkanal', 'dm.kanalText': 'Hör eine Verdolmetschung statt des Originaltons. Der Saal läuft leise im Hintergrund weiter.',
+  'dm.originalton': 'Originalton', 'dm.keinDolmetscher': 'gerade ohne Dolmetscher',
+  'dm.verwaltenTitel': 'Dolmetschen verwalten',
+  'dm.verwaltenText': 'Lege die Sprachen fest und mache Teilnehmende zu Dolmetschern. Je Sprachpaar ist eine Person auf Sendung, weitere warten in Bereitschaft und übernehmen per Übergabe.',
+  'dm.sprachen': 'Sprachen', 'dm.codePlatzhalter': 'z. B. cs', 'dm.codeAndere': 'Weitere Sprache (ISO-Code)', 'dm.sprachenSpeichern': 'Sprachen speichern',
+  'dm.dolmetscher': 'Dolmetscher', 'dm.erstSprachen': 'Zuerst mindestens zwei Sprachen festlegen.', 'dm.person': 'Person', 'dm.von': 'Sprache A', 'dm.nach': 'Sprache B',
+  'dm.zuweisen': 'Zuweisen', 'dm.listeSendung': 'auf Sendung ({sprache})', 'dm.listeBereitschaft': 'Bereitschaft', 'dm.aufSendungSetzen': 'Auf Sendung',
+  'dm.entfernen': 'Als Dolmetscher entfernen', 'dm.keine': 'Noch keine Dolmetscher.',
+  // ==== Ende Block Dolmetscher-Kanäle ====
 };

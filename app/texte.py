@@ -65,6 +65,16 @@ FEHLER_EN = {
     'Ereignisse: erinnerung, warteraum, einladung, fertig.': 'Events: erinnerung, warteraum, einladung, fertig.',
     'Auf keinem Gerät eingeschaltet.': 'Not turned on on any device.',
     # ==== Ende Block Push-Benachrichtigungen ====
+    # ==== Block Dolmetscher-Kanäle ====
+    'Sprachen: höchstens 8 Sprachcodes wie de, en, fr.': 'Languages: at most 8 language codes like de, en, fr.',
+    'Diese Sprache nutzt noch ein Dolmetscher – erst die Zuweisung entfernen.': 'An interpreter still uses this language – remove the assignment first.',
+    'Diese Sprache ist im Meeting nicht eingerichtet.': 'This language isn’t set up in the meeting.',
+    'Bitte zwei verschiedene Sprachen wählen.': 'Please choose two different languages.',
+    'Höchstens 20 Dolmetscher je Meeting.': 'At most 20 interpreters per meeting.',
+    'Dolmetscher nicht gefunden': 'Interpreter not found',
+    'Du bist in diesem Meeting kein Dolmetscher.': 'You aren’t an interpreter in this meeting.',
+    'Für dieses Sprachpaar ist niemand in Bereitschaft.': 'Nobody is on standby for this language pair.',
+    # ==== Ende Block Dolmetscher-Kanäle ====
     # ==== Block Öffentliche API, Webhooks, Einbetten ====
     'Ungültige Herkunft.': 'Invalid origin.',
     'Zum Einbetten mindestens eine Herkunft angeben (z. B. https://beispiel.de).': 'To embed, provide at least one origin (e.g. https://example.com).',

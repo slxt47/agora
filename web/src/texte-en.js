@@ -806,4 +806,23 @@ export const en = {
   'push.fertig': 'Recording, transcript or summary ready', 'push.fertigHinweis': 'For server recordings and background jobs.',
   'push.datenschutz': 'Privacy: delivery goes through your browser maker’s push service (e.g. Google, Mozilla, Apple, Microsoft). The content is encrypted for your device – the service only sees that and when a message arrives.',
   // ==== Ende Block Push-Benachrichtigungen ====
+  // ==== Block Dolmetscher-Kanäle (web/src/raum/dolmetsch.js) ====
+  'dm.pult': 'Interpreter console', 'dm.duBist': 'You’re interpreting in this meeting: {a} ⇄ {b}. Start in the console when you’re ready.',
+  'dm.nichtMehr': 'You’re no longer interpreting.', 'dm.original': 'You’re hearing the original audio.',
+  'dm.kanalLeer': 'Nobody is interpreting into {sprache} right now – you hear the original until someone takes over.',
+  'dm.kanalAn': 'You’re hearing the {sprache} channel; the floor is quieter.', 'dm.pilleOriginal': '{sprache} (original)',
+  'dm.saalStumm': 'Your floor microphone is muted while you interpret.', 'dm.fehler': 'Interpreting failed: {text}',
+  'dm.sendet': 'On air: {sprache} channel', 'dm.aufSendung': 'You’re up ({sprache} channel) – start when you’re ready.',
+  'dm.bereitschaft': 'Standby – {name} is on air.', 'dm.starten': 'Start interpreting', 'dm.stoppen': 'Stop interpreting',
+  'dm.kanalWechseln': 'Switch to {sprache}', 'dm.uebergeben': 'Hand over', 'dm.uebernehmen': 'Take over',
+  'dm.kanalMenue': 'Choose language channel …', 'dm.kanalMenueAn': 'Language channel: {sprache}', 'dm.verwalten': 'Manage interpretation …',
+  'dm.kanalTitel': 'Language channel', 'dm.kanalText': 'Listen to an interpretation instead of the original audio. The floor keeps playing quietly in the background.',
+  'dm.originalton': 'Original audio', 'dm.keinDolmetscher': 'no interpreter right now',
+  'dm.verwaltenTitel': 'Manage interpretation',
+  'dm.verwaltenText': 'Set the languages and make participants interpreters. Per language pair one person is on air; others wait on standby and take over by hand-over.',
+  'dm.sprachen': 'Languages', 'dm.codePlatzhalter': 'e.g. cs', 'dm.codeAndere': 'Another language (ISO code)', 'dm.sprachenSpeichern': 'Save languages',
+  'dm.dolmetscher': 'Interpreters', 'dm.erstSprachen': 'First set at least two languages.', 'dm.person': 'Person', 'dm.von': 'Language A', 'dm.nach': 'Language B',
+  'dm.zuweisen': 'Assign', 'dm.listeSendung': 'on air ({sprache})', 'dm.listeBereitschaft': 'Standby', 'dm.aufSendungSetzen': 'Put on air',
+  'dm.entfernen': 'Remove as interpreter', 'dm.keine': 'No interpreters yet.',
+  // ==== Ende Block Dolmetscher-Kanäle ====
 };

@@ -148,7 +148,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Teilnehmer melden / blockieren
 - [x] 🟢 Teilnehmer umbenennen
 - [x] 🟢 Breakout-Rooms (Zuweisung manuell/automatisch, Timer, Rückruf)
-- [ ] 🟢 Dolmetscher-Kanäle (Simultanübersetzung) — *noch offen*
+- [x] 🟢 Dolmetscher-Kanäle (Simultanübersetzung)
 
 ---
 

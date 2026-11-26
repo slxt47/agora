@@ -653,6 +653,23 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Push-Benachrichtigungen“ ========
+    # ======== Block „Dolmetscher-Kanäle“ (app/dolmetsch.py) – Version 29 ========
+    # Sprachliste am Raum (bleibt); Zuweisungen nur für das laufende Meeting (beim Ende gelöscht).
+    """
+    ALTER TABLE raeume ADD COLUMN dolmetsch_sprachen TEXT;   -- JSON-Liste von ISO-639-Codes, höchstens 8
+    CREATE TABLE dolmetscher (
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      name TEXT NOT NULL,
+      sprache_a TEXT NOT NULL, sprache_b TEXT NOT NULL,   -- Sprachpaar
+      sprache TEXT NOT NULL,           -- aktuelle Zielsprache (a oder b) = Kanal
+      aktiv INTEGER NOT NULL DEFAULT 0, -- 1 = auf Sendung (je Paar höchstens eine Person)
+      seit INTEGER NOT NULL,           -- ms, Reihenfolge
+      PRIMARY KEY (raum_id, identity)
+    );
+    """,
+    # ======== Ende Block „Dolmetscher-Kanäle“ ========
 ]
 
 

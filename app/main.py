@@ -46,6 +46,7 @@ from . import orgs            # Teams / Organisationen (Räume, Vorlagen, Aufnah
 from . import status          # Öffentliche Status-Seite /status, /api/status (eigener Prüf-Thread jede Minute)
 from . import android         # Android-TWA: /.well-known/assetlinks.json (nur mit AGORA_ANDROID_SHA256)
 from . import push            # Push-Benachrichtigungen (Web Push, opt-in je Gerät)
+from . import dolmetsch       # Dolmetscher-Kanäle (Spur dolmetsch:<sprache>, Rechte vom Server)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -155,6 +156,7 @@ app.include_router(orgs.router)
 app.include_router(status.router)
 app.include_router(android.router)
 app.include_router(push.router)
+app.include_router(dolmetsch.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 

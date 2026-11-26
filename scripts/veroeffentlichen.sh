@@ -15,7 +15,7 @@ if [ "${1:-}" != --ohne-e2e ]; then
   ERG=$(sh tests/sicherheit/lauf.sh 2>&1) || { echo "$ERG" | grep -E '!!|ANGRIFF|ABGEBROCHEN' | tail -30; echo "✗ Sicherheitstest fehlgeschlagen"; exit 1; }
   echo "$ERG" | tail -1
 fi
-docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.0 git /repo --no-banner >/dev/null 2>&1 || { echo "✗ gitleaks hat etwas gefunden"; exit 1; }
+docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.0 git /repo --no-banner --log-opts=main >/dev/null 2>&1 || { echo "✗ gitleaks hat etwas gefunden"; exit 1; }
 echo "✓ gitleaks sauber"
 git push -q github main && echo "✓ GitHub"
 [ -x "$HOME/bin/forgejo-sync.py" ] || [ -f "$HOME/bin/forgejo-sync.py" ] && python3 "$HOME/bin/forgejo-sync.py" --nur agora | grep -E "ok|Fehler" && echo "✓ Forgejo"

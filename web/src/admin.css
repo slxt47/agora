@@ -26,3 +26,4 @@
 .admin-tabelle tr.admin-zeile td:last-child { color: var(--accent); font-weight: 600; }
 .admin-tabelle td.leer { text-align: center; }
 .admin-org-punkt { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: middle; }
+.admin-check { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: 14px; }

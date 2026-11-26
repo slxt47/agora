@@ -602,6 +602,35 @@ SCHEMA = [
     CREATE INDEX aufnahmen_org ON aufnahmen(org_id);
     """,
     # ======== Ende Block „Teams / Organisationen“ ========
+    # ======== Block „Status-Seite“ (app/status.py) – Version 27 (beim Zusammenführen ggf. neu nummerieren) ========
+    # Ergebnisse der minütlichen Prüfungen je Dienst, zusammengefasst in 5-Minuten-Fenstern (90 Tage), und Meldungen der
+    # Admins zu Störungen/Wartungen (365 Tage nach dem Ende).
+    """
+    CREATE TABLE status_proben (
+      dienst TEXT NOT NULL,              -- app | medien | mail
+      fenster INTEGER NOT NULL,          -- Beginn des 5-Minuten-Fensters (Unix-Zeit, UTC)
+      proben INTEGER NOT NULL DEFAULT 0,
+      ok INTEGER NOT NULL DEFAULT 0,
+      ms_summe REAL NOT NULL DEFAULT 0,  -- Antwortzeiten der erfolgreichen Proben
+      ms_max REAL NOT NULL DEFAULT 0,
+      PRIMARY KEY (dienst, fenster)
+    ) WITHOUT ROWID;
+    CREATE TABLE status_meldungen (
+      id INTEGER PRIMARY KEY,
+      art TEXT NOT NULL,                 -- stoerung | wartung | hinweis
+      titel TEXT NOT NULL,
+      text TEXT NOT NULL DEFAULT '',
+      zustand TEXT NOT NULL,             -- stoerung: untersuchung|erkannt|beobachtung|behoben; wartung: geplant|laeuft|abgeschlossen; hinweis: aktiv|abgeschlossen
+      dienste TEXT NOT NULL DEFAULT '[]',  -- JSON-Liste betroffener Dienste
+      beginn INTEGER NOT NULL,
+      ende INTEGER,
+      erstellt INTEGER NOT NULL,
+      geaendert INTEGER NOT NULL,
+      von_id INTEGER REFERENCES benutzer(id) ON DELETE SET NULL
+    );
+    CREATE INDEX status_meldungen_beginn ON status_meldungen(beginn);
+    """,
+    # ======== Ende Block „Status-Seite“ ========
 ]
 
 

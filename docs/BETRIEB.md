@@ -50,6 +50,15 @@ Beide Endpunkte antworten nur auf 127.0.0.1 ohne `CF-Connecting-IP` (der Tunnel 
 `https://HOST` gibt es 404. Für einen Abruf von woanders `AGORA_METRIKEN_TOKEN` in `app.env` setzen und
 `Authorization: Bearer …` schicken. Prometheus kann `http://127.0.0.1:8110/api/metriken` direkt abfragen.
 
+## Öffentliche Status-Seite
+
+`/status` und `/api/status` sind öffentlich (über den Tunnel, 120 Abrufe/min je IP, Antwort 30 s zwischengespeichert).
+Ein eigener Thread in der App prüft jede Minute: **App** (Schreibzugriff auf die Datenbank), **Medien** (LiveKit-Server-API
+antwortet) und alle 5 Minuten **E-Mail** (Verbindung + STARTTLS + NOOP zum SMTP-Server, ohne Anmeldung, ohne Mail; ohne
+`SMTP_HOST` entfällt der Dienst). Weil die App sich selbst prüft, zeigt die Seite einen Komplettausfall der App nicht
+(dann ist sie selbst nicht erreichbar) – dafür bleibt cc-waechter/ntfy zuständig. Störungen und Wartungen trägt ein Admin
+unter `/admin#status` ein; jede Änderung steht im Protokoll („Admin: Status-Meldung …“).
+
 ## Dateien im Meeting und Virenprüfung
 
 Dateien liegen unter `daten/dateien/` (25 MB je Datei, 200 MB je Meeting). Erlaubte Endungen: `AGORA_DATEI_ENDUNGEN` in `app.env`
@@ -184,6 +193,9 @@ setzen. Alternativ im disslxt-Projekt einen Port `127.0.0.1:8095:8080` freigeben
   mit der Organisation. Austritt/Entfernen/Konto löschen: Mitgliedschaft und Schlüssel der Organisation weg, Räume/Vorlagen/
   Aufnahmen/Meeting-Verlauf der Organisation gehen an einen owner über; war es das letzte Mitglied, wird die Organisation
   gelöscht. Mitglieder sehen Namen und Rollen der anderen, E-Mail-Adressen nur owner/admin.
+- Status-Seite: Prüfergebnisse je Dienst (app, medien, mail) nur als Zähler je 5-Minuten-Fenster (Proben, davon ok,
+  Summe/Maximum der Antwortzeit – keine IPs, keine Fehlertexte): 90 Tage. Meldungen der Admins (Titel, Text, Zeiten, wer
+  sie angelegt hat): öffentlich, solange sie laufen/geplant sind und 14 Tage danach; gelöscht 365 Tage nach dem Ende.
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 - Anmerkungen auf geteilten Bildschirmen: nicht gespeichert (nur im Browser, weg mit dem Ende der Freigabe); der Server
   kennt nur das Recht „erlaubt“ für das laufende Meeting.

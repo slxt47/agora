@@ -21,6 +21,7 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | `/a/{token}` | a.html | Freigegebene Aufzeichnung ansehen |
 | `/w/{code}` | webinar.html | Anmeldung zu einem Webinar (`?abmelden=<token>`: Anmeldung löschen) |
 | `/admin` | admin.html | Admin-Bereich – nur für Admins, sonst 404 (`/admin.html` immer 404) |
+| `/status` | status.html | Öffentliche Status-Seite (ohne Anmeldung) |
 | `/api/konto/bestaetigen?t=` | – | E-Mail bestätigen → Weiterleitung `/?bestaetigt=1` bzw. `/?bestaetigt=0` |
 
 ## Konto
@@ -579,3 +580,19 @@ API-Schlüssel: POST `/api/konto/api-schluessel` mit `org: "<slug>"` (nur admin/
 sieht in `/api/v1` nur Meetings/Aufnahmen der Organisation, legt Meetings dort an; gilt nur, solange das Konto dort
 admin/owner ist (sonst 403, beim Austritt/Herabstufen gelöscht). `schluessel_json` hat `org: {slug, name}|null`.
 Datenexport: `organisationen` (slug, name, farbe, rolle, seit) und `organisationen_einladungen`.
+
+## Öffentliche Status-Seite (app/status.py)
+
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/status` | öffentlich (120/min je IP, 30 s Cache) | `{stand, gesamt: ok\|eingeschraenkt\|stoerung\|wartung\|unbekannt, dienste:[{id: app\|medien\|mail, zustand: ok\|gestoert\|ausfall\|unbekannt, ms, uptime:{24h, 7d, 90d}, balken:{24h:[24], 7d:[28], 90d:[90] je {start, uptime\|null, ms\|null, ausfaelle}]}}], meldungen:[…], vergangen:[…], fenster_s: 300}` |
+| GET `/api/admin/status/meldungen` | Admin (sonst 404) | `{meldungen:[{id, art, titel, text, zustand, dienste, beginn, ende, aktualisiert, erstellt}], arten:{stoerung:[…], wartung:[…], hinweis:[…]}, dienste}` |
+| POST `/api/admin/status/meldungen` | Admin | `{art: stoerung\|wartung\|hinweis, titel ≤140, text? ≤4000, zustand? (je Art, Standard der erste), dienste?: [app\|medien\|mail], beginn? ISO (Standard jetzt), ende? ISO}` → `{meldung}` |
+| PATCH `/api/admin/status/meldungen/{id}` | Admin | Felder wie oben (nur übergebene) → `{meldung}`; `behoben`/`abgeschlossen` ohne Ende setzt `ende` = jetzt |
+| DELETE `/api/admin/status/meldungen/{id}` | Admin | `{ok}` |
+
+Zustände: Störung `untersuchung → erkannt → beobachtung → behoben`, Wartung `geplant → laeuft → abgeschlossen`, Hinweis
+`aktiv → abgeschlossen`. `meldungen` = nicht erledigt und Ende nicht vorbei (auch geplante Wartungen), `vergangen` = in
+den letzten 14 Tagen beendet. `gesamt`: `stoerung` bei einem ausgefallenen Dienst oder einer offenen Störungs-Meldung,
+`eingeschraenkt` bei einem gestörten Dienst, `wartung` bei laufender Wartung. Uptime = Anteil erfolgreicher Proben (null =
+keine Messung).

@@ -1007,6 +1007,25 @@ def orgs():
     pruefen('Gegenprobe: Alice verwaltet weiter', alice.patch(f'/api/raeume/{code}', {'titel': 'Bleibt'}).status == 200)
 
 
+# ================================================================= 14. Status-Seite (öffentlich, ohne Interna)
+def status_seite():
+    r = Sitzung().get('/api/status')
+    pruefen('/api/status ohne Anmeldung erreichbar', r.status == 200, r)
+    text = r.text.lower()
+    for x in ('livekit', '127.0.0.1', 'localhost', 'smtp', 'version', 'sqlite', ':78', 'host'):
+        pruefen(f'/api/status enthält nicht {x!r}', x not in text, text[:200])
+    s = konto_anlegen('Kein Admin')
+    for m, p, j in (('GET', '/api/admin/status/meldungen', None), ('POST', '/api/admin/status/meldungen', {'titel': 'Fake', 'art': 'stoerung'}),
+                    ('PATCH', '/api/admin/status/meldungen/1', {'titel': 'x'}), ('DELETE', '/api/admin/status/meldungen/1', None)):
+        r = s(m, p, j)
+        pruefen(f'Nicht-Admin → {m} {p} → 404', r.status == 404, r)
+        r = Sitzung()(m, p, j)
+        pruefen(f'Abgemeldet → {m} {p} → 404', r.status == 404, r)
+    c = Sitzung()
+    stati = [c.get('/api/status').status for _ in range(125)]
+    pruefen('/api/status begrenzt (120/min je IP)', 429 in stati, stati[-5:])
+
+
 # ================================================================= Ablauf
 def main():
     print(f'Sicherheitstest gegen {B} (LiveKit {LK_URL})', flush=True)
@@ -1016,7 +1035,7 @@ def main():
     ctx = adm = None
     schritte = [('kopfzeilen', kopfzeilen), ('csrf', csrf), ('anmeldung', anmeldung), ('idor', idor), ('rollen', rollen),
                 ('token', None), ('ssrf', ssrf), ('pfade', None), ('groessen', groessen), ('brute', brute), ('sqli', sqli),
-                ('einbetten', einbetten), ('orgs', orgs), ('browser', None)]
+                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('browser', None)]
     abbrueche = []
     noetig = set(NUR)
     for n in list(NUR):

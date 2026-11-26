@@ -1,0 +1,43 @@
+/* Agora – öffentliche Status-Seite. Farben aus dem slxt-Design (app.css), keine fremden Schriften. */
+.status-kopf { display: grid; gap: 10px; }
+.status-gesamt { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 18px; border: 1px solid var(--card-line);
+  background: var(--tile); font-size: 1.125rem; }
+.status-punkt { flex: none; display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--sec);
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent); }
+[data-zustand="ok"] > .status-punkt, [data-zustand="ok"] h3 .status-punkt { background: var(--ok); }
+[data-zustand="eingeschraenkt"] > .status-punkt, [data-zustand="gestoert"] h3 .status-punkt, [data-zustand="wartung"] > .status-punkt { background: var(--warn); }
+[data-zustand="stoerung"] > .status-punkt, [data-zustand="ausfall"] h3 .status-punkt { background: var(--err); }
+.status-gesamt[data-zustand="ok"] { border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.status-gesamt[data-zustand="eingeschraenkt"], .status-gesamt[data-zustand="wartung"] { border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+.status-gesamt[data-zustand="stoerung"] { border-color: color-mix(in srgb, var(--err) 55%, transparent); }
+
+.status-zeitraum-zeile { flex-wrap: wrap; gap: 10px; }
+.status-dienste { display: grid; gap: 22px; margin: 6px 0 14px; }
+.status-dienst { display: grid; gap: 8px; }
+.status-dienst h3 { margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 10px; }
+.status-zustand { font-size: .9rem; color: var(--sec); }
+.status-dienst[data-zustand="ok"] .status-zustand { color: var(--ok); }
+.status-dienst[data-zustand="gestoert"] .status-zustand { color: var(--warn); }
+.status-dienst[data-zustand="ausfall"] .status-zustand { color: var(--err); }
+.status-balken { display: flex; gap: 2px; height: 34px; align-items: stretch; }
+.status-balken i { flex: 1 1 0; min-width: 2px; border-radius: 3px; background: var(--line); }
+.status-balken i[data-stufe="ok"] { background: var(--ok); }
+.status-balken i[data-stufe="gestoert"] { background: var(--warn); }
+.status-balken i[data-stufe="ausfall"] { background: var(--err); }
+.status-balken i:hover { filter: brightness(1.2); }
+.status-achse { font-size: .78rem; }
+.status-werte { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 2px 0 0; }
+.status-werte div { padding: 8px 10px; border-radius: 12px; background: var(--tile); border: 1px solid var(--card-line); min-width: 0; }
+.status-werte dt { font-size: .75rem; color: var(--sec); }
+.status-werte dd { margin: 2px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) {
+  .status-werte { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .status-balken { gap: 1px; height: 28px; }
+}
+
+.status-meldungen li { display: grid; gap: 6px; }
+.status-meldung-titel { font-size: 1.02rem; overflow-wrap: anywhere; }
+.status-meldung-text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.status-meldung[data-art="stoerung"] { border-left: 3px solid var(--err); padding-left: 12px; }
+.status-meldung[data-art="wartung"] { border-left: 3px solid var(--warn); padding-left: 12px; }
+.status-meldung[data-art="hinweis"] { border-left: 3px solid var(--accent); padding-left: 12px; }

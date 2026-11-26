@@ -104,6 +104,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   E-Mail-Domain für Selbst-Beitritt (nur die eigene, keine Freemail-Anbieter). API-Schlüssel können nur für eine
   Organisation gelten. Austritt/Entfernen: Eigenes bleibt beim Konto, was für die Organisation angelegt wurde, bleibt in
   ihr. Der Admin-Bereich listet die Organisationen, der Datenexport enthält die Mitgliedschaften.
+- **Öffentliche Status-Seite** `/status` (ohne Anmeldung, Deutsch/Englisch): Zustand von App, Video/Ton (Medienserver)
+  und E-Mail aus einer Prüfung jede Minute (E-Mail alle 5 Minuten), Verfügbarkeit 24 h / 7 Tage / 90 Tage als Balken,
+  Antwortzeit; Störungs-, Wartungs- und Hinweis-Meldungen schreiben Admins in `/admin` (Reiter „Status“). Dieselben Werte
+  für Überwachungsdienste als JSON unter `/api/status` – ohne Hostnamen, IPs, Ports oder Versionen.
 - **Admin-Bereich** `/admin` (nur Konten aus `AGORA_ADMIN_MAILS`, für alle anderen 404): Übersicht (Konten, laufende Meetings
   und Teilnehmende live aus LiveKit, Meetings der letzten 7/30 Tage, Speicher der Aufnahmen), Konten suchen, sperren,
   2FA zurücksetzen, löschen, Meldungen bearbeiten, Protokoll mit Filter, laufende Meetings beenden. Jede Aktion wird protokolliert.

@@ -105,6 +105,14 @@ FEHLER_EN = {
     'Dieser API-Schlüssel gehört zu einer Organisation, in der du kein Admin mehr bist.':
         'This API key belongs to an organization in which you’re no longer an admin.',
     # ==== Ende Block Teams / Organisationen ====
+    # ==== Block Status-Seite (app/status.py) ====
+    'Bitte einen Beginn angeben.': 'Please enter a start.',
+    'Art: stoerung, wartung oder hinweis.': 'Type: stoerung, wartung or hinweis.',
+    'Ungültiger Zustand für diese Art.': 'Invalid state for this type.',
+    'Bitte einen Titel eingeben.': 'Please enter a title.',
+    'Dienste: app, medien, mail.': 'Services: app, medien, mail.',
+    'Das Ende liegt vor dem Beginn.': 'The end is before the start.',
+    # ==== Ende Block Status-Seite ====
     'Admin-Konten lassen sich hier nicht ändern (Liste AGORA_ADMIN_MAILS).': 'Admin accounts can’t be changed here (list AGORA_ADMIN_MAILS).',
     'Adresse und Schlüssel dürfen keine Leerzeichen enthalten.': 'URL and key must not contain spaces.',
     'Aktion: start oder stopp.': 'Action: start or stop.',

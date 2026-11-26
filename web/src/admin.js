@@ -11,9 +11,9 @@ const ZONE = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZ
 const zeit = (iso) => (iso ? zeitText(iso, ZONE) : '–');
 
 // ---------------------------------------------------------------- Reiter
-const REITER = ['uebersicht', 'konten', 'meldungen', 'meetings', 'orgs', 'protokoll'];
+const REITER = ['uebersicht', 'konten', 'meldungen', 'meetings', 'orgs', 'status', 'protokoll'];
 const LADEN = { uebersicht: uebersichtLaden, konten: () => kontenLaden(), meldungen: meldungenLaden, meetings: meetingsLaden, orgs: () => orgsLaden(),
-  protokoll: () => protokollLaden() };
+  status: () => statusLaden(), protokoll: () => protokollLaden() };
 function reiter(name, fokus = false) {
   if (!REITER.includes(name)) name = 'uebersicht';
   for (const r of REITER) {
@@ -252,6 +252,78 @@ async function orgsLaden() {
         o.domain ? h('div', { class: 'zeile' }, h('span', { class: 'marker' }, t('admin.orgDomain', { domain: o.domain }))) : null);
     }) : [h('li', { class: 'leer' }, t('admin.keineOrgs'))]));
   } catch (e) { fehlerZeile(ul, e); }
+}
+
+// ---------------------------------------------------------------- Status-Seite: Meldungen (Störung, Wartung, Hinweis)
+const STATUS_DIENSTE = ['app', 'medien', 'mail'];
+let statusArten = { stoerung: ['untersuchung', 'erkannt', 'beobachtung', 'behoben'], wartung: ['geplant', 'laeuft', 'abgeschlossen'], hinweis: ['aktiv', 'abgeschlossen'] };
+$('#status-neu').addEventListener('click', () => statusDialog());
+
+async function statusLaden() {
+  const ul = $('#liste-status-meldungen');
+  try {
+    const r = await api('/api/admin/status/meldungen');
+    statusArten = r.arten || statusArten;
+    ul.replaceChildren(...(r.meldungen.length ? r.meldungen.map((m) => h('li', { dataset: { statusMeldung: m.id } },
+      h('div', { class: 'kopf' }, h('div', { class: 'text' },
+        h('span', { class: 'name' }, m.titel),
+        h('span', { class: 'info' }, [zeit(m.beginn), m.ende ? zeit(m.ende) : null].filter(Boolean).join(' – ')))),
+      h('div', { class: 'zeile' }, h('span', { class: 'marker' }, t(`status.art.${m.art}`)),
+        h('span', { class: `marker ${['behoben', 'abgeschlossen'].includes(m.zustand) ? 'ok' : 'warn'}` }, t(`status.mz.${m.zustand}`)),
+        m.dienste.map((x) => h('span', { class: 'marker' }, t(`status.dienst.${x}`)))),
+      m.text ? h('p', { class: 'sec klein admin-text' }, m.text) : null,
+      h('div', { class: 'aktionen' },
+        knopf(t('admin.bearbeiten'), { klasse: 'btn klein', symbol: 'stift', onclick: () => statusDialog(m) }),
+        knopf(t('admin.loeschen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: async () => {
+          if (!await bestaetigen(t('status.loeschenTitel'), m.titel, { ja: t('admin.loeschen'), gefahr: true })) return;
+          await beschaeftigt(null, async () => { await api(`/api/admin/status/meldungen/${m.id}`, { methode: 'DELETE' }); statusLaden(); });
+        } }))))
+      : [h('li', { class: 'leer' }, t('status.keineMeldungen'))]));
+  } catch (e) { fehlerZeile(ul, e); }
+}
+
+/** ISO (UTC) → Wert für <input type="datetime-local"> in der Zeitzone des Browsers – und zurück. */
+const lokal = (iso) => { if (!iso) return ''; const d = new Date(iso); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+const utc = (wert) => (wert ? new Date(wert).toISOString().replace(/\.\d{3}Z$/, 'Z') : null);
+
+function statusDialog(m = null) {
+  const { inhalt, schliessen } = blatt(m ? t('status.bearbeitenTitel') : t('status.neu'));
+  const st = h('div', { class: 'status', role: 'status', hidden: true });
+  const art = m?.art || 'stoerung';
+  const zustandWahl = h('select', { name: 'zustand' });
+  const zustaendeFuellen = (a, wert) => zustandWahl.replaceChildren(...statusArten[a].map((z) => h('option', { value: z, selected: z === wert }, t(`status.mz.${z}`))));
+  const f = h('form', { class: 'formular', novalidate: true },
+    h('div', { class: 'zwei' },
+      h('label', { class: 'feld' }, h('span', {}, t('status.feldArt')),
+        h('select', { name: 'art', onchange: (e) => zustaendeFuellen(e.currentTarget.value) }, Object.keys(statusArten).map((a) => h('option', { value: a, selected: a === art }, t(`status.art.${a}`))))),
+      h('label', { class: 'feld' }, h('span', {}, t('status.feldZustand')), zustandWahl)),
+    h('label', { class: 'feld' }, h('span', {}, t('status.feldTitel')), h('input', { name: 'titel', required: true, maxlength: '140', value: m?.titel || '' })),
+    h('label', { class: 'feld' }, h('span', {}, t('status.feldText')), h('textarea', { name: 'text', rows: '4', maxlength: '4000' }, m?.text || '')),
+    h('fieldset', { class: 'feld ohne-rahmen' }, h('legend', {}, h('b', {}, t('status.feldDienste'))),
+      h('div', { class: 'zeile' }, STATUS_DIENSTE.map((x) => h('label', { class: 'admin-check' },
+        h('input', { type: 'checkbox', name: 'dienst', value: x, checked: m?.dienste.includes(x) }), ' ', t(`status.dienst.${x}`))))),
+    h('div', { class: 'zwei' },
+      h('label', { class: 'feld' }, h('span', {}, t('status.feldBeginn')), h('input', { name: 'beginn', type: 'datetime-local', value: lokal(m?.beginn) })),
+      h('label', { class: 'feld' }, h('span', {}, t('status.feldEnde')), h('input', { name: 'ende', type: 'datetime-local', value: lokal(m?.ende) }))),
+    h('small', { class: 'sec' }, t('status.zeitHinweis')),
+    st,
+    h('div', { class: 'knoepfe' }, h('button', { type: 'button', class: 'btn', onclick: schliessen }, t('allg.abbrechen')),
+      h('button', { type: 'submit', class: 'btn primary' }, t('allg.speichern'))));
+  zustaendeFuellen(art, m?.zustand);
+  inhalt.append(f);
+  f.titel.focus();
+  f.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!f.titel.value.trim()) { status(st, t('status.titelFehlt'), 'err'); return; }
+    const json = { art: f.art.value, zustand: f.zustand.value, titel: f.titel.value.trim(), text: f.text.value.trim(),
+      dienste: [...f.querySelectorAll('[name=dienst]:checked')].map((x) => x.value), ende: utc(f.ende.value) };
+    if (f.beginn.value) json.beginn = utc(f.beginn.value);
+    beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
+      if (m) await api(`/api/admin/status/meldungen/${m.id}`, { methode: 'PATCH', json });
+      else await api('/api/admin/status/meldungen', { methode: 'POST', json });
+      schliessen(); toast(t('admin.erledigt'), 'ok'); statusLaden();
+    }, st);
+  });
 }
 
 // ---------------------------------------------------------------- Protokoll

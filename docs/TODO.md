@@ -244,7 +244,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 WebRTC-Statistiken sammeln (Bitrate, Jitter, Paketverlust, RTT)
 - [ ] 🟡 Fehler-Monitoring (z. B. Sentry) — *stattdessen Metriken + cc-waechter (ntfy)*
 - [x] 🟡 Backups & Wiederherstellungstest
-- [ ] 🟢 Status-Seite, Alerting — *Alerting über cc-waechter/ntfy fertig, öffentliche Status-Seite offen*
+- [x] 🟢 Status-Seite, Alerting — *öffentliche Status-Seite /status (+ /api/status), Alerting über cc-waechter/ntfy*
 - [x] 🟢 Nutzer-Feedback nach Meeting („Wie war die Qualität?“)
 
 ---

@@ -75,7 +75,7 @@ nur bei **FEHLER**; „nicht unterstützt“ heißt: der Browser kann es nicht, 
   Kamera/Mikro pausieren beim Wechsel in den Hintergrund (Agora nimmt sie beim Zurückkommen wieder auf), kein
   Lautsprecher-Wahlfeld (`setSinkId` fehlt; das Feld wird ausgeblendet), Bild-im-Bild nur für `<video>` mit
   `playsinline`, Wake Lock erst ab iOS 16.4, Web Speech (Untertitel) nur mit Siri/Diktat eingeschaltet, PWA nur über
-  „Zum Home-Bildschirm“.
+  „Zum Home-Bildschirm“ (siehe [`MOBIL.md`](MOBIL.md)).
 - **Echte Kamera und echtes Mikrofon:** Alle Läufe nutzen Attrappen (Testbild/Sinuston). Gerätewechsel, Hot-Plug,
   Echo-Unterdrückung, Rauschunterdrückung „Stark“ (RNNoise) und Musik-Modus brauchen echte Hardware.
 - **Bildschirmauswahl-Dialoge** der Browser (headless nicht vorhanden) und System-Ton beim Teilen.

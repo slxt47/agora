@@ -1,0 +1,13 @@
+{
+  "name": "agora-mobil",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agora – Android-App als Trusted Web Activity (Projekt erzeugt mit Bubblewrap)",
+  "license": "MIT",
+  "scripts": {
+    "erzeugen": "node scripts/twa-erzeugen.js android ../web/public/manifest.webmanifest"
+  },
+  "devDependencies": {
+    "@bubblewrap/core": "1.27.0"
+  }
+}

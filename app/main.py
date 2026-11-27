@@ -44,6 +44,7 @@ from . import webhooks        # Webhooks (Zustellung im eigenen Hintergrund-Thre
 from . import einbetten       # Einbetten: /e/<code> mit frame-ancestors je Raum, /embed.js
 from . import orgs            # Teams / Organisationen (Räume, Vorlagen, Aufnahmen, Schlüssel einer Organisation)
 from . import status          # Öffentliche Status-Seite /status, /api/status (eigener Prüf-Thread jede Minute)
+from . import android         # Android-TWA: /.well-known/assetlinks.json (nur mit AGORA_ANDROID_SHA256)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -151,6 +152,7 @@ app.include_router(webhooks.router)
 app.include_router(einbetten.router)
 app.include_router(orgs.router)
 app.include_router(status.router)
+app.include_router(android.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 

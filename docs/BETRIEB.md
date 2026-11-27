@@ -93,6 +93,13 @@ Geheimnis“ ein neues. Abgeschaltete Endpunkte (3 endgültige Fehlschläge in F
 `einbetten.kopf_anpassen` am Ende der Middleware). Eine vorgeschaltete Stelle (Cloudflare-Regel, Proxy), die selbst
 `X-Frame-Options` setzt, würde das Einbetten wieder verhindern.
 
+## Android-App (Digital Asset Links)
+
+`/.well-known/assetlinks.json` gibt es nur, wenn `AGORA_ANDROID_SHA256` in `app.env` steht (SHA-256 des
+Signatur-Zertifikats, mehrere Komma-getrennt; optional `AGORA_ANDROID_PAKET`, Vorgabe `dev.slxt.agora.twa`), sonst 404.
+Ungültige Werte → 404 und eine Zeile im Log. Nach dem Setzen `docker compose up -d app`. Eine Cloudflare-Regel darf
+`/.well-known/` nicht umleiten oder sperren (Google lädt die Datei ohne Weiterleitungen). Details: [`MOBIL.md`](MOBIL.md).
+
 ## Kapazität
 
 Lasttest und Netzsimulation: [`docs/LASTTEST.md`](LASTTEST.md) (`sh scripts/lasttest.sh`, nur gegen Wegwerf-Instanzen).

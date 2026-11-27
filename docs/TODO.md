@@ -193,7 +193,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🔴 Web-App (Chrome, Firefox, Safari, Edge)
 - [x] 🟡 PWA (installierbar)
 - [x] 🟢 Desktop-App (Electron/Tauri) mit systemweiten Tastenkürzeln — *Electron in `desktop/`, Linux-Pakete lokal gebaut + Smoke-Test; Windows/macOS nur im Workflow, unsigniert (Zertifikate: Florian), siehe [`DESKTOP.md`](DESKTOP.md)*
-- [ ] 🟢 Mobile Apps (iOS/Android oder React Native/Flutter) — *noch offen (PWA vorhanden)*
+- [ ] 🟢 Mobile Apps (iOS/Android oder React Native/Flutter) — *Android als TWA in `mobil/android/` + Workflow (APK lokal nicht gebaut: Build-Werkzeuge nur x86_64), Play-Store-Eintrag/Signatur und iOS-App (Mac + Apple-Konto) offen (Florian); iOS nutzt die PWA, siehe [`MOBIL.md`](MOBIL.md)*
 - [x] 🟢 Browser-Kompatibilitätsmatrix testen (insbesondere Safari/iOS) — *Chromium, Firefox, WebKit automatisch (`BROWSER=… sh tests/e2e/lauf.sh`, [`BROWSER.md`](BROWSER.md)); echter Safari/iOS-Praxistest (Mac/iPhone) bleibt Handarbeit*
 - [x] 🟢 Einbettbares SDK / iFrame / Widget
 

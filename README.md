@@ -57,6 +57,8 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Hand (einstellbar), Tray, Deep Links `agora://r/<code>`, eigene Bildschirmauswahl, strikte Navigation und Rechte, kein
   Auto-Update. Pakete für Linux/Windows/macOS (unsigniert) über GitHub Actions: [`docs/DESKTOP.md`](docs/DESKTOP.md).
 - **App (PWA) und Mobil:**
+  - **Android-App** als Trusted Web Activity (`mobil/android/`, mit Bubblewrap erzeugt; Debug-APK per GitHub Actions bei
+    Tag `android-v*`), Digital Asset Links über `AGORA_ANDROID_SHA256`; iOS über die PWA – siehe [`docs/MOBIL.md`](docs/MOBIL.md)
   - installierbar (Knopf auf der Startseite, auf iPhone/iPad Anleitung „Zum Home-Bildschirm“), Verknüpfungen „Neues Meeting“ und „Beitreten“
   - Service Worker cacht nur App-Hülle und statische Dateien (versioniert; nie `/api`, `/rtc`, Medien oder MediaPipe),
     ohne Netz erscheint „Keine Verbindung“; eine neue Version übernimmt erst nach „Neu laden“ (nie mitten im Meeting)

@@ -1,0 +1,57 @@
+{
+  "packageId": "dev.slxt.agora.twa",
+  "host": "agora.slxt.dev",
+  "name": "Agora – Videokonferenzen",
+  "launcherName": "Agora",
+  "display": "standalone",
+  "themeColor": "#0B0E2A",
+  "themeColorDark": "#0B0E2A",
+  "navigationColor": "#0B0E2A",
+  "navigationColorDark": "#0B0E2A",
+  "navigationDividerColor": "#0B0E2A",
+  "navigationDividerColorDark": "#0B0E2A",
+  "backgroundColor": "#0B0E2A",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://agora.slxt.dev/icons/icon-512.png",
+  "maskableIconUrl": "https://agora.slxt.dev/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "agora"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Neues Meeting",
+      "shortName": "Neu",
+      "url": "https://agora.slxt.dev/?aktion=neu",
+      "chosenIconUrl": "https://agora.slxt.dev/icons/icon-192.png"
+    },
+    {
+      "name": "Beitreten",
+      "shortName": "Beitreten",
+      "url": "https://agora.slxt.dev/?aktion=beitreten",
+      "chosenIconUrl": "https://agora.slxt.dev/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "agora/mobil/scripts/twa-erzeugen.js (@bubblewrap/core 1.27.0)",
+  "webManifestUrl": "https://agora.slxt.dev/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://agora.slxt.dev/",
+  "minSdkVersion": 24,
+  "orientation": "default",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}

@@ -12,6 +12,7 @@ MAX = 100
 ARTEN = [
     ('angemeldet (mit Wiederherstellungscode)', 'anmeldung_code'),
     ('angemeldet (mit 2FA)', 'anmeldung_2fa'),
+    ('angemeldet über', 'anmeldung_extern'),
     ('angemeldet', 'anmeldung'),
     ('Anmeldung: falsches Passwort', 'fehlversuch_passwort'),
     ('Anmeldung: falscher Code', 'fehlversuch_code'),
@@ -29,6 +30,8 @@ ARTEN = [
     ('Konto entsperrt (Admin)', 'entsperrt'),
     ('API-Schlüssel erstellt', 'api_schluessel_neu'),
     ('API-Schlüssel widerrufen', 'api_schluessel_weg'),
+    ('Anmeldung verknüpft', 'extern_verknuepft'),
+    ('Anmeldung getrennt', 'extern_getrennt'),
 ]
 
 

@@ -7,6 +7,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 ## Funktionen
 
 - **Konten:** Registrierung mit E-Mail-Bestätigung, Passwort-Reset per Link, Profil (Name, Zeitzone, Sprache, Avatar-Farbe), Datenexport und Konto löschen. Gäste können ohne Konto beitreten.
+- **Anmelden mit Google, Microsoft und GitHub** (OAuth 2.0 / OpenID Connect, standardmäßig aus – nur mit
+  `AGORA_<ANBIETER>_CLIENT_ID/_SECRET`): Authorization Code mit PKCE, `state` an ein Browser-Cookie gebunden, `nonce`;
+  id_token-Prüfung (Signatur über JWKS, `iss`/`aud`/`exp`/`nonce`, nie `none`/HS*) mit PyJWT + cryptography. Neue Konten
+  nur mit vom Anbieter bestätigter Adresse; ein bestehendes Konto wird erst nach einmaliger Eingabe des Agora-Passworts
+  verknüpft (kein Übernehmen fremder Konten), Zwei-Faktor gilt weiter. Verknüpfen/Trennen im Profil. Einrichtung,
+  Sicherheit und Text für die Datenschutzerklärung: [`docs/ANMELDUNG.md`](docs/ANMELDUNG.md).
 - **Zwei-Faktor-Anmeldung (TOTP):** freiwillig im Profil; QR-Code wird im Browser gezeichnet, 10 Wiederherstellungscodes
   (nur einmal sichtbar, gespeichert nur als Hash), ±30 s Toleranz, jeder Code nur einmal, Geheimnis verschlüsselt gespeichert.
 - **Sicherheit im Konto:** eigene Sicherheitsereignisse der letzten 30 Tage (Anmeldungen, Fehlversuche, Passwort- und

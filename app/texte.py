@@ -348,6 +348,15 @@ FEHLER_EN = {
     'Bitte „erledigt“ (true/false) angeben.': 'Please specify “erledigt” (true/false).',
     'Art: fehler, promise, livekit oder api.': 'Type: fehler, promise, livekit or api.',
     # ==== Ende Block Fehler-Monitoring ====
+    # ==== Block Anmeldung (OAuth/OIDC) ====
+    'Diesen Anmeldeweg gibt es hier nicht.': 'This sign-in method is not available here.',
+    'Der Anmeldedienst antwortet gerade nicht. Bitte später noch einmal versuchen.': 'The sign-in service is not responding. Please try again later.',
+    'Dieses Konto ist schon mit einem anderen Agora-Konto verknüpft.': 'This account is already linked to another Agora account.',
+    'Ein Konto mit dieser E-Mail-Adresse wird gerade angelegt – bitte noch einmal versuchen.': 'An account with this email address is being created – please try again.',
+    'Die Anmeldung ist abgelaufen – bitte noch einmal starten.': 'The sign-in has expired – please start again.',
+    'Lege zuerst ein Passwort fest – sonst kommst du nicht mehr in dein Konto.': 'Set a password first – otherwise you can no longer get into your account.',
+    'Zum Löschen bitte deine E-Mail-Adresse eingeben.': 'To delete, please enter your email address.',
+    # ==== Ende Block Anmeldung ====
     'Zu viele falsche Codes – bitte noch einmal mit Passwort anmelden.': 'Too many wrong codes – please sign in again with your password.',
     'Zuschauer schreiben in diesem Webinar nur privat an Host und Panel.': 'In this webinar, attendees only write privately to host and panel.',
     'Zuschauer senden keinen Ton – also auch keine Untertitel.': 'Attendees don’t send audio – so no captions either.',

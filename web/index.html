@@ -96,6 +96,20 @@
               <button class="btn leise klein" type="button" data-zeige="f-vergessen" data-t="html.passwortVergessen">Passwort vergessen?</button>
               <button class="btn leise klein" type="button" data-zeige="f-erneut" data-t="html.bestaetigungsMailErneutSenden">Bestätigungs-Mail erneut senden</button>
             </div>
+            <div class="extern-anmelden" id="extern-anmelden" hidden>
+              <p class="trenner"><span data-t="anmeldung.oder">oder</span></p>
+              <div class="extern-knoepfe" id="extern-knoepfe"></div>
+            </div>
+          </form>
+
+          <form class="formular oben" id="f-verknuepfen" hidden>
+            <h3 data-t="anmeldung.verknuepfenTitel">Konto verknüpfen</h3>
+            <p class="sec klein" id="verknuepfen-text"></p>
+            <input type="email" name="benutzer" autocomplete="username" hidden>
+            <label class="feld"><span data-t="anmeldung.agoraPasswort">Agora-Passwort</span><input name="passwort" type="password" autocomplete="current-password" required></label>
+            <label class="feld" id="verknuepfen-code" hidden><span data-t="html.code">Code</span><input name="code" class="zf-code" autocomplete="one-time-code" inputmode="numeric" autocapitalize="none" spellcheck="false" maxlength="20"></label>
+            <button class="btn primary" type="submit" data-t="anmeldung.verknuepfenKnopf">Verknüpfen und anmelden</button>
+            <button class="btn leise" type="button" data-zeige="f-anmelden" data-t="html.zurueckZurAnmeldung">Zurück zur Anmeldung</button>
           </form>
 
           <form class="formular oben" id="f-code" hidden>

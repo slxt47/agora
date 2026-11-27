@@ -1,0 +1,43 @@
+# Wegwerf-Identity-Provider (Dex) für tests/e2e/sso.sh – nur 127.0.0.1, Speicher im RAM, feste Test-Konten.
+# __DEX__ / __APP__ ersetzt sso.sh durch die Ports. Passwort aller Test-Konten: dex-passwort-1 (bcrypt).
+issuer: http://127.0.0.1:__DEX__/dex
+storage:
+  type: memory
+web:
+  http: 127.0.0.1:__DEX__
+logger:
+  level: warn
+oauth2:
+  skipApprovalScreen: true
+  responseTypes: [code]
+enablePasswordDB: true
+staticClients:
+  - id: agora-google                 # „wie Google“: AGORA_GOOGLE_* zeigt auf Dex (gleicher Code-Pfad wie Google)
+    secret: google-geheimnis-nur-test
+    name: Agora (wie Google)
+    redirectURIs: ['http://127.0.0.1:__APP__/api/anmeldung/google/zurueck']
+  - id: agora-firma                  # Firmen-Login einer Organisation (generisches OIDC)
+    secret: firma-geheimnis-nur-test
+    name: Agora Firmen-Login
+    redirectURIs: ['http://127.0.0.1:__APP__/api/anmeldung/firma/zurueck']
+staticPasswords:
+  - email: gerda@dex.example         # neu über „Google“
+    hash: "$2b$10$Pb4MEujwMIo/4DLQYzKn9.FRxvd5ZcIPHkKy7VG9J.ZqcsE//jSrO"
+    username: Gerda Google
+    userID: 6f1e0c1a-0000-4000-8000-000000000001
+  - email: olaf@dex.example          # hat schon ein Agora-Konto mit Passwort → verknüpfen
+    hash: "$2b$10$Pb4MEujwMIo/4DLQYzKn9.FRxvd5ZcIPHkKy7VG9J.ZqcsE//jSrO"
+    username: Olaf Vorhanden
+    userID: 6f1e0c1a-0000-4000-8000-000000000002
+  - email: anna@firma.example        # Firmen-Login: bestehendes Konto
+    hash: "$2b$10$Pb4MEujwMIo/4DLQYzKn9.FRxvd5ZcIPHkKy7VG9J.ZqcsE//jSrO"
+    username: Anna Firma
+    userID: 6f1e0c1a-0000-4000-8000-000000000003
+  - email: bernd@firma.example       # Firmen-Login: neues Konto, tritt der Organisation bei
+    hash: "$2b$10$Pb4MEujwMIo/4DLQYzKn9.FRxvd5ZcIPHkKy7VG9J.ZqcsE//jSrO"
+    username: Bernd Neu
+    userID: 6f1e0c1a-0000-4000-8000-000000000004
+  - email: mallory@fremd.example     # Firmen-Login mit fremder Domain → abgelehnt
+    hash: "$2b$10$Pb4MEujwMIo/4DLQYzKn9.FRxvd5ZcIPHkKy7VG9J.ZqcsE//jSrO"
+    username: Mallory
+    userID: 6f1e0c1a-0000-4000-8000-000000000005

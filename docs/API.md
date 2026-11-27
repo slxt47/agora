@@ -38,16 +38,33 @@ Code eines Raums: `abc-defg-hij` (Kleinbuchstaben ohne l/o/0/1, Muster `^[a-z]{3
 | POST `/api/konto/passwort-setzen` | `{token, passwort}` | `{ok:true}` (alle Sitzungen ungültig) |
 | POST `/api/konto/passwort-aendern` | `{alt, neu}` | `{ok:true}` |
 | GET `/api/konto/export` | – | JSON-Download aller eigenen Daten |
-| DELETE `/api/konto` | `{passwort}` | `{ok:true}` – löscht Konto, Räume, Aufnahmen |
+| DELETE `/api/konto` | `{passwort}` (Konto ohne Passwort: `{bestaetigung: "<eigene E-Mail>"}`) | `{ok:true}` – löscht Konto, Räume, Aufnahmen |
 
-`ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor, admin}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool).
+`ich` = `{id, name, email, zeitzone, sprache, farbe, persoenlicher_raum, zwei_faktor, admin, passwort_gesetzt}` (farbe = Avatar-Farbe `#rrggbb`, persoenlicher_raum = Code, zwei_faktor = bool, passwort_gesetzt = false bei Konten, die nur über Google/Microsoft/GitHub angelegt wurden).
 Grenzen: Anmelden 10/10 min je IP+Mail und 20 Fehlversuche/15 min je Konto (alle IPs zusammen; danach 429 auch mit richtigem Passwort), Registrieren 5/h je IP, Mails 3/h je Adresse. „Je IP“ heißt bei IPv6 immer je /64-Netz.
+
+### Anmelden mit Google, Microsoft, GitHub (app/anmeldung.py – nur konfigurierte Anbieter, sonst 404; docs/ANMELDUNG.md)
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `/api/einstellungen` | – | enthält `anmeldung: [{id, name}]` (leer = aus) |
+| POST `/api/anmeldung/{anbieter}/start` | `{weiter?}` bzw. aus dem Profil `{verknuepfen:true, passwort}` | `{url}` (zum Anbieter) + Cookie `…-anmeldung` (Bindung, 30 min) |
+| GET `/api/anmeldung/{anbieter}/zurueck` | `?code&state` (vom Anbieter) | 303 → `weiter` bzw. `/` mit Sitzung; `/#zf=<schritt>` (2FA, weiter mit POST `/api/konto/anmelden/code`); `/#verknuepfen=<token>` (bestehendes Konto); Fehler `/?anmeldung=fehler&grund=…` |
+| POST `/api/anmeldung/offen` | `{token}` | `{anbieter, name, email, zwei_faktor}` (nur im selben Browser) |
+| POST `/api/anmeldung/verknuepfen` | `{token, passwort, code?}` | `{ok:true, ich, weiter}` + Cookie; mit 2FA ohne `code`: `{zwei_faktor:true}`. 400 `Passwort falsch.` (5 Versuche je Token) |
+| GET `/api/konto/anmeldungen` | – | `{verknuepft:[{id, anbieter, name, email, erstellt, zuletzt}], verfuegbar:[{id, name}], passwort_gesetzt}` |
+| DELETE `/api/konto/anmeldungen/{id}` | – | `{ok:true}`; 409, wenn das Konto kein Passwort hat |
+
+`anbieter`: `google` · `microsoft` · `github`. `grund`: `abgebrochen` · `ungueltig` (state/Cookie/abgelaufen) · `anbieter`
+(Tausch/Netz) · `token` (id_token ungültig) · `email_unbestaetigt` · `kein_passwort` · `gesperrt` · `schon_verknuepft` ·
+`schon_da` · `firma_pflicht` · `zu_viele`. Grenzen: Start 30/10 min, Rückkehr 60/10 min je IP, Passwort 20/10 min je IP
+und die Konto-Grenze des Passwort-Logins. Redirect-URI: `<AGORA_SEITE>/api/anmeldung/<anbieter>/zurueck`.
 
 ### Sicherheitsereignisse (angemeldet)
 GET `/api/konto/sicherheit` → `{ereignisse:[{zeit, art, ereignis}], tage: 30}` – nur eigene, neueste zuerst, höchstens 100.
 `art`: `anmeldung` · `anmeldung_2fa` · `anmeldung_code` · `fehlversuch_passwort` · `fehlversuch_code` · `fehlversuch_gesperrt` ·
 `passwort_geaendert` · `passwort_zurueckgesetzt` · `email_bestaetigt` · `zwei_faktor_an` · `zwei_faktor_aus` · `zwei_faktor_codes` ·
-`zwei_faktor_code_benutzt` · `zwei_faktor_admin` · `gesperrt` · `entsperrt` (Quelle: Protokoll, 30 Tage; `ereignis` = Rohtext).
+`zwei_faktor_code_benutzt` · `zwei_faktor_admin` · `gesperrt` · `entsperrt` · `anmeldung_extern` · `extern_verknuepft` ·
+`extern_getrennt` (Quelle: Protokoll, 30 Tage; `ereignis` = Rohtext).
 
 ### Zwei-Faktor-Anmeldung (TOTP, angemeldet)
 | Methode + Pfad | Body | Antwort |

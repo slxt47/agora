@@ -29,6 +29,16 @@ Gibt es beim Hoster eine eigene Firewall, müssen die Ports dort auch frei sein.
 - `livekit.env`: `LIVEKIT_KEYS=<key>: <secret>` und `NODE_IP=<öffentliche IP>`
 - `.env`: nur `TUNNEL_TOKEN` (von `scripts/cloudflare-einrichten.py`)
 
+## Anmelden mit Google, Microsoft, GitHub – optional, standardmäßig aus
+
+Je Anbieter `AGORA_GOOGLE_CLIENT_ID`/`_SECRET`, `AGORA_MICROSOFT_CLIENT_ID`/`_SECRET` (+ optional `AGORA_MICROSOFT_TENANT`,
+Standard `common`), `AGORA_GITHUB_CLIENT_ID`/`_SECRET` in `app.env`, dann `docker compose up -d app`. Fehlt eins der
+beiden, bleibt der Anbieter aus (keine Knöpfe, Routen 404). Registrierung bei den Anbietern (Redirect-URIs, Scopes,
+`xms_edov` bei Microsoft): [`docs/ANMELDUNG.md`](ANMELDUNG.md). Die App braucht ausgehend HTTPS zu
+`accounts.google.com`/`oauth2.googleapis.com`/`www.googleapis.com`, `login.microsoftonline.com`, `github.com` und
+`api.github.com`. **Microsoft-Geheimnis läuft ab** (höchstens 24 Monate): Termin notieren und rechtzeitig erneuern.
+Fehlversuche stehen im Protokoll (`Anmeldung Google gescheitert: token (…)`), ohne Codes oder Tokens.
+
 ## Ausrollen
 
 ```sh

@@ -25,6 +25,8 @@ FARBE_RE = re.compile(r'^#[0-9a-f]{6}$')
 FARBEN = ['#a993ff', '#5b8def', '#2fb67c', '#f0a04b', '#e5677d', '#41b8c4', '#c873d6', '#8fb339']
 EXPORT = []                   # f(benutzer) → dict, wird in den Datenexport übernommen
 VOR_LOESCHEN = []             # async f(benutzer) – vor dem Löschen eines Kontos (Organisationen: Daten übergeben)
+ANMELDE_REGELN = []           # f(benutzer) → Fehlertext | None – nach richtigem Passwort (z. B. Firmen-Login erzwungen)
+NACH_RESET = []               # f(benutzer_id) – nach „Passwort vergessen“ (Postfach bewiesen)
 BESTAETIGEN_S = 48 * 3600
 PASSWORT_S = 3600
 KONTO_FEHL = 20                # Fehlversuche je Konto und 15 min (alle IPs zusammen)
@@ -34,7 +36,7 @@ def ich_json(b):
     r = db.verbindung().execute("SELECT code FROM raeume WHERE besitzer_id = ? AND art = 'persoenlich'", (b['id'],)).fetchone()
     return {'id': b['id'], 'name': b['name'], 'email': b['email'], 'zeitzone': b['zeitzone'], 'sprache': b['sprache'],
             'farbe': b['farbe'], 'persoenlicher_raum': r['code'] if r else None, 'zwei_faktor': bool(b['totp_an']),
-            'admin': admins.ist_admin(b)}
+            'admin': admins.ist_admin(b), 'passwort_gesetzt': bool(b['passwort_hash'])}
 
 
 def email_feld(d):
@@ -165,6 +167,10 @@ async def anmelden(req: Request):
     if b['gesperrt']:
         db.protokollieren('Anmeldung: Konto gesperrt', b['id'])
         fehler(403, 'Dieses Konto ist gesperrt. Bei Fragen wende dich an das Agora-Team.')
+    for regel in ANMELDE_REGELN:
+        text = regel(b)
+        if text:
+            fehler(403, text)
     if b['totp_an']:               # Zwei-Faktor: erst nach dem Code gibt es eine Sitzung
         return {'zwei_faktor': True, 'schritt': zwei_faktor.schritt_erstellen(b)}
     c.execute('UPDATE benutzer SET letzte_anmeldung = ? WHERE id = ?', (jetzt(), b['id']))
@@ -246,6 +252,8 @@ async def passwort_setzen(req: Request):
     c = db.verbindung()
     c.execute('UPDATE benutzer SET passwort_hash = ?, bestaetigt = 1 WHERE id = ?', (pw_hash, row['benutzer_id']))
     c.execute('DELETE FROM sitzungen WHERE benutzer_id = ?', (row['benutzer_id'],))
+    for f in NACH_RESET:
+        f(row['benutzer_id'])
     db.protokollieren('Passwort zurückgesetzt', row['benutzer_id'])
     return {'ok': True}
 
@@ -299,7 +307,10 @@ async def konto_loeschen(req: Request):
     b = benutzer_aus_sitzung(req)
     d = await json_body(req)
     grenze.pruefen(f'loeschen:{b["id"]}', 5, 900)
-    if not isinstance(d.get('passwort'), str) or not await run_in_threadpool(pw_ok, b['passwort_hash'], d['passwort']):
+    if not b['passwort_hash']:       # Konto nur mit Google/Microsoft/GitHub: mit der eigenen E-Mail-Adresse bestätigen
+        if not isinstance(d.get('bestaetigung'), str) or d['bestaetigung'].strip().lower() != b['email'].lower():
+            fehler(400, 'Zum Löschen bitte deine E-Mail-Adresse eingeben.')
+    elif not isinstance(d.get('passwort'), str) or not await run_in_threadpool(pw_ok, b['passwort_hash'], d['passwort']):
         fehler(400, 'Passwort falsch.')
     await konto_entfernen(b)
     resp = JSONResponse({'ok': True})

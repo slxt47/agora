@@ -17,6 +17,10 @@ async function zweiFaktorZeigen() {
   let z;
   try { z = await api('/api/konto/2fa'); } catch (e) { box.replaceChildren(h('p', { class: 'leer' }, e.message)); return; }
   box.replaceChildren();
+  if (!z.an && ich?.passwort_gesetzt === false) {      // Konto nur mit Google/Microsoft/GitHub: erst ein Passwort festlegen
+    box.append(h('div', { class: 'zeile' }, h('span', { class: 'marker' }, t('zweifaktor.aus'))), h('p', { class: 'sec klein' }, t('anmeldung.zweiFaktorOhnePasswort')));
+    return;
+  }
   if (!z.an) {
     box.append(
       h('div', { class: 'zeile' }, h('span', { class: 'marker' }, t('zweifaktor.aus'))),

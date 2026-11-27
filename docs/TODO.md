@@ -32,7 +32,8 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Gast-Zugang ohne Konto (nur Name eingeben)
 - [x] 🟡 Benutzerprofil (Name, Avatar, Zeitzone, Sprache)
 - [x] 🟡 Rate-Limiting & Brute-Force-Schutz
-- [ ] 🟢 OAuth / SSO (Google, Microsoft, GitHub) — *braucht eigene Apps bei Google/Microsoft/GitHub (Florian)*
+- [x] 🟢 OAuth / SSO (Google, Microsoft, GitHub) — gebaut, wartet auf Zugangsdaten von Florian (`docs/ANMELDUNG.md`; mit Dex bewiesen, `tests/e2e/sso.sh`)
+  - [ ] Apps bei Google/Microsoft/GitHub registrieren und `AGORA_*_CLIENT_ID/_SECRET` eintragen (Florian)
 - [x] 🟢 Zwei-Faktor-Authentifizierung (TOTP)
 - [ ] 🟢 SAML / OIDC für Unternehmen — *braucht einen Identity-Provider (Florian)*
 - [x] 🟢 Konto löschen & Datenexport (DSGVO)

@@ -760,6 +760,50 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Fernsteuerung“ ========
+    # ======== Block „Anmeldung mit Google/Microsoft/GitHub (OAuth/OIDC)“ (app/anmeldung.py) – Version 34 ========
+    # Verknüpfte externe Anmeldungen (Schlüssel: Aussteller + sub), laufende Vorgänge (state nur als Hash, 10 min,
+    # an ein Browser-Cookie gebunden) und Anmeldungen, die auf die Bestätigung mit dem Agora-Passwort warten (15 min).
+    # org_id: nur beim Firmen-Login (Identity-Provider einer Organisation, app/firmen_login.py).
+    """
+    CREATE TABLE anmelde_konten (
+      id INTEGER PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      anbieter TEXT NOT NULL,          -- google | microsoft | github | firma
+      org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE,
+      aussteller TEXT NOT NULL,        -- iss des id_token (GitHub: https://github.com)
+      sub TEXT NOT NULL,               -- Kennung beim Anbieter
+      email TEXT NOT NULL,             -- Adresse beim Anbieter (nur Anzeige)
+      erstellt INTEGER NOT NULL,
+      zuletzt INTEGER,
+      UNIQUE (aussteller, sub)
+    );
+    CREATE INDEX anmelde_konten_benutzer ON anmelde_konten(benutzer_id);
+    CREATE TABLE anmelde_vorgaenge (
+      state_hash TEXT PRIMARY KEY,
+      bindung_hash TEXT NOT NULL,      -- Hash des Browser-Cookies
+      anbieter TEXT NOT NULL,
+      org_id INTEGER,
+      verifier TEXT NOT NULL,          -- PKCE code_verifier
+      nonce TEXT NOT NULL,
+      weiter TEXT NOT NULL DEFAULT '',
+      benutzer_id INTEGER,             -- nur beim Verknüpfen aus dem Profil
+      gueltig_bis INTEGER NOT NULL
+    );
+    CREATE TABLE anmelde_offen (
+      token_hash TEXT PRIMARY KEY,
+      bindung_hash TEXT NOT NULL,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      anbieter TEXT NOT NULL,
+      org_id INTEGER,
+      aussteller TEXT NOT NULL,
+      sub TEXT NOT NULL,
+      email TEXT NOT NULL,
+      weiter TEXT NOT NULL DEFAULT '',
+      versuche INTEGER NOT NULL DEFAULT 0,
+      gueltig_bis INTEGER NOT NULL
+    );
+    """,
+    # ======== Ende Block „Anmeldung (OAuth/OIDC)“ ========
 ]
 
 

@@ -1,0 +1,19 @@
+# Ergänzung zu docker-compose.test.yml für tests/e2e/sso.sh: Wegwerf-Identity-Provider Dex (per Digest gepinnt, auch arm64)
+# und die App mit „Google“ → Dex (AGORA_GOOGLE_*): gleicher Code-Pfad wie bei Google, nur mit anderem Aussteller.
+services:
+  dex-test:
+    image: dexidp/dex:v2.44.0@sha256:5d0656fce7d453c0e3b2706abf40c0d0ce5b371fb0b73b3cf714d05f35fa5f86
+    network_mode: host
+    entrypoint: ["dex", "serve", "/etc/dex/config.yaml"]
+    volumes: ["${DEX_CONFIG}:/etc/dex/config.yaml:ro"]
+    user: "1001:1001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+  app-test:
+    environment:
+      AGORA_GOOGLE_CLIENT_ID: agora-google
+      AGORA_GOOGLE_CLIENT_SECRET: google-geheimnis-nur-test
+      AGORA_GOOGLE_DISCOVERY: http://127.0.0.1:${DEX_PORT:-5556}/dex/.well-known/openid-configuration
+      AGORA_GOOGLE_ISSUER: http://127.0.0.1:${DEX_PORT:-5556}/dex
+    depends_on: [livekit-test, dex-test]

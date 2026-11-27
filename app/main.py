@@ -54,6 +54,7 @@ from . import zusammenfassung  # KI-Zusammenfassung + Kapitel (AGORA_KI_URL), St
 from . import speicher         # Speicher für Aufnahmen/Dateien: lokal (Standard) oder S3-kompatibel (AGORA_S3_*)
 from . import leitung          # mehrere Worker: wer die Hintergrund-Aufgaben übernimmt (flock)
 from . import fehlerbericht    # Fehler-Monitoring (Browser + Server, gruppiert, Admin-Reiter „Fehler“)
+from . import anmeldung        # Anmelden mit Google/Microsoft/GitHub (OAuth/OIDC, nur mit AGORA_<ANBIETER>_CLIENT_ID/_SECRET)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -186,6 +187,7 @@ app.include_router(push.router)
 app.include_router(dolmetsch.router)
 app.include_router(zusammenfassung.router)
 app.include_router(fehlerbericht.router)
+app.include_router(anmeldung.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -199,7 +201,8 @@ async def gesund(req: Request, tief: int = 0):
 
 @app.get('/api/einstellungen')
 def einstellungen():
-    return {'livekit_url': LIVEKIT_URL, 'max_teilnehmer': MAX_TEILNEHMER, 'version': VERSION}
+    return {'livekit_url': LIVEKIT_URL, 'max_teilnehmer': MAX_TEILNEHMER, 'version': VERSION,
+            'anmeldung': anmeldung.verfuegbar()}      # konfigurierte Anbieter für „Anmelden mit …“ (sonst leer)
 
 
 # ---------------------------------------------------------------- Test-Hilfe (nur AGORA_TEST=1)
@@ -236,6 +239,7 @@ def aufraeumen():
     status.aufraeumen(t)           # Status-Fenster 90 Tage, Meldungen 365 Tage nach dem Ende
     fehlerbericht.aufraeumen(t)    # Fehlergruppen 30 Tage nach dem letzten Auftreten
     hls.aufraeumen(t)              # öffentliche Übertragungen: Dateien 1 h nach dem Ende löschen
+    anmeldung.aufraeumen(t)        # abgelaufene Anmelde-Vorgänge (10 min) und offene Verknüpfungen (15 min)
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)

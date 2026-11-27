@@ -39,7 +39,7 @@
       <button type="button" role="tab" id="tab-meldungen" aria-controls="p-meldungen" aria-selected="false"><span data-t="html.meldungen">Meldungen</span> <span class="zaehler-inline" id="meldungen-zahl" hidden></span></button>
       <button type="button" role="tab" id="tab-meetings" aria-controls="p-meetings" aria-selected="false" data-t="html.meetings">Meetings</button>
       <button type="button" role="tab" id="tab-orgs" aria-controls="p-orgs" aria-selected="false" data-t="org.titel">Organisationen</button>
-      <button type="button" role="tab" id="tab-fehler" aria-controls="p-fehler" aria-selected="false"><span data-t="fb.reiter">Fehler</span> <span class="zaehler-inline" id="fehler-zahl" hidden></span></button>
+      <button type="button" role="tab" id="tab-fehler" aria-controls="p-fehler" aria-selected="false"><span data-t="fm.reiter">Fehler</span> <span class="zaehler-inline" id="fehler-zahl" hidden></span></button>
       <button type="button" role="tab" id="tab-status" aria-controls="p-status" aria-selected="false" data-t="status.reiter">Status</button>
       <button type="button" role="tab" id="tab-protokoll" aria-controls="p-protokoll" aria-selected="false" data-t="html.protokoll">Protokoll</button>
     </nav>
@@ -97,14 +97,14 @@
 
     <div id="p-fehler" role="tabpanel" aria-labelledby="tab-fehler" class="formular" hidden>
       <section class="card" aria-labelledby="h-fehler">
-        <div class="zeile zwischen"><h2 id="h-fehler" data-t="fb.titel">Fehler aus Browsern und Server</h2>
+        <div class="zeile zwischen"><h2 id="h-fehler" data-t="fm.titel">Fehler aus Browsern und Server</h2>
           <div class="umschalter admin-filter" role="radiogroup" aria-label="Status" data-t-aria="html.status">
             <label><input type="radio" name="f-status" value="offen" checked><span data-t="html.offen">Offen</span></label>
             <label><input type="radio" name="f-status" value="erledigt"><span data-t="html.erledigt">Erledigt</span></label>
             <label><input type="radio" name="f-status" value="alle"><span data-t="html.alle">Alle</span></label>
           </div>
         </div>
-        <p class="sec klein" data-t="fb.hinweis">Gruppiert nach Art und Stelle. Ohne Namen, E-Mail-Adressen und IPs, ohne alles nach ? oder # in Adressen; 30 Tage nach dem letzten Auftreten gelöscht. Eine erledigte Gruppe öffnet sich wieder, sobald der Fehler erneut auftritt.</p>
+        <p class="sec klein" data-t="fm.hinweis">Gruppiert nach Art und Stelle. Ohne Namen, E-Mail-Adressen und IPs, ohne alles nach ? oder # in Adressen; 30 Tage nach dem letzten Auftreten gelöscht. Eine erledigte Gruppe öffnet sich wieder, sobald der Fehler erneut auftritt.</p>
         <ul class="liste" id="liste-fehler"></ul>
       </section>
     </div>

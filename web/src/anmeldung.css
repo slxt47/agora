@@ -1,0 +1,13 @@
+/* Anmelden mit Google/Microsoft/GitHub und Firmen-Login (Startseite, Konto → Profil). slxt-Design, keine fremden Logos. */
+.extern-anmelden { display: grid; gap: 12px; margin-top: 6px; }
+.trenner { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--sec); font-size: .9rem; }
+.trenner::before, .trenner::after { content: ''; flex: 1; height: 1px; background: var(--card-line); }
+.extern-knoepfe { display: grid; gap: 10px; }
+.btn.extern { justify-content: center; gap: 10px; min-height: 44px; }
+.extern-marke { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-weight: 700; font-size: .85rem;
+  color: #fff; background: var(--accent); flex: none; }
+.extern-google { background: #3b6ff6; }
+.extern-microsoft { background: #0e8a7a; }
+.extern-github { background: #3a3a4a; }
+.extern-firma { background: #7c3aed; }
+.anmeldungen-liste .extern-marke { width: 32px; height: 32px; border-radius: 9px; }

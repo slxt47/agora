@@ -47,7 +47,7 @@ test('API-Fehler unter 500 und der Bericht selbst werden nicht gemeldet', () => 
 });
 
 test('Texte für den Reiter „Fehler“ in beiden Sprachen', () => {
-  for (const k of ['fb.reiter', 'fb.titel', 'fb.hinweis', 'fb.art.api', 'fb.art.ausnahme', 'fb.quelle.server', 'fb.erledigen', 'fb.auftreten']) {
+  for (const k of ['fm.reiter', 'fm.titel', 'fm.hinweis', 'fm.art.api', 'fm.art.ausnahme', 'fm.quelle.server', 'fm.erledigen', 'fm.auftreten']) {
     assert.ok(woerterbuch.de[k], k);
     assert.ok(en[k], k);
   }

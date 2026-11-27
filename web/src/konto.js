@@ -482,11 +482,14 @@ $('#abmelden').addEventListener('click', (e) => beschaeftigt(e.currentTarget, as
 
 $('#konto-loeschen').addEventListener('click', () => {
   const { inhalt } = blatt(t('konto.kontoLoeschenTitel'));
+  const ohnePasswort = ich?.passwort_gesetzt === false;
   const statusEl = h('div', { class: 'status', role: 'status', hidden: true });
   const f = h('form', { class: 'formular' },
     h('p', { class: 'sec' }, t('konto.kontoLoeschenText')),
     h('input', { type: 'text', name: 'benutzer', autocomplete: 'username', hidden: true, value: ich?.email || '' }),
-    h('label', { class: 'feld' }, h('span', {}, t('konto.passwortBestaetigen')), h('input', { name: 'passwort', type: 'password', autocomplete: 'current-password', required: true })),
+    ohnePasswort    // Konto nur mit Google/Microsoft/GitHub: mit der eigenen E-Mail-Adresse bestätigen
+      ? h('label', { class: 'feld' }, h('span', {}, t('anmeldung.loeschenEmail', { email: ich?.email || '' })), h('input', { name: 'passwort', type: 'email', autocomplete: 'off', required: true }))
+      : h('label', { class: 'feld' }, h('span', {}, t('konto.passwortBestaetigen')), h('input', { name: 'passwort', type: 'password', autocomplete: 'current-password', required: true })),
     statusEl,
     h('button', { type: 'submit', class: 'btn gefahr voll' }, t('konto.endgueltigLoeschen')));
   inhalt.append(f);
@@ -495,7 +498,7 @@ $('#konto-loeschen').addEventListener('click', () => {
     e.preventDefault();
     if (!f.reportValidity()) return;
     beschaeftigt(f.querySelector('button[type="submit"]'), async () => {
-      await api('/api/konto', { methode: 'DELETE', json: { passwort: f.passwort.value } });
+      await api('/api/konto', { methode: 'DELETE', json: ohnePasswort ? { bestaetigung: f.passwort.value.trim() } : { passwort: f.passwort.value } });
       location.href = '/';
     }, statusEl);
   });

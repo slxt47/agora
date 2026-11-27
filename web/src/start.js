@@ -5,11 +5,12 @@ import { t } from './i18n.js';
 import { codeAusText, initialen } from './helfer.js';
 import { schluesselAusFragment } from './e2ee-schluessel.js';
 import './sicherheit.css';
+import { anmeldungEinrichten } from './anmeldung-start.js';     // Anmelden mit Google/Microsoft/GitHub (nur wenn eingerichtet)
 
 const params = new URLSearchParams(location.search);
 // Nur eigene Pfade als Ziel nach der Anmeldung (kein //fremd.de)
 const weiter = (() => { const w = params.get('weiter') || ''; return /^\/(?!\/)[\w\-/#?=&.]*$/.test(w) ? w : ''; })();
-const FORMULARE = ['f-anmelden', 'f-registrieren', 'f-vergessen', 'f-erneut', 'f-code'];
+const FORMULARE = ['f-anmelden', 'f-registrieren', 'f-vergessen', 'f-erneut', 'f-code', 'f-verknuepfen'];
 let ich = null;
 let schritt = null;          // Zwei-Faktor: Passwort war richtig, Code fehlt noch
 
@@ -187,6 +188,7 @@ $('#abmelden').addEventListener('click', (e) => beschaeftigt(e.currentTarget, as
     history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : ''));
   }
   if (weiter && ich) location.replace(weiter);
+  anmeldungEinrichten({ angemeldet: !!ich, weiter, zeigen, meldung, codeSchritt, fertigAngemeldet });
   const vorgabe = params.get('code');
   if (vorgabe) codeFeld.value = codeAusText(vorgabe) || '';
   // App-Verknüpfungen aus dem Manifest: /?aktion=neu | /?aktion=beitreten

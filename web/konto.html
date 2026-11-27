@@ -21,6 +21,7 @@
   <script type="module" src="/src/konto-sicherheit.js"></script>
   <script type="module" src="/src/entwickler.js"></script>
   <script type="module" src="/src/org-konto.js"></script>
+  <script type="module" src="/src/anmeldung-konto.js"></script>
 </head>
 <body>
   <a class="springen" href="#inhalt" data-t="html.zumInhaltSpringen">Zum Inhalt springen</a>
@@ -142,6 +143,11 @@
           <label class="feld"><span data-t="html.neuesPasswort">Neues Passwort</span><input name="neu" type="password" autocomplete="new-password" required minlength="10"><small data-t="html.mindestens10Zeichen">Mindestens 10 Zeichen.</small></label>
           <button class="btn primary" type="submit" data-t="html.passwortAendern">Passwort ändern</button>
         </form>
+      </section>
+      <section class="card" aria-labelledby="h-anmeldungen" id="anmeldungen" hidden>
+        <h2 id="h-anmeldungen" data-t="anmeldung.kontoTitel">Anmelden mit anderen Konten</h2>
+        <p class="sec klein" data-t="anmeldung.kontoText">Verknüpfe dein Agora-Konto mit Google, Microsoft oder GitHub und melde dich dann mit einem Klick an. Agora bekommt dabei nur Name, E-Mail-Adresse und eine Kennung – nie dein Passwort dort.</p>
+        <ul class="liste anmeldungen-liste" id="liste-anmeldungen"></ul>
       </section>
       <section class="card" aria-labelledby="h-2fa">
         <h2 id="h-2fa" data-t="html.zweiFaktorAnmeldung">Zwei-Faktor-Anmeldung</h2>

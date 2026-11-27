@@ -2,6 +2,7 @@
 # Ergebnis als Artefakt des Laufs (kein Release, keine Play-Store-Veröffentlichung). Siehe docs/MOBIL.md.
 name: Android
 on:
+  workflow_dispatch:        # manuell (Build-Probe, ohne Tag/Release)
   push:
     tags: ['android-v*']
 permissions:

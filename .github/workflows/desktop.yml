@@ -2,6 +2,7 @@
 # Ergebnis als Artefakte des Laufs (kein GitHub-Release, kein Auto-Update). Signieren: siehe docs/DESKTOP.md.
 name: Desktop
 on:
+  workflow_dispatch:        # manuell (Build-Probe, ohne Tag/Release)
   push:
     tags: ['desktop-v*']
 permissions:

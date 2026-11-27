@@ -241,9 +241,9 @@ export class Meeting {
       })
       .on(RoomEvent.MediaDevicesChanged, () => this.geraeteGeaendert())
       .on(RoomEvent.MediaDevicesError, (e, art) => toast(geraeteFehler(e, art === 'videoinput' ? 'kamera' : 'mikrofon'), 'err', { dauer: 7000 }))
-      .on(RoomEvent.Reconnecting, () => this.verbindung(true))
-      .on(RoomEvent.SignalReconnecting, () => this.verbindung(true))
-      .on(RoomEvent.Reconnected, () => { this.verbindung(false); toast(t('meeting.wiederVerbunden'), 'ok', { dauer: 2500 }); this.zustandLaden(); })
+      .on(RoomEvent.Reconnecting, () => { this.verbindung(true); this.haengtWache(r); })
+      .on(RoomEvent.SignalReconnecting, () => { this.verbindung(true); this.haengtWache(r); })
+      .on(RoomEvent.Reconnected, () => { clearTimeout(this.haengtTimer); this.haengtTimer = null; this.verbindung(false); toast(t('meeting.wiederVerbunden'), 'ok', { dauer: 2500 }); this.zustandLaden(); })
       .on(RoomEvent.Disconnected, (grund) => aktiv() && this.getrennt(grund));
   }
 
@@ -905,10 +905,56 @@ export class Meeting {
     await this.room.disconnect();
   }
 
+  /**
+   * Automatischer Neubeitritt (ADR 0007): Gibt livekit-client nach eigenen Wiederverbindungsversuchen auf (z. B. weil der
+   * LiveKit-Knoten weg ist, über den dieser Browser signalisiert), holt die App einen frischen Zugang für denselben Raum –
+   * die App wählt dabei einen erreichbaren Knoten – und verbindet neu. Bis zu 5 Versuche mit wachsendem Abstand; nicht bei
+   * Verlassen, Entfernen, Beenden oder doppelter Anmeldung.
+   */
+  /** livekit-client bleibt nach einem Knotenausfall oft dauerhaft in „wird wiederhergestellt“ → nach 20 s selbst neu beitreten. */
+  haengtWache(r) {
+    if (this.haengtTimer) return;
+    this.micVorAusfall = r.localParticipant.isMicrophoneEnabled; this.camVorAusfall = r.localParticipant.isCameraEnabled;
+    this.haengtTimer = setTimeout(() => {
+      this.haengtTimer = null;
+      if (this.room === r && r.state !== ConnectionState.Connected && !this.beendet) {
+        this.neuBeitreten(null).then((ok) => { if (ok) this.verbindung(false); else if (!this.beendet) this.getrennt(null); });
+      }
+    }, 20000);
+  }
+
+  async neuBeitreten(grundLk) {
+    const nie = [DisconnectReason.CLIENT_INITIATED, DisconnectReason.PARTICIPANT_REMOVED, DisconnectReason.ROOM_DELETED,
+      DisconnectReason.DUPLICATE_IDENTITY];
+    if (this.grund || nie.includes(grundLk) || this.neuVerbindet || this.neuAufgegeben) return false;
+    this.neuVerbindet = true;
+    const lp = this.room.localParticipant;          // Zustand VOR dem Ausfall (spätere Fehlversuche kennen ihn nicht mehr)
+    const soll = { mic: lp.isMicrophoneEnabled || !!this.micVorAusfall, cam: lp.isCameraEnabled || !!this.camVorAusfall };
+    try {
+      for (const [i, warte] of [1, 3, 6, 12, 24].entries()) {
+        toast(t('meeting.neuVerbinden', { n: i + 1 }), 'warn');
+        await new Promise((ok) => setTimeout(ok, warte * 1000));
+        if (this.grund) return false;
+        try {
+          const r = await this.api(`/api/raeume/${this.code}/breakout/wechseln`, { methode: 'POST', json: { nr: this.breakout?.lokal?.ort || 0 } });
+          await this.raumWechseln(r.zugang, soll);
+          toast(t('meeting.wiederVerbunden'), 'ok');
+          return true;
+        } catch (e) {
+          if (e instanceof ApiFehler && e.status >= 400 && e.status < 500) return false;   // entfernt, beendet, gesperrt …
+        }
+      }
+      this.neuAufgegeben = true;                    // 5 Versuche vorbei → nicht endlos weiterprobieren
+      return false;
+    } finally {
+      this.neuVerbindet = false;
+    }
+  }
+
   /** Breakout: Verbindung vom aktuellen LiveKit-Raum lösen und mit dem Ziel ({url, token}) verbinden; Mikro/Kamera wie vorher. */
-  async raumWechseln(ziel) {
+  async raumWechseln(ziel, soll = null) {
     const alt = this.room, lp = alt.localParticipant;
-    const mic = lp.isMicrophoneEnabled, cam = lp.isCameraEnabled;
+    const mic = soll ? soll.mic : lp.isMicrophoneEnabled, cam = soll ? soll.cam : lp.isCameraEnabled;
     const geraet = (art) => alt.getActiveDevice(art) || undefined;
     if (this.rekorder?.laeuft) await this.aufnahmeUmschalten(t('breakout.aufnahmeGestoppt'));
     menueSchliessen();
@@ -943,7 +989,8 @@ export class Meeting {
 
   async getrennt(grundLk) {
     if (await this.breakout?.getrennt(grundLk, this.grund)) return;   // Breakout-Raum gelöscht → zurück in den Hauptraum
-    if (this.beendet) return;
+    if (this.beendet || this.neuVerbindet) return;                     // während des Neubeitritts zählt nur dessen Ergebnis
+    if (await this.neuBeitreten(grundLk)) return;                      // Knoten weg → frischer Zugang über die App
     this.beendet = true;
     clearInterval(this.uhr);
     clearInterval(this.pegelTimer);

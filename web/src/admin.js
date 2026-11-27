@@ -55,7 +55,7 @@ async function uebersichtLaden() {
       kachel(t('admin.sicherheit'), adminZahl(u.konten.zwei_faktor), t('admin.sicherheitUnter', { gesperrt: adminZahl(u.konten.gesperrt) })),
       kachel(t('admin.aufnahmen'), groesseText(u.aufnahmen.belegt), t('admin.aufnahmenUnter', { n: adminZahl(u.aufnahmen.anzahl) })),
       kachel(t('admin.meldungenOffen'), adminZahl(u.meldungen_offen), t('admin.meldungenUnter'), u.meldungen_offen ? 'warn' : ''),
-      kachel(t('fb.kachel'), adminZahl(u.fehler_offen), t('fb.kachelUnter'), u.fehler_offen ? 'warn' : ''),
+      kachel(t('fm.kachel'), adminZahl(u.fehler_offen), t('fm.kachelUnter'), u.fehler_offen ? 'warn' : ''),
       ...(u.online ? [kachel(t('admin.online'), adminZahl(u.online.konten), t('admin.onlineUnter', { n: adminZahl(u.online.meeting) }))] : []),
     );
   } catch (e) { box.replaceChildren(h('p', { class: 'leer' }, e.message)); }
@@ -252,7 +252,7 @@ async function fehlerLaden() {
   try {
     const r = await api(`/api/admin/fehler?status=${st}`);
     fehlerZahl(r.offen);
-    ul.replaceChildren(...(r.gruppen.length ? r.gruppen.map(fehlerEintrag) : [h('li', { class: 'leer' }, t('fb.keine'))]));
+    ul.replaceChildren(...(r.gruppen.length ? r.gruppen.map(fehlerEintrag) : [h('li', { class: 'leer' }, t('fm.keine'))]));
   } catch (e) { fehlerZeile(ul, e); }
 }
 
@@ -260,35 +260,35 @@ function fehlerEintrag(g) {
   return h('li', { class: 'admin-fehler', dataset: { fehler: g.id } },
     h('div', { class: 'kopf' }, h('div', { class: 'text' },
       h('span', { class: 'name admin-text' }, g.nachricht),
-      h('span', { class: 'info' }, [t('fb.anzahl', { n: adminZahl(g.anzahl) }), t('fb.zuletzt', { zeit: zeit(g.zuletzt) }), t('fb.erstmals', { zeit: zeit(g.erstmals) })].join(' · ')),
+      h('span', { class: 'info' }, [t('fm.anzahl', { n: adminZahl(g.anzahl) }), t('fm.zuletzt', { zeit: zeit(g.zuletzt) }), t('fm.erstmals', { zeit: zeit(g.erstmals) })].join(' · ')),
       g.ort ? h('span', { class: 'info mono admin-text' }, g.ort) : null)),
     h('div', { class: 'zeile' },
-      h('span', { class: 'marker' }, t(`fb.quelle.${g.quelle}`)), h('span', { class: 'marker' }, t(`fb.art.${g.art}`)),
+      h('span', { class: 'marker' }, t(`fm.quelle.${g.quelle}`)), h('span', { class: 'marker' }, t(`fm.art.${g.art}`)),
       g.version ? h('span', { class: 'marker mono' }, g.version) : null,
       Object.keys(g.browser).length ? h('span', { class: 'marker' }, zaehlerText(g.browser)) : null,
-      g.erledigt ? h('span', { class: 'marker ok' }, t('fb.erledigtSeit', { zeit: zeit(g.erledigt) })) : null),
+      g.erledigt ? h('span', { class: 'marker ok' }, t('fm.erledigtSeit', { zeit: zeit(g.erledigt) })) : null),
     h('div', { class: 'aktionen' },
-      knopf(t('fb.details'), { klasse: 'btn klein', dataset: { aktion: 'details' }, onclick: () => fehlerDetails(g) }),
+      knopf(t('fm.details'), { klasse: 'btn klein', dataset: { aktion: 'details' }, onclick: () => fehlerDetails(g) }),
       g.erledigt
         ? knopf(t('admin.wiederOeffnen'), { klasse: 'btn klein', onclick: () => fehlerSetzen(g, false) })
-        : knopf(t('fb.erledigen'), { klasse: 'btn primary klein', symbol: 'haken', dataset: { aktion: 'erledigen' }, onclick: () => fehlerSetzen(g, true) }),
+        : knopf(t('fm.erledigen'), { klasse: 'btn primary klein', symbol: 'haken', dataset: { aktion: 'erledigen' }, onclick: () => fehlerSetzen(g, true) }),
       knopf(t('admin.loeschen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: () => fehlerLoeschen(g) })));
 }
 
 async function fehlerDetails(g) {
   await beschaeftigt(null, async () => {
     const { gruppe: x } = await api(`/api/admin/fehler/${g.id}`);
-    const { inhalt } = blatt(`#${x.id} · ${t(`fb.art.${x.art}`)}`, { breit: true });
+    const { inhalt } = blatt(`#${x.id} · ${t(`fm.art.${x.art}`)}`, { breit: true });
     inhalt.append(
       h('p', { class: 'admin-text' }, x.nachricht),
       h('dl', { class: 'admin-dl' },
-        h('dt', {}, t('fb.ort')), h('dd', { class: 'mono admin-text' }, x.ort || '–'),
-        h('dt', {}, t('fb.seite')), h('dd', { class: 'mono admin-text' }, x.seite || '–'),
-        h('dt', {}, t('fb.versionen')), h('dd', {}, zaehlerText(x.versionen) || '–'),
-        h('dt', {}, t('fb.browser')), h('dd', {}, zaehlerText(x.browser) || '–'),
-        h('dt', {}, t('fb.auftreten')), h('dd', {}, [t('fb.anzahl', { n: adminZahl(x.anzahl) }), t('fb.erstmals', { zeit: zeit(x.erstmals) }), t('fb.zuletzt', { zeit: zeit(x.zuletzt) })].join(' · '))),
-      h('h4', {}, t('fb.stapel')),
-      x.stapel ? h('pre', { class: 'admin-stapel mono' }, x.stapel) : h('p', { class: 'sec' }, t('fb.keinStapel')));
+        h('dt', {}, t('fm.ort')), h('dd', { class: 'mono admin-text' }, x.ort || '–'),
+        h('dt', {}, t('fm.seite')), h('dd', { class: 'mono admin-text' }, x.seite || '–'),
+        h('dt', {}, t('fm.versionen')), h('dd', {}, zaehlerText(x.versionen) || '–'),
+        h('dt', {}, t('fm.browser')), h('dd', {}, zaehlerText(x.browser) || '–'),
+        h('dt', {}, t('fm.auftreten')), h('dd', {}, [t('fm.anzahl', { n: adminZahl(x.anzahl) }), t('fm.erstmals', { zeit: zeit(x.erstmals) }), t('fm.zuletzt', { zeit: zeit(x.zuletzt) })].join(' · '))),
+      h('h4', {}, t('fm.stapel')),
+      x.stapel ? h('pre', { class: 'admin-stapel mono' }, x.stapel) : h('p', { class: 'sec' }, t('fm.keinStapel')));
   });
 }
 
@@ -301,7 +301,7 @@ async function fehlerSetzen(g, erledigt) {
 }
 
 async function fehlerLoeschen(g) {
-  if (!await bestaetigen(t('fb.loeschenTitel'), t('fb.loeschenText'), { ja: t('admin.loeschen'), gefahr: true })) return;
+  if (!await bestaetigen(t('fm.loeschenTitel'), t('fm.loeschenText'), { ja: t('admin.loeschen'), gefahr: true })) return;
   await beschaeftigt(null, async () => { await api(`/api/admin/fehler/${g.id}`, { methode: 'DELETE' }); fehlerLaden(); });
 }
 

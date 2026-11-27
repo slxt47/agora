@@ -119,6 +119,7 @@ export const de = {
 
   'meeting.ohneTitel': 'Meeting', 'meeting.gastgeber': 'Gastgeber: {name}', 'meeting.code': 'Code', 'meeting.mitPasscode': 'Mit Passcode geschützt.',
   'meeting.veroeffentlichenFehler': 'Bild/Ton ließ sich nicht senden: {text}', 'meeting.tonBlockiert': 'Dein Browser hat den Ton blockiert.', 'meeting.tonEinschalten': 'Ton einschalten',
+  'meeting.neuVerbinden': 'Verbindung verloren – verbinde neu (Versuch {n}/5) …', 
   'meeting.handGehoben': '{name} hebt die Hand ✋', 'meeting.wiederVerbunden': 'Wieder verbunden.', 'meeting.verbindet': 'Verbindet …',
   'meeting.verbindungWeg': 'Verbindung unterbrochen – wird wiederhergestellt …', 'meeting.spotlight': '{name} wird für alle hervorgehoben.',
   'meeting.spotlightFehler': 'Hervorheben hat nicht geklappt.', 'meeting.jemandWartet': 'Jemand wartet im Warteraum.', 'meeting.ansehen': 'Ansehen',
@@ -877,14 +878,14 @@ export const de = {
   'zf.stichwortHinweis': 'Stichwort-Kapitel entstehen auf dem Server ohne KI; das Transkript verlässt ihn dafür nicht.',
   // ==== Ende Block Zusammenfassung + Kapitel ====
   // ==== Block Fehler-Monitoring (admin.js, Reiter „Fehler“) ====
-  'fb.reiter': 'Fehler', 'fb.titel': 'Fehler aus Browsern und Server',
-  'fb.hinweis': 'Gruppiert nach Art und Stelle. Ohne Namen, E-Mail-Adressen und IPs, ohne alles nach ? oder # in Adressen; 30 Tage nach dem letzten Auftreten gelöscht. Eine erledigte Gruppe öffnet sich wieder, sobald der Fehler erneut auftritt.',
-  'fb.keine': 'Keine Fehler.', 'fb.anzahl': '{n}×', 'fb.erstmals': 'zuerst {zeit}', 'fb.zuletzt': 'zuletzt {zeit}', 'fb.erledigtSeit': 'erledigt {zeit}',
-  'fb.quelle.browser': 'Browser', 'fb.quelle.server': 'Server',
-  'fb.art.fehler': 'JS-Fehler', 'fb.art.promise': 'Promise', 'fb.art.livekit': 'LiveKit', 'fb.art.api': 'API ≥ 500', 'fb.art.ausnahme': 'Ausnahme',
-  'fb.details': 'Details', 'fb.erledigen': 'Erledigt', 'fb.stapel': 'Stack', 'fb.ort': 'Stelle', 'fb.seite': 'Seite', 'fb.versionen': 'Versionen',
-  'fb.browser': 'Browser', 'fb.kachel': 'Offene Fehler', 'fb.kachelUnter': 'Gruppen aus Browsern und Server', 'fb.loeschenTitel': 'Fehlergruppe löschen?',
-  'fb.loeschenText': 'Die Gruppe verschwindet mit allen Zählern. Tritt der Fehler wieder auf, beginnt eine neue.', 'fb.keinStapel': 'Kein Stack übermittelt.', 'fb.auftreten': 'Auftreten',
+  'fm.reiter': 'Fehler', 'fm.titel': 'Fehler aus Browsern und Server',
+  'fm.hinweis': 'Gruppiert nach Art und Stelle. Ohne Namen, E-Mail-Adressen und IPs, ohne alles nach ? oder # in Adressen; 30 Tage nach dem letzten Auftreten gelöscht. Eine erledigte Gruppe öffnet sich wieder, sobald der Fehler erneut auftritt.',
+  'fm.keine': 'Keine Fehler.', 'fm.anzahl': '{n}×', 'fm.erstmals': 'zuerst {zeit}', 'fm.zuletzt': 'zuletzt {zeit}', 'fm.erledigtSeit': 'erledigt {zeit}',
+  'fm.quelle.browser': 'Browser', 'fm.quelle.server': 'Server',
+  'fm.art.fehler': 'JS-Fehler', 'fm.art.promise': 'Promise', 'fm.art.livekit': 'LiveKit', 'fm.art.api': 'API ≥ 500', 'fm.art.ausnahme': 'Ausnahme',
+  'fm.details': 'Details', 'fm.erledigen': 'Erledigt', 'fm.stapel': 'Stack', 'fm.ort': 'Stelle', 'fm.seite': 'Seite', 'fm.versionen': 'Versionen',
+  'fm.browser': 'Browser', 'fm.kachel': 'Offene Fehler', 'fm.kachelUnter': 'Gruppen aus Browsern und Server', 'fm.loeschenTitel': 'Fehlergruppe löschen?',
+  'fm.loeschenText': 'Die Gruppe verschwindet mit allen Zählern. Tritt der Fehler wieder auf, beginnt eine neue.', 'fm.keinStapel': 'Kein Stack übermittelt.', 'fm.auftreten': 'Auftreten',
   // ==== Ende Block Fehler-Monitoring ====
   'admin.online': 'Gerade aktiv', 'admin.onlineUnter': 'Konten · {n} im Meeting (letzte 5 min)',
 };

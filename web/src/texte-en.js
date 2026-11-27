@@ -119,6 +119,7 @@ export const en = {
 
   'meeting.ohneTitel': 'Meeting', 'meeting.gastgeber': 'Host: {name}', 'meeting.code': 'Code', 'meeting.mitPasscode': 'Protected with a passcode.',
   'meeting.veroeffentlichenFehler': 'Couldn’t send video/audio: {text}', 'meeting.tonBlockiert': 'Your browser blocked the sound.', 'meeting.tonEinschalten': 'Turn on sound',
+  'meeting.neuVerbinden': 'Connection lost – reconnecting (attempt {n}/5) …', 
   'meeting.handGehoben': '{name} raised their hand ✋', 'meeting.wiederVerbunden': 'Reconnected.', 'meeting.verbindet': 'Connecting …',
   'meeting.verbindungWeg': 'Connection lost – reconnecting …', 'meeting.spotlight': '{name} is spotlighted for everyone.',
   'meeting.spotlightFehler': 'Spotlight didn’t work.', 'meeting.jemandWartet': 'Someone is in the waiting room.', 'meeting.ansehen': 'View',
@@ -873,14 +874,14 @@ export const en = {
   'zf.stichwortHinweis': 'Keyword chapters are created on the server without AI; the transcript doesn’t leave it for that.',
   // ==== Ende Block Zusammenfassung + Kapitel ====
   // ==== Block Fehler-Monitoring (admin.js, Reiter „Fehler“) ====
-  'fb.reiter': 'Errors', 'fb.titel': 'Errors from browsers and server',
-  'fb.hinweis': 'Grouped by type and location. Without names, email addresses and IPs, without anything after ? or # in addresses; deleted 30 days after the last occurrence. A resolved group reopens as soon as the error happens again.',
-  'fb.keine': 'No errors.', 'fb.anzahl': '{n}×', 'fb.erstmals': 'first {zeit}', 'fb.zuletzt': 'last {zeit}', 'fb.erledigtSeit': 'resolved {zeit}',
-  'fb.quelle.browser': 'Browser', 'fb.quelle.server': 'Server',
-  'fb.art.fehler': 'JS error', 'fb.art.promise': 'Promise', 'fb.art.livekit': 'LiveKit', 'fb.art.api': 'API ≥ 500', 'fb.art.ausnahme': 'Exception',
-  'fb.details': 'Details', 'fb.erledigen': 'Resolve', 'fb.stapel': 'Stack', 'fb.ort': 'Location', 'fb.seite': 'Page', 'fb.versionen': 'Versions',
-  'fb.browser': 'Browsers', 'fb.kachel': 'Open errors', 'fb.kachelUnter': 'groups from browsers and server', 'fb.loeschenTitel': 'Delete error group?',
-  'fb.loeschenText': 'The group disappears with all its counts. If the error happens again, a new one starts.', 'fb.keinStapel': 'No stack sent.', 'fb.auftreten': 'Occurrences',
+  'fm.reiter': 'Errors', 'fm.titel': 'Errors from browsers and server',
+  'fm.hinweis': 'Grouped by type and location. Without names, email addresses and IPs, without anything after ? or # in addresses; deleted 30 days after the last occurrence. A resolved group reopens as soon as the error happens again.',
+  'fm.keine': 'No errors.', 'fm.anzahl': '{n}×', 'fm.erstmals': 'first {zeit}', 'fm.zuletzt': 'last {zeit}', 'fm.erledigtSeit': 'resolved {zeit}',
+  'fm.quelle.browser': 'Browser', 'fm.quelle.server': 'Server',
+  'fm.art.fehler': 'JS error', 'fm.art.promise': 'Promise', 'fm.art.livekit': 'LiveKit', 'fm.art.api': 'API ≥ 500', 'fm.art.ausnahme': 'Exception',
+  'fm.details': 'Details', 'fm.erledigen': 'Resolve', 'fm.stapel': 'Stack', 'fm.ort': 'Location', 'fm.seite': 'Page', 'fm.versionen': 'Versions',
+  'fm.browser': 'Browsers', 'fm.kachel': 'Open errors', 'fm.kachelUnter': 'groups from browsers and server', 'fm.loeschenTitel': 'Delete error group?',
+  'fm.loeschenText': 'The group disappears with all its counts. If the error happens again, a new one starts.', 'fm.keinStapel': 'No stack sent.', 'fm.auftreten': 'Occurrences',
   // ==== Ende Block Fehler-Monitoring ====
   'admin.online': 'Active now', 'admin.onlineUnter': 'accounts · {n} in meetings (last 5 min)',
 };

@@ -87,7 +87,7 @@ services:
     image: cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
     restart: unless-stopped
     network_mode: host
-    command: ["tunnel", "--no-autoupdate", "--loglevel", "info", "run"]
+    command: ["tunnel", "--no-autoupdate", "--loglevel", "info", "--metrics", "127.0.0.1:20242", "run"]   # Metriken nur lokal (Host-Netz!)
     environment:
       - TUNNEL_TOKEN          # nur aus .env
     depends_on:

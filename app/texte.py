@@ -56,6 +56,17 @@ def mit_sprache(s):
 
 # ---------------------------------------------------------------- Fehlermeldungen
 FEHLER_EN = {
+    # ==== Block Fernsteuerung ====
+    'Nur wer den Bildschirm teilt, kann Fernsteuerung anbieten.': 'Only the person sharing their screen can offer remote control.',
+    'Fernsteuerung gibt es nur, während du deinen Bildschirm teilst.': 'Remote control is only available while you’re sharing your screen.',
+    'Webinar-Zuschauer können keine Fernsteuerung anfragen.': 'Webinar viewers can’t request remote control.',
+    'Diese Person bietet gerade keine Fernsteuerung an.': 'This person isn’t offering remote control right now.',
+    'Den Bildschirm steuert gerade schon jemand.': 'Someone is already controlling this screen.',
+    'Nur wer den Bildschirm teilt und Fernsteuerung anbietet, kann sie erlauben.': 'Only the person sharing and offering remote control can allow it.',
+    'Webinar-Zuschauer können keine Fernsteuerung bekommen.': 'Webinar viewers can’t be given remote control.',
+    'Gerade steuert niemand.': 'Nobody is in control right now.',
+    'Aktion: bereit, anfragen, erteilen, ablehnen oder beenden.': 'Action: bereit, anfragen, erteilen, ablehnen or beenden.',
+    # ==== Ende Block ====
     # ==== Block Öffentliche Übertragung (HLS) ====
     'Die öffentliche Übertragung (HLS) ist nicht eingerichtet.': 'The public broadcast (HLS) isn’t set up.',
     'Es läuft keine öffentliche Übertragung.': 'There’s no public broadcast running.',

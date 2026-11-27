@@ -66,6 +66,12 @@ Server angenommen), E2EE (Schlüssel nur im Fragment, Server kennt nur HKDF-Prü
 - **Fehler-Monitoring** (Nachtrag 27.11.2026): `/api/fehlerbericht` ist ohne Anmeldung offen. Eine Flut (viele IPs) kann
   echte Browser-Berichte für 10 min verdrängen (600/10 min gesamt) und Admins bis zu 20 Alarm-Mails/h schicken. Texte
   werden gesäubert gespeichert und nur als Text gezeigt (im Sicherheitstest mit Übergröße, Flut und XSS geprüft).
+- **Fernsteuerung** (Nachtrag 27.11.2026): Die Desktop-App bekommt Datenpakete und Raum-Metadaten über die Agora-Seite
+  im eigenen Fenster (Brücke). Sie vertraut dieser Seite als Übermittler (Absender = LiveKit-identity, nicht aus dem
+  Inhalt); eine kompromittierte Agora-Seite (XSS) könnte Absender fälschen – sie braucht aber zusätzlich die Zustimmung im
+  nativen Dialog der App, und Klicks/Tasten in Agora-Fenster, bei Fokus auf Agora und eigene Kürzel gibt die App nie weiter.
+  Im Sicherheitstest geprüft: Pakete einer nicht freigegebenen identity (auch mit gefälschtem Absender im Inhalt) werden
+  mit den Regeln der App verworfen, die freigegebene kommt durch, erteilen/beenden nur durch die Berechtigten.
 - **Sperre eines Kontos durch Admins** beendet Sitzungen und laufende Meetings, lässt aber Freigabe-Links, das
   Kalender-Abo und Gast-Beitritte in die Räume des Kontos bestehen (Richtlinienfrage).
 - **Login-CSRF über Bestätigungslinks:** wer jemandem den Bestätigungslink eines eigenen neuen Kontos schickt,

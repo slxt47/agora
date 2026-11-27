@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 156 Punkte erledigt (152 live auf https://agora.slxt.dev, HLS-Broadcast gebaut, noch nicht ausgerollt), 11 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
+> Stand 27.11.2026: 157 Punkte erledigt (152 live auf https://agora.slxt.dev; HLS-Broadcast und Fernsteuerung gebaut, noch nicht ausgerollt), 10 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
 
 ---
 
@@ -112,7 +112,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Optimierung für Text vs. Video (Framerate/Auflösung)
 - [x] 🟡 Nur ein Präsentator gleichzeitig (Host kann Mehrfach-Freigabe erlauben)
 - [x] 🟡 Hinweis-Banner „Du teilst deinen Bildschirm“ + Stop-Button
-- [ ] 🟢 Fernsteuerung (Remote Control) — *im Browser nicht möglich; die Desktop-App (`desktop/`) wäre die Grundlage, Fernsteuerung selbst noch offen*
+- [x] 🟢 Fernsteuerung (Remote Control) — *nur mit der Desktop-App auf der Seite der teilenden Person (Zustimmung im Dialog der App, roter Rahmen, Ende per Kürzel/Tray), Eingabe über @jitsi/robotjs bzw. xdotool; Linux unter xvfb geprüft, Windows/macOS nicht ausgeführt – [`DESKTOP.md`](DESKTOP.md)*
 - [x] 🟢 Anmerkungen / Zeichnen auf geteiltem Bildschirm
 
 ---

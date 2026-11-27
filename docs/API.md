@@ -90,6 +90,26 @@ Videobild, in E2EE-Meetings verschlüsselt) und werden nicht gespeichert:
 Teilnehmenden im Raum an, prüfen Format, Recht und Rate (30/s je Absender, Stoß 60) und verwerfen sie, wenn `s` nicht
 (mehr) teilt. Wer später beitritt, sieht nur neue Anmerkungen.
 
+### Fernsteuerung (app/fernsteuerung.py – Gegenstelle ist die Desktop-App der teilenden Person)
+POST `/api/raeume/{code}/fernsteuerung` (X-Teilnahme), Body je `aktion`:
+
+| aktion | Wer | Body / Wirkung |
+|---|---|---|
+| `bereit` | teilende Person (Desktop-App) | `{an: bool}`. `an:true` nur mit eigener Bildschirmspur bei LiveKit (sonst `{ok:false, grund:"keine-bildschirmspur"}` – die Seite fragt kurz darauf erneut), Zuschauer 403; `an:false` hebt eine Freigabe auf. 20/min |
+| `anfragen` | alle außer Webinar-Zuschauern | `{ziel: identity}` → Ereignis `{typ:"fernsteuerung", art:"anfrage", von, name}` nur an `ziel`. 404 ziel bietet nichts an, 409 belegt, 5/min |
+| `erteilen` | nur die teilende Person mit `bereit` | `{an: identity, kennung: <22–64 Zeichen aus dem Dialog der Desktop-App>}` → Metadaten + Ereignis `art:"erteilt"` an `an`. 403/400/404/409 |
+| `ablehnen` | teilende Person | `{an}` → Ereignis `art:"abgelehnt"` an `an` |
+| `beenden` | teilende oder steuernde Person; Host/Co-Host mit `{ziel: teilende identity}` | Freigabe weg, Ereignis `art:"beendet"` an beide. 404, wenn niemand steuert |
+
+Raum-Metadaten: `fernsteuerung_bereit: [identity…]` und `fernsteuerung: [{von, an, an_name, id}]` (`id` = Kennung der
+Zustimmung). Eingaben laufen nie über den Server: LiveKit-Datenkanal, `reliable`, Topic `fernsteuerung`, nur an `von`
+(in E2EE-Meetings zusätzlich selbst verschlüsselt: `{v:1, iv, c}` mit AES-GCM, Schlüssel per HKDF aus dem Link-Geheimnis,
+AAD = identity des Absenders), Klartext höchstens 512 Byte: `{t:"bewegen", x, y}`, `{t:"druecken"|"loslassen", x, y, knopf:"left"|"middle"|"right", mod}`,
+`{t:"rollen", dx, dy}` (ganze Rasten, ±20), `{t:"taste", taste:<KeyboardEvent.key>, mod:["shift"|"control"|"alt"]}`;
+x/y 0…1 im geteilten Bild. Die Desktop-App nimmt nur Pakete an, deren LiveKit-Absender `an` ist, deren `id` zu ihrer
+eigenen Zustimmung passt und – im E2EE-Meeting – die verschlüsselt ankamen (Regeln: `desktop/src/fernsteuerung.js`).
+Der Hintergrund hebt Freigaben ohne Bildschirmspur oder ohne die steuernde Person auf; das Meeting-Ende löscht alles.
+
 ### Ende-zu-Ende-Verschlüsselung (E2EE)
 `raum` enthält zusätzlich `e2ee` (bool) und `e2ee_pruef` (32 Hex-Zeichen oder `null`). POST/PATCH nehmen
 `{e2ee: true, e2ee_pruef}` bzw. `{e2ee: false}` (400 ohne gültigen Prüfwert). Der Schlüssel selbst geht nie an den

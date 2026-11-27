@@ -37,6 +37,7 @@ from . import fragen         # Zusammenarbeit: Q&A
 from . import dateien        # Zusammenarbeit: Dateien teilen
 from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
 from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur mit AGORA_EGRESS=1)
+from . import fernsteuerung  # Fernsteuerung (nur mit der Desktop-App der teilenden Person)
 from . import hls           # Öffentliche Übertragung (HLS) eines Webinars, /h/<code> (nur mit AGORA_EGRESS=1 + AGORA_HLS=1)
 from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnahme (Whisper)
 from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
@@ -171,6 +172,7 @@ app.include_router(dateien.router)
 app.include_router(webinar.router)
 app.include_router(egress.router)
 app.include_router(hls.router)
+app.include_router(fernsteuerung.router)
 app.include_router(untertitel.router)
 app.include_router(anmerkungen.router)
 app.include_router(api_schluessel.router)
@@ -251,6 +253,7 @@ def hintergrund():
             push.erinnerungen_pruefen()                   # Erinnerungen als Push (nur Konten mit Geräten)
             asyncio.run(egress.alle_abgleichen())         # Server-Aufnahmen in die Bibliothek, Livestream-Fehler
             asyncio.run(hls.alle_abgleichen())            # öffentliche Übertragung: Fehler/Ende einer Stufe
+            asyncio.run(fernsteuerung.alle_pruefen())     # Fernsteuerung ohne Bildschirmspur/Teilnahme aufheben
             if time.time() - letztes_aufraeumen > 300:
                 aufraeumen()
                 letztes_aufraeumen = time.time()

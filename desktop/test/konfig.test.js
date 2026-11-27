@@ -36,6 +36,14 @@ test('Einstellungen: Vorgaben, Datei, Umgebung; ungültiges fällt auf Vorgabe z
     assert.equal(c.kuerzel.mikro, 'Alt+F9');
     assert.equal(c.kuerzel.kamera, k.VORGABE_KUERZEL.kamera);      // „M“ allein ist systemweit verboten
     assert.equal(c.kuerzel.hand, '');                              // abgeschaltet
+    assert.equal(c.kuerzelEnde, k.VORGABE_KUERZEL_ENDE);           // Fernsteuerung beenden: Vorgabe
+    fs.writeFileSync(path.join(ordner, 'einstellungen.json'), JSON.stringify({ kuerzel: { fernsteuerungEnde: 'X' } }));
+    assert.equal(k.konfigLaden(ordner, {}).kuerzelEnde, k.VORGABE_KUERZEL_ENDE);   // ohne Modifikator verboten
+    fs.writeFileSync(path.join(ordner, 'einstellungen.json'), JSON.stringify({ kuerzel: { fernsteuerungEnde: 'Alt+F12' } }));
+    assert.equal(k.konfigLaden(ordner, {}).kuerzelEnde, 'Alt+F12');
+    fs.writeFileSync(path.join(ordner, 'einstellungen.json'), JSON.stringify({
+      adresse: 'https://meet.example.org', kuerzel: { mikro: 'Alt+F9', kamera: 'M', hand: '' },
+    }));
     c = k.konfigLaden(ordner, { AGORA_ADRESSE: 'http://127.0.0.1:8221/' });
     assert.equal(c.herkunft, 'http://127.0.0.1:8221');
     c = k.konfigLaden(ordner, { AGORA_ADRESSE: 'http://boese.example' });

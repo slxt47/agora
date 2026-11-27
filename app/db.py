@@ -743,6 +743,23 @@ SCHEMA = [
     CREATE INDEX hls_laeufe_code ON hls_laeufe(raum_code);
     """,
     # ======== Ende Block „Öffentliche Übertragung (HLS)“ ========
+    # ======== Block „Fernsteuerung“ (app/fernsteuerung.py) – Version 33 ========
+    # Nur für das laufende Meeting (beim Ende gelöscht): wer Fernsteuerung anbietet (Desktop-App, teilt Bildschirm)
+    # und wem sie gerade erteilt ist. Die Kennung stammt aus dem Dialog der Desktop-App.
+    """
+    CREATE TABLE fernsteuerung (
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,          -- teilende Person
+      seit INTEGER NOT NULL,
+      an TEXT,                         -- steuernde Person (identity) oder NULL
+      an_name TEXT,
+      kennung TEXT,                    -- Kennung der Zustimmung in der Desktop-App
+      erteilt INTEGER,
+      PRIMARY KEY (raum_id, identity)
+    );
+    """,
+    # ======== Ende Block „Fernsteuerung“ ========
 ]
 
 

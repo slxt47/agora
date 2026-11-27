@@ -868,6 +868,77 @@ with sync_playwright() as p:
         ep.keyboard.press('Escape')
         ep.click('#s-teilen')
         # ==== Ende Block Anmerkungen ====
+        # ==== Block Fernsteuerung (im E2EE-Meeting): Paula hat die Desktop-App (Brücke hier nachgebaut: stimmt zu und
+        # schreibt mit, was die App bekäme), teilt den Bildschirm; Eva fragt an, steuert (Maus, Klick, Tasten, Rad) und gibt
+        # mit Esc zurück. Geprüft wird der echte Weg Seite → Server → LiveKit-Datenkanal (E2EE) → Brücke.
+        fc = br.new_context(locale='de-DE', viewport={'width': 1024, 'height': 700}, permissions=['camera', 'microphone'])
+        fc.add_init_script("""(() => { const fs = window.__fs = { freigaben: [], metadaten: [], ereignisse: [], anfragen: [], beendet: 0 };
+          window.agoraDesktop = Object.freeze({ desktop: true, beiKuerzel: () => () => {}, fernsteuerung: Object.freeze({
+            verfuegbar: () => true, freigabe: (an, info) => fs.freigaben.push([an, info && info.e2ee]),
+            anfrage: async (id, name) => { fs.anfragen.push([id, name]); return { ok: true, kennung: 'E2E_' + 'k'.repeat(28) }; },
+            metadaten: (t) => fs.metadaten.push(t),
+            ereignis: (abs, versch, daten) => fs.ereignisse.push({ abs, versch, d: JSON.parse(new TextDecoder().decode(daten)) }),
+            beenden: () => { fs.beendet++; }, beiEnde: (fn) => { fs.ende = fn; return () => {}; } }) }); })()""")
+        fp = fc.new_page(); beobachten(fp, 'praesentatorin')
+        fp.goto(elink)
+        fp.wait_for_selector('#merkmal-e2ee')
+        fp.fill('#f-beitritt [name=name]', 'Paula Präsentiert')
+        fp.click('#beitreten-knopf')
+        fp.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
+        fp.click('#s-teilen')
+        fp.wait_for_selector('#buehne .kv.bildschirm.eigene-freigabe', timeout=20000)
+        warten_js(fp, "window.__fs.freigaben.length && window.__fs.freigaben.at(-1)[0] === true && window.__fs.freigaben.at(-1)[1] === true", 10)
+        kachel = '#buehne .kv.bildschirm:not(.eigene-freigabe)'
+        egp.wait_for_selector(kachel + '.mit-video', timeout=20000)
+        angefragt = False
+        for _ in range(20):          # „bereit“ kommt über die Raum-Metadaten
+            egp.click(kachel + ' .kv-menue')
+            if egp.locator('.menue [role=menuitem]:has-text("Steuerung anfragen")').count():
+                # dispatch_event: ein echter Klick scrollt das Menü (unten am Rand) ins Bild – Scrollen schließt das Menü
+                egp.locator('.menue [role=menuitem]:has-text("Steuerung anfragen")').dispatch_event('click'); angefragt = True; break
+            egp.keyboard.press('Escape'); time.sleep(0.5)
+        if not angefragt: fehler.append('Fernsteuerung: „Steuerung anfragen“ erscheint nicht')
+        try:
+            warten_js(fp, "window.__fs.anfragen.length === 1", 20)
+        except AssertionError:
+            print('Fernsteuerung (Diagnose): Toasts Eva:', egp.evaluate("[...document.querySelectorAll('.toast')].map((t) => t.textContent)"),
+                  '| Paula:', fp.evaluate("JSON.stringify(window.__fs)")[:500])
+            raise
+        egp.wait_for_selector(kachel + ' .fs-ebene', timeout=10000)
+        egp.wait_for_selector('#m-banner:has-text("Du steuerst")', timeout=10000)
+        b = egp.locator(kachel).bounding_box()
+        egp.mouse.move(b['x'] + b['width'] / 2, b['y'] + b['height'] / 2)
+        time.sleep(0.1)
+        egp.mouse.click(b['x'] + b['width'] / 2, b['y'] + b['height'] / 2)
+        egp.keyboard.type('hi')
+        egp.mouse.wheel(0, 200)
+        warten_js(fp, "window.__fs.ereignisse.filter((e) => e.d.t === 'taste').length >= 2 && window.__fs.ereignisse.some((e) => e.d.t === 'rollen')", 10)
+        ev = fp.evaluate('window.__fs.ereignisse')
+        letzte_md = fp.evaluate('JSON.parse(window.__fs.metadaten.at(-1))')
+        absender = {e['abs'] for e in ev}
+        arten = [e['d']['t'] for e in ev]
+        print(f'Fernsteuerung: {len(ev)} Ereignisse bei Paula {sorted(set(arten))}, Absender {absender}, verschlüsselt: {all(e["versch"] for e in ev)}')
+        if len(absender) != 1 or letzte_md['fernsteuerung'][0]['an'] not in absender: fehler.append(f'Fernsteuerung: Absender passt nicht zur Freigabe {absender} {letzte_md}')
+        if not all(e['versch'] for e in ev): fehler.append('Fernsteuerung: Ereignisse im E2EE-Meeting nicht verschlüsselt angekommen')
+        if not {'bewegen', 'druecken', 'loslassen', 'taste', 'rollen'} <= set(arten): fehler.append(f'Fernsteuerung: Ereignisse fehlen {arten}')
+        mitte = [e['d'] for e in ev if e['d']['t'] == 'druecken'][0]
+        if abs(mitte['x'] - 0.5) > 0.02 or abs(mitte['y'] - 0.5) > 0.02: fehler.append(f'Fernsteuerung: Koordinate falsch {mitte}')
+        if [e['d']['taste'] for e in ev if e['d']['t'] == 'taste'][:2] != ['h', 'i']: fehler.append('Fernsteuerung: Tasten falsch')
+        egp.screenshot(path=OUT + '33a-fernsteuerung-gast.png')
+        egp.keyboard.press('Escape')
+        egp.wait_for_selector(kachel + ' .fs-ebene', state='detached', timeout=10000)
+        warten_js(fp, "JSON.parse(window.__fs.metadaten.at(-1)).fernsteuerung.length === 0", 10)
+        time.sleep(1)
+        n = fp.evaluate('window.__fs.ereignisse.length')
+        egp.mouse.click(b['x'] + b['width'] / 2, b['y'] + b['height'] / 2)
+        egp.keyboard.type('x')
+        time.sleep(1)
+        if fp.evaluate('window.__fs.ereignisse.length') != n: fehler.append('Fernsteuerung: nach Esc kommen weiter Ereignisse an')
+        fp.click('#s-teilen')
+        warten_js(fp, "window.__fs.freigaben.at(-1)[0] === false", 10)
+        print('Fernsteuerung: Esc gibt zurück, Ende der Freigabe meldet die Seite der App')
+        fc.close()
+        # ==== Ende Block Fernsteuerung ====
         eg.close(); ep.close()      # E2EE-Meeting verlassen (sonst laufen dessen Ereignisse in die folgenden Blöcke)
         # ==== Block Englisch (ADR 0006): Browser mit Accept-Language en → englische Oberfläche ohne deutsche Reste ====
         DEUTSCH = re.compile(r'[äöüÄÖÜß„]|\b(und|oder|nicht|bitte|Bitte|der|die|das|mit|für|Meeting starten|Beitreten|Anmelden|'

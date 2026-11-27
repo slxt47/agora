@@ -25,7 +25,8 @@ else
 fi
 i=0; until curl -sf "http://127.0.0.1:$APP_PORT/api/gesund" >/dev/null; do i=$((i+1)); [ $i -gt 60 ] && { echo "App startet nicht"; exit 1; }; sleep 1; done
 docker build -q -t agora-playwright:1.64.1 -f ../e2e/Dockerfile.playwright ../e2e >/dev/null
-docker run --rm --network host --ipc=host -v "$PWD:/s:ro" -v "$LKJS:/lk.js:ro" \
+FSJS="$(cd ../../desktop/src && pwd)/fernsteuerung.js"     # Prüfregeln der Desktop-App (Fernsteuerung)
+docker run --rm --network host --ipc=host -v "$PWD:/s:ro" -v "$LKJS:/lk.js:ro" -v "$FSJS:/fs.js:ro" -e FS_JS=/fs.js \
   -e "BASIS=http://127.0.0.1:$APP_PORT" -e "LK_URL=ws://127.0.0.1:$LK_PORT" -e "LK_API=http://127.0.0.1:$LK_PORT" \
   -e LK_KEY=testschluessel -e LK_SECRET=testgeheimnis-testgeheimnis-testgeheimnis-123 -e LK_JS=/lk.js \
   agora-playwright:1.64.1 python3 /s/angriffe.py

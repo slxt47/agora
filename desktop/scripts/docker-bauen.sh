@@ -10,7 +10,8 @@ docker run --rm -v "$PWD":/d -w /d -e HOME=/d/.cache/home \
   -e ELECTRON_CACHE=/d/.cache/electron -e ELECTRON_BUILDER_CACHE=/d/.cache/builder \
   -e USE_SYSTEM_FPM=true -e "UID_GID=$(id -u):$(id -g)" "$BILD" sh -ec '
     # deb braucht fpm (Ruby); das mitgelieferte fpm von electron-builder gibt es nur für x86_64
-    apt-get update -qq && apt-get install -y -qq --no-install-recommends ruby binutils xz-utils rpm ca-certificates >/dev/null
+    # libxtst6 & Co.: robotjs (Fernsteuerung) prüft beim Installieren sein Prebuild – ohne die Bibliotheken baut es neu
+    apt-get update -qq && apt-get install -y -qq --no-install-recommends ruby binutils xz-utils rpm ca-certificates libxtst6 libx11-6 libpng16-16 >/dev/null
     gem install --no-document -q fpm -v 1.18.0 >/dev/null
     npm ci --no-audit --no-fund
     npm test

@@ -59,7 +59,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   Funktion und was nur von Hand geht (iOS, echte Kamera, Safari-E2EE): [`docs/BROWSER.md`](docs/BROWSER.md).
 - **Desktop-App** (`desktop/`, Electron): lädt Agora (Adresse einstellbar), systemweite Tastenkürzel für Mikro, Kamera und
   Hand (einstellbar), Tray, Deep Links `agora://r/<code>`, eigene Bildschirmauswahl, strikte Navigation und Rechte, kein
-  Auto-Update. Pakete für Linux/Windows/macOS (unsigniert) über GitHub Actions: [`docs/DESKTOP.md`](docs/DESKTOP.md).
+  Auto-Update. **Fernsteuerung:** Wer in der Desktop-App den ganzen Bildschirm teilt, kann anderen die Steuerung geben –
+  „Steuerung anfragen“ im Kachelmenü, Zustimmung nur im Dialog der App, roter Rahmen + Banner, Ende per Kürzel
+  (Strg/Cmd+Alt+X), Tray oder Ende der Freigabe; Eingaben (Maus, Rad, Tasten) gehen über den LiveKit-Datenkanal (in E2EE
+  verschlüsselt) und werden nur von der freigegebenen Person angenommen (`@jitsi/robotjs`, unter Linux auch `xdotool`). Pakete für Linux/Windows/macOS (unsigniert) über GitHub Actions: [`docs/DESKTOP.md`](docs/DESKTOP.md).
 - **App (PWA) und Mobil:**
   - **Android-App** als Trusted Web Activity (`mobil/android/`, mit Bubblewrap erzeugt; Debug-APK per GitHub Actions bei
     Tag `android-v*`), Digital Asset Links über `AGORA_ANDROID_SHA256`; iOS über die PWA – siehe [`docs/MOBIL.md`](docs/MOBIL.md)

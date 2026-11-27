@@ -444,6 +444,12 @@ export const en = {
   'egress.streamStartet': 'Live stream is starting …', 'egress.streamLaeuft': 'The live stream is running.', 'egress.streamGestoppt': 'Live stream stopped.',
   'egress.liveVon': '{name} is streaming the meeting live', 'egress.liveHinweis': 'This meeting is now being streamed live ({name}).',
   // ==== End of server recording ====
+  // ==== Remote control (web/src/raum/fernsteuerung.js) ====
+  'fs.anfragen': 'Request control', 'fs.angefragt': 'Request sent – the person has to agree in their Agora app.',
+  'fs.abgelehnt': 'Remote control was declined.', 'fs.erteilt': '{name} gave you control. Esc gives it back.',
+  'fs.beendet': 'Remote control has ended.', 'fs.duSteuerst': 'You’re controlling {name}’s screen – Esc gives control back.',
+  'fs.zurueckgeben': 'Give back control', 'fs.ebene': 'Remotely controlled screen – mouse and keyboard go to the sharing person, Esc ends',
+  // ==== End of remote control ====
   // ==== Public broadcast (HLS) (web/src/raum/egress.js, hls.js) ====
   'egress.hlsStartKnopf': 'Start broadcast', 'egress.hlsStarten': 'Start public broadcast (HLS)', 'egress.hlsStoppen': 'End public broadcast',
   'egress.hlsLink': 'Copy broadcast link (≈ {n} viewers)', 'egress.hlsTitel': 'Public broadcast (HLS)',

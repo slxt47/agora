@@ -444,6 +444,12 @@ export const de = {
   'egress.streamStartet': 'Livestream startet …', 'egress.streamLaeuft': 'Der Livestream läuft.', 'egress.streamGestoppt': 'Livestream beendet.',
   'egress.liveVon': '{name} überträgt das Meeting live', 'egress.liveHinweis': 'Dieses Meeting wird jetzt live übertragen ({name}).',
   // ==== Ende Block Server-Aufnahme ====
+  // ==== Block Fernsteuerung (web/src/raum/fernsteuerung.js) ====
+  'fs.anfragen': 'Steuerung anfragen', 'fs.angefragt': 'Anfrage gesendet – die Person muss in ihrer Agora-App zustimmen.',
+  'fs.abgelehnt': 'Die Fernsteuerung wurde abgelehnt.', 'fs.erteilt': '{name} hat dir die Steuerung gegeben. Esc gibt sie zurück.',
+  'fs.beendet': 'Die Fernsteuerung ist beendet.', 'fs.duSteuerst': 'Du steuerst den Bildschirm von {name} – Esc gibt die Steuerung zurück.',
+  'fs.zurueckgeben': 'Steuerung zurückgeben', 'fs.ebene': 'Ferngesteuerter Bildschirm – Maus und Tastatur gehen an die teilende Person, Esc beendet',
+  // ==== Ende Block Fernsteuerung ====
   // ==== Block Öffentliche Übertragung (HLS) (web/src/raum/egress.js, hls.js) ====
   'egress.hlsStartKnopf': 'Übertragung starten', 'egress.hlsStarten': 'Öffentliche Übertragung (HLS) starten', 'egress.hlsStoppen': 'Öffentliche Übertragung beenden',
   'egress.hlsLink': 'Link zur Übertragung kopieren (≈ {n} Zuschauer)', 'egress.hlsTitel': 'Öffentliche Übertragung (HLS)',

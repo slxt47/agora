@@ -8,6 +8,8 @@ const VORGABE_ADRESSE = 'https://agora.slxt.dev';
 const AKTIONEN = Object.freeze(['mikro', 'kamera', 'hand']);
 // Systemweit: mit Strg/Cmd+Umschalt, damit sie anderen Programmen kaum in die Quere kommen
 const VORGABE_KUERZEL = Object.freeze({ mikro: 'CommandOrControl+Shift+M', kamera: 'CommandOrControl+Shift+V', hand: 'CommandOrControl+Shift+H' });
+// Fernsteuerung beenden: nur registriert, solange jemand steuert (Strg/Cmd+Alt+X)
+const VORGABE_KUERZEL_ENDE = 'CommandOrControl+Alt+X';
 const CODE_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
 // Electron-Accelerator: Modifikatoren + genau eine Taste (Buchstabe, Ziffer, F1–F24 oder benannte Taste)
 const MODS = new Set(['Command', 'Cmd', 'Control', 'Ctrl', 'CommandOrControl', 'CmdOrCtrl', 'Alt', 'Option', 'AltGr', 'Shift', 'Super', 'Meta']);
@@ -48,7 +50,14 @@ function konfigLaden(ordner, umgebung = {}) {
     else if (kuerzelPruefen(w)) kuerzel[a] = w;
     else console.warn(`Agora: Tastenkürzel ${JSON.stringify(w)} für ${a} ungültig – nehme ${kuerzel[a]}`);
   }
-  return { datei, adresse, herkunft, kuerzel };
+  let kuerzelEnde = VORGABE_KUERZEL_ENDE;
+  if (roh.kuerzel && 'fernsteuerungEnde' in roh.kuerzel) {
+    const w = roh.kuerzel.fernsteuerungEnde;
+    if (w === '' || w === null || w === false) kuerzelEnde = '';
+    else if (kuerzelPruefen(w)) kuerzelEnde = w;
+    else console.warn(`Agora: Tastenkürzel ${JSON.stringify(w)} für fernsteuerungEnde ungültig – nehme ${kuerzelEnde}`);
+  }
+  return { datei, adresse, herkunft, kuerzel, kuerzelEnde };
 }
 
 /** agora://r/<code>[#k=<schlüssel>] (auch agora://<code>) → { code, schluessel } oder null.
@@ -71,4 +80,4 @@ function erlaubteNavigation(url, herkunft) {
   try { return new URL(url).origin === herkunft; } catch { return false; }
 }
 
-module.exports = { VORGABE_ADRESSE, VORGABE_KUERZEL, AKTIONEN, adressePruefen, kuerzelPruefen, konfigLaden, codeAusDeepLink, raumAdresse, erlaubteNavigation };
+module.exports = { VORGABE_ADRESSE, VORGABE_KUERZEL, VORGABE_KUERZEL_ENDE, AKTIONEN, adressePruefen, kuerzelPruefen, konfigLaden, codeAusDeepLink, raumAdresse, erlaubteNavigation };

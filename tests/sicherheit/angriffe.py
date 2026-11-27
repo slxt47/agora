@@ -32,6 +32,7 @@ LK_API = os.environ.get('LK_API', 'http://127.0.0.1:7790')
 LK_KEY = os.environ.get('LK_KEY', 'testschluessel')
 LK_SECRET = os.environ.get('LK_SECRET', 'testgeheimnis-testgeheimnis-testgeheimnis-123')
 LK_JS = os.environ.get('LK_JS', '/lk.js')
+FS_JS = os.environ.get('FS_JS', '/fs.js')          # desktop/src/fernsteuerung.js (Prüfregeln der Desktop-App)
 COOKIE = os.environ.get('AGORA_COOKIE', 'agora')
 NUR = set(filter(None, os.environ.get('NUR', '').split(',')))      # einzelne Bereiche: NUR=xss,ssrf
 
@@ -182,6 +183,14 @@ def lk_teilnehmer(raumname):
             {'Authorization': 'Bearer ' + lk_admin_jwt(raumname), 'Content-Type': 'application/json'}, host=u.hostname, port=u.port)
     assert r.status == 200, f'LiveKit ListParticipants: {r}'
     return r.json().get('participants', [])
+
+
+def lk_raum_metadaten(raumname):
+    u = urllib.parse.urlsplit(LK_API)
+    r = roh('POST', '/twirp/livekit.RoomService/ListRooms', json.dumps({'names': [raumname]}).encode(),
+            {'Authorization': 'Bearer ' + lk_admin_jwt(raumname), 'Content-Type': 'application/json'}, host=u.hostname, port=u.port)
+    raeume = (r.json() or {}).get('rooms', [])
+    return raeume[0].get('metadata', '') if raeume else ''
 
 
 def totp(geheim, versatz=0):
@@ -732,6 +741,8 @@ def browser(ctx, adm):
             xss(br, lk_js, adm)
             BEREICH[0] = 'umleitung'
             umleitung(br)
+            BEREICH[0] = 'fernsteuerung'
+            fernsteuerung(br, lk_js)
         finally:
             br.close()
 
@@ -1126,6 +1137,101 @@ def hls():
         pruefen(f'HLS-Pfad {p}', not geheim and r.status in (400, 404) or (p.startswith('/h/') and r.status == 200 and b'<!doctype' in r.body.lower()), r)
     r = Sitzung().post(f'/api/hls/{code}/da', {'id': '../../' + 'a' * 20})
     pruefen('HLS: Zuschauer-Meldung mit Pfad-Zeichen abgelehnt', r.status == 400, r)
+
+
+# ================================================================= 16. Fernsteuerung: nur die freigegebene identity
+FS_SEITE = """async ({url, token, kennung, ich}) => {
+  const L = window.LivekitClient, F = window.AgoraFernsteuerung;
+  const room = new L.Room();
+  window.__raum = room;
+  window.__fs = [];
+  room.on(L.RoomEvent.DataReceived, (daten, p, _k, topic, verschl) => {
+    if (topic !== F.TOPIC) return;
+    const g = F.freigabeAusMetadaten(room.metadata, ich);
+    const z = { freigabe: { aktiv: true, art: 'bildschirm' }, zustimmung: g ? { identity: g.an, kennung } : null, freigabeServer: g, ich, e2ee: false };
+    const ok = F.darfSteuern(z, p ? p.identity : undefined, !!verschl);
+    window.__fs.push({ von: p ? p.identity : null, ok: ok.ok, grund: ok.grund || '', ev: F.ereignisLesen(daten) });
+  });
+  await room.connect(url, token);
+  const c = document.createElement('canvas'); c.width = 320; c.height = 240; const x = c.getContext('2d');
+  setInterval(() => { x.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'); x.fillRect(0, 0, 320, 240); }, 100);
+  await room.localParticipant.publishTrack(c.captureStream(10).getVideoTracks()[0], { source: L.Track.Source.ScreenShare });
+  return room.localParticipant.identity;
+}"""
+FS_VERBINDEN = """async ({url, token}) => { const room = new window.LivekitClient.Room(); window.__r = room; await room.connect(url, token); }"""
+FS_SENDEN = """async ({ziel, pakete}) => {
+  for (const p of pakete) await window.__r.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(p)), { reliable: true, topic: 'fernsteuerung', destinationIdentities: [ziel] });
+  await new Promise((r) => setTimeout(r, 800));
+  await window.__r.disconnect();
+}"""
+
+
+def fs_senden(br, lk_js, s, z, ziel, pakete):
+    """Verbinden, warten bis die Empfängerin (Seite s) uns als Teilnehmerin kennt – wie im Meeting –, dann senden."""
+    c2, s2 = lk_seite(br, lk_js)
+    try:
+        s2.evaluate(FS_VERBINDEN, {'url': LK_URL, 'token': z['token']})
+        s.wait_for_function('(id) => !!window.__raum.getParticipantByIdentity(id)', arg=z['identity'], timeout=15000)
+        s2.evaluate(FS_SENDEN, {'ziel': ziel, 'pakete': pakete})
+    finally:
+        c2.close()
+
+
+def fernsteuerung(br, lk_js):
+    """Teilende Person P gibt A die Steuerung (über den Server). B schickt Datenpakete – auch mit gefälschtem Absender im
+    Inhalt. Die Prüfregeln der Desktop-App (desktop/src/fernsteuerung.js) laufen im Browser von P gegen den Absender,
+    den LiveKit selbst meldet: nur Pakete von A dürfen durch."""
+    fs_js = open(FS_JS, encoding='utf-8').read()
+    p_konto = konto_anlegen('Paula Präsentiert')
+    code = raum(p_konto, titel='Fernsteuerung')['code']
+    pz = zugang(p_konto, code)
+    a, b = Sitzung(), Sitzung()
+    az, bz = zugang(a, code, name='Anna Erlaubt'), zugang(b, code, name='Boris Böse')
+    kennung = 'Sich_' + secrets.token_urlsafe(24)
+    c, s = lk_seite(br, lk_js)
+    try:
+        s.add_script_tag(content=fs_js)
+        s.evaluate(FS_SEITE, {'url': LK_URL, 'token': pz['token'], 'kennung': kennung, 'ich': pz['identity']})
+        time.sleep(1.5)
+        r = p_konto.post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'bereit', 'an': True}, kopf=T(pz))
+        assert r.status == 200, f'bereit: {r}'
+        # Server: B kann sich nichts selbst geben, nichts für P erteilen, Annas Freigabe nicht beenden
+        r = b.post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'erteilen', 'an': bz['identity'], 'kennung': kennung}, kopf=T(bz))
+        pruefen('Fernsteuerung: B kann sich nicht selbst die Steuerung erteilen', r.status == 403, r)
+        r = b.post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'bereit', 'an': True}, kopf=T(bz))
+        md = json.loads(lk_raum_metadaten(code) or '{}')
+        pruefen('Fernsteuerung: „bereit“ ohne eigene Bildschirmspur wirkungslos', r.status == 200 and r.json().get('ok') is False
+                and bz['identity'] not in md.get('fernsteuerung_bereit', []), (r, md))
+        r = p_konto.post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'erteilen', 'an': az['identity'], 'kennung': kennung}, kopf=T(pz))
+        assert r.status == 200, f'erteilen: {r}'
+        r = b.post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'beenden', 'ziel': pz['identity']}, kopf=T(bz))
+        pruefen('Fernsteuerung: B kann die Steuerung von A nicht beenden', r.status == 404, r)
+        r = Sitzung().post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'erteilen', 'an': bz['identity'], 'kennung': kennung}, agora=False, kopf=T(pz))
+        pruefen('Fernsteuerung: erteilen ohne X-Agora (CSRF) abgelehnt', r.status == 403, r)
+        time.sleep(1.5)
+        # B schickt Pakete (auch mit Annas identity im Inhalt), A schickt eins
+        boese = [{'t': 'bewegen', 'x': 0.5, 'y': 0.5}, {'t': 'klick', 'x': 0.1, 'y': 0.1, 'knopf': 'left', 'absender': az['identity'], 'identity': az['identity']},
+                 {'t': 'taste', 'taste': 'Enter', 'mod': [], 'von': az['identity']}]
+        for z, pak in ((bz, boese), (az, [{'t': 'bewegen', 'x': 0.25, 'y': 0.75}])):
+            fs_senden(br, lk_js, s, z, pz['identity'], pak)
+        time.sleep(1)
+        erg = s.evaluate('window.__fs')
+        von_b = [e for e in erg if e['von'] == bz['identity']]
+        von_a = [e for e in erg if e['von'] == az['identity']]
+        pruefen('Fernsteuerung: alle Pakete von B (nicht freigegeben) verworfen – Absender kommt von LiveKit',
+                len(von_b) == 3 and all(not e['ok'] and e['grund'] == 'falscher-absender' for e in von_b), erg)
+        pruefen('Fernsteuerung: Paket von A (freigegeben) angenommen (Gegenprobe)', len(von_a) == 1 and von_a[0]['ok'] and von_a[0]['ev']['x'] == 0.25, erg)
+        # Nach dem Beenden durch A: auch A wird verworfen
+        a.post(f'/api/raeume/{code}/fernsteuerung', {'aktion': 'beenden'}, kopf=T(az))
+        time.sleep(1.5)
+        time.sleep(1)                       # A ist eben gegangen – P soll die alte Verbindung vergessen haben
+        fs_senden(br, lk_js, s, az, pz['identity'], [{'t': 'bewegen', 'x': 0.3, 'y': 0.3}])
+        time.sleep(1)
+        erg = s.evaluate('window.__fs')
+        pruefen('Fernsteuerung: nach dem Beenden auch A verworfen', len(erg) == 5 and not erg[-1]['ok'] and erg[-1]['von'] == az['identity'], erg[-1])
+        s.evaluate('() => window.__raum.disconnect()')
+    finally:
+        c.close()
 
 
 # ================================================================= Ablauf

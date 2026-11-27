@@ -65,6 +65,14 @@ export async function medienSchluessel(schluessel) {
   return (await ableiten(schluessel, 'medien', 32)).buffer;
 }
 
+/** Schlüssel für die Fernsteuerung (AES-GCM, eigene Ableitung): Eingaben werden in E2EE-Meetings zusätzlich selbst
+ *  verschlüsselt, weil livekit-client bei verschlüsselten Datenpaketen dem Empfänger nicht verlässlich meldet, dass sie
+ *  verschlüsselt waren (encryptionType kommt als NONE an) – so weiß die Desktop-App sicher, dass ein Paket den Schlüssel
+ *  kannte. */
+export async function fernsteuerungSchluessel(schluessel) {
+  return krypto().subtle.importKey('raw', await ableiten(schluessel, 'fernsteuerung', 32), 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
 /** Host-Gerät merkt sich das Geheimnis je Raum (damit „Link kopieren“ im Konto den Schlüssel enthält). */
 export function schluesselMerken(code, schluessel, speicher = globalThis.localStorage) {
   try { if (schluessel) speicher.setItem(SPEICHER + code, schluessel); else speicher.removeItem(SPEICHER + code); } catch { /* privat */ }

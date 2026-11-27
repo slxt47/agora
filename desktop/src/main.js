@@ -3,6 +3,7 @@
 // → Standardbrowser, nur https), Rechte nur Kamera/Mikrofon/Bildschirm (+ Vollbild, Zwischenablage schreiben) und nur
 // für die Agora-Herkunft. Systemweite Tastenkürzel (Mikro, Kamera, Hand) gehen über die Preload-Brücke an die Seite.
 // Bildschirmfreigabe mit eigener Auswahl (desktopCapturer). Deep Links agora://r/<code>. Kein Auto-Update.
+// Fernsteuerung (steuerung.js): nur mit eigenem Dialog, nur ganze Bildschirme, roter Rahmen, Ende per Kürzel/Tray.
 'use strict';
 const path = require('node:path');
 const fs = require('node:fs');
@@ -10,10 +11,11 @@ const {
   app, BrowserWindow, Menu, Tray, desktopCapturer, globalShortcut, ipcMain, nativeImage, session, shell,
 } = require('electron');
 const { konfigLaden, codeAusDeepLink, raumAdresse, erlaubteNavigation, AKTIONEN } = require('./konfig');
+const steuerung = require('./steuerung');
 
 const TEST = process.env.AGORA_DESKTOP_TEST === '1';
 const ICON = path.join(__dirname, 'icon.png');
-let fenster = null, tray = null, konfig = null, wartenderLink = null;
+let fenster = null, tray = null, konfig = null, wartenderLink = null, wahlFenster = null, letzteQuelle = null, fst = null;
 const externGeoeffnet = [];          // nur für den Selbsttest: was an den Standardbrowser ging
 
 if (TEST) {
@@ -83,6 +85,7 @@ function rechteEinrichten(ses) {
       const id = TEST && process.env.AGORA_DESKTOP_TEST_QUELLE === 'erste' ? quellen[0]?.id : await quelleWaehlen(quellen);
       const quelle = quellen.find((q) => q.id === id);
       if (!quelle) { antwort({}); return; }
+      letzteQuelle = { id: quelle.id, display_id: quelle.display_id };      // für die Fernsteuerung (welcher Bildschirm)
       antwort(process.platform === 'win32' && anfrage.audioRequested ? { video: quelle, audio: 'loopback' } : { video: quelle });
     } catch (e) {
       console.warn('Agora: Bildschirmauswahl', e);
@@ -94,7 +97,7 @@ function rechteEinrichten(ses) {
 /** Kleines modales Fenster mit den Quellen; liefert die gewählte id oder null. */
 function quelleWaehlen(quellen) {
   return new Promise((fertig) => {
-    const wahl = new BrowserWindow({
+    const wahl = wahlFenster = new BrowserWindow({
       parent: fenster, modal: true, width: 760, height: 560, resizable: true, minimizable: false, maximizable: false,
       title: 'Bildschirm teilen', backgroundColor: '#0b0e2a', autoHideMenuBar: true, show: false,
       webPreferences: { preload: path.join(__dirname, 'auswahl-preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false },
@@ -145,7 +148,10 @@ function fensterErstellen() {
     // Schließen legt ins Tray (Meeting läuft weiter); Beenden über das Tray-Menü
     if (tray && !app.istAmBeenden && !TEST) { e.preventDefault(); fenster.hide(); }
   });
-  fenster.on('closed', () => { fenster = null; });
+  fenster.on('closed', () => { fenster = null; fst?.beenden('fenster-zu'); });
+  // Neuladen/Navigation oder Absturz der Seite: Freigabe und Fernsteuerung enden sofort
+  wc.on('did-start-navigation', (d) => { if (d.isMainFrame && !d.isSameDocument) { fst?.zustand && (fst.zustand.freigabe = null); fst?.beenden('navigation'); } });
+  wc.on('render-process-gone', () => { if (fst?.zustand) fst.zustand.freigabe = null; fst?.beenden('absturz'); });
   fenster.loadURL(wartenderLink ? raumAdresse(konfig.adresse, wartenderLink.code, wartenderLink.schluessel) : konfig.adresse);
   wartenderLink = null;
 }
@@ -154,9 +160,16 @@ function trayErstellen() {
   try {
     tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 22, height: 22 }));
   } catch { tray = null; return; }      // Desktops ohne Statusbereich
-  tray.setToolTip('Agora');
+  tray.on('click', zeigen);
+  trayMenue(false);
+}
+
+function trayMenue(fernsteuerungAktiv) {
+  if (!tray) return;
+  tray.setToolTip(fernsteuerungAktiv ? 'Agora – Fernsteuerung aktiv' : 'Agora');
   const k = konfig.kuerzel;
   tray.setContextMenu(Menu.buildFromTemplate([
+    ...(fernsteuerungAktiv ? [{ label: 'Fernsteuerung beenden', accelerator: konfig.kuerzelEnde || undefined, click: () => fst?.beenden('tray') }, { type: 'separator' }] : []),
     { label: 'Agora öffnen', click: zeigen },
     { type: 'separator' },
     { label: 'Mikrofon an/aus', accelerator: k.mikro || undefined, click: () => kuerzelSenden('mikro') },
@@ -166,7 +179,6 @@ function trayErstellen() {
     { label: 'Einstellungen (Datei) öffnen', click: () => shell.openPath(konfig.datei) },
     { label: 'Beenden', click: () => { app.istAmBeenden = true; app.quit(); } },
   ]));
-  tray.on('click', zeigen);
 }
 
 app.whenReady().then(() => {
@@ -176,6 +188,10 @@ app.whenReady().then(() => {
   }
   Menu.setApplicationMenu(null);
   rechteEinrichten(session.defaultSession);
+  fst = steuerung.einrichten({
+    hauptfenster: () => fenster, eigeneFenster: () => [fenster, wahlFenster], konfig, TEST,
+    quelleHolen: () => letzteQuelle, zustandGeaendert: (an) => trayMenue(an),
+  });
   deepLinkOeffnen(process.argv.find((a) => a.startsWith('agora://')));
   fensterErstellen();
   trayErstellen();
@@ -184,7 +200,8 @@ app.whenReady().then(() => {
     // Test-Haken (nur mit AGORA_DESKTOP_TEST=1): der Selbsttest löst Kürzel aus, wie das System es täte
     console.log('AGORA_DESKTOP_BEREIT', JSON.stringify({ registriert, adresse: konfig.adresse }));
     if (process.env.AGORA_DESKTOP_SELBSTTEST === '1') {
-      require('./selbsttest').laufen({ fenster, kuerzelSenden, registriert, extern: externGeoeffnet })
+      const test = process.env.AGORA_DESKTOP_SELBSTTEST_ART === 'fernsteuerung' ? require('./selbsttest-fernsteuerung') : require('./selbsttest');
+      test.laufen({ fenster, kuerzelSenden, registriert, extern: externGeoeffnet, fst })
         .then((r) => { console.log('AGORA_SELBSTTEST', JSON.stringify(r)); app.exit(r.ok ? 0 : 1); })
         .catch((e) => { console.log('AGORA_SELBSTTEST', JSON.stringify({ ok: false, fehler: String(e) })); app.exit(1); });
     }

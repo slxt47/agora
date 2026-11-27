@@ -1,0 +1,4 @@
+/* Fernsteuerung: Eingabe-Ebene über der gesteuerten Bildschirm-Kachel (Fadenkreuz-Zeiger, roter Rand = „du steuerst“). */
+.kv.fs-gesteuert { outline: 3px solid #e0244a; outline-offset: -3px; }
+.fs-ebene { position: absolute; inset: 0; z-index: 4; cursor: crosshair; touch-action: none; }
+.fs-ebene:focus-visible { outline: 3px dashed #ffb020; outline-offset: -6px; }

@@ -31,7 +31,7 @@ async function laufen({ fenster, kuerzelSenden, registriert, extern }) {
   await schritt('seite geladen', () => bis(wc, "!!document.querySelector('#v-lobby:not([hidden])')", 30));
   await schritt('bruecke', async () => {
     const b = await wc.executeJavaScript(`({ keys: Object.keys(window.agoraDesktop || {}).sort().join(','), node: typeof require + '/' + typeof process + '/' + typeof module })`);
-    if (b.keys !== 'beiKuerzel,desktop') throw new Error(`agoraDesktop: ${b.keys}`);
+    if (b.keys !== 'beiKuerzel,desktop,fernsteuerung') throw new Error(`agoraDesktop: ${b.keys}`);
     if (b.node !== 'undefined/undefined/undefined') throw new Error(`Node in der Seite: ${b.node}`);
     return b.keys;
   });

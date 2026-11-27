@@ -29,6 +29,7 @@ import { e2eeVorbereiten, E2eeAnzeige } from './e2ee.js';
 import { AudioModi } from './audio-modi.js';
 import { Anmerkungen } from './anmerkungen.js';
 import { Dolmetschen } from './dolmetsch.js';      // Dolmetscher-Kanäle (Spur dolmetsch:<sprache>)
+import { Fernsteuerung } from './fernsteuerung.js';  // Fernsteuerung (nur mit der Desktop-App der teilenden Person)
 import './anmerkungen.css';
 import { linkMitSchluessel } from '../e2ee-schluessel.js';
 import { desktopKuerzel } from './desktop.js';
@@ -116,6 +117,7 @@ export class Meeting {
     this.untertitel = new Untertitel(this);
     this.anmerkungen = new Anmerkungen(this);   // Anmerkungen auf geteilten Bildschirmen
     this.dolmetsch = new Dolmetschen(this);     // Dolmetscher-Kanäle
+    this.fernsteuerung = new Fernsteuerung(this);
     this.audioModi = new AudioModi(this);     // Musik-Modus, RNNoise (setzt Raum-Optionen vor dem Veröffentlichen)
     await e2ee.aktivieren(this.room);
     if (this.schluessel) this.e2eeAnzeige = new E2eeAnzeige(this);
@@ -189,6 +191,7 @@ export class Meeting {
     this.egress?.metadaten(md);
     this.untertitel?.metadaten(md);
     this.dolmetsch?.metadaten(md);
+    this.fernsteuerung?.metadaten(md);
     if ('anmerkungen' in md) this.anmerkungen?.erlaubtSetzen(md.anmerkungen, false);
   }
 
@@ -245,6 +248,7 @@ export class Meeting {
   }
 
   datenEmpfangen(daten, p, topic) {
+    if (topic === 'fernsteuerung') { this.fernsteuerung?.empfangen(daten, p); return; }   // prüft die Desktop-App
     if (topic === 'untertitel') { if (!p) this.untertitel?.empfangen(daten); return; }    // nur vom Server
     if (topic === 'agora' || topic === 'chat' || topic === 'whiteboard') {
       if (p) return;                          // nur der Server darf hier senden
@@ -323,6 +327,7 @@ export class Meeting {
       case 'transkript': this.untertitel?.metadaten({ transkript: !!d.an }); break;
       case 'dolmetsch': this.dolmetsch?.ereignis(d); break;
       case 'anmerkungen': this.anmerkungen?.ereignis(d); break;
+      case 'fernsteuerung': this.fernsteuerung?.ereignis(d); break;
       case 'stumm':
         this.vomHostStumm = true;
         lp.setMicrophoneEnabled(false).catch(() => {});

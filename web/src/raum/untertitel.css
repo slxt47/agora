@@ -5,3 +5,4 @@
   font-size: clamp(.95rem, 1.6vw, 1.15rem); line-height: 1.4; text-align: center; text-shadow: 0 1px 2px #000; }
 .ut-zeile b { color: #cdbfff; font-weight: 700; }
 .ut-zeile.zwischen span { opacity: .75; }
+.ut-zeile.uebersetzt { border-left: 3px solid #cdbfff; }      /* übersetzt (Original im title) */

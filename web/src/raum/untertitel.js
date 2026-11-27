@@ -5,9 +5,13 @@
 //   schickt ihn über den Server an alle (Topic „untertitel“, nur vom Server angenommen) und speichert ihn nur, wenn der
 //   Besitzer „Transkript speichern“ eingeschaltet hat (Metadaten „transkript“, alle sehen einen Hinweis).
 // • Läuft nur, solange das eigene Mikrofon an ist.
-import { $, h, api, toast, bestaetigen } from '../common.js';
-import { t } from '../i18n.js';
+// • „Untertitel übersetzen“: jede Person wählt für sich eine Zielsprache. Übersetzt wird nur auf dem eigenen Gerät mit der
+//   Translator-API des Browsers (uebersetzer.js) – Agora schickt den Text nie an einen Übersetzungsdienst. Ohne die API
+//   (z. B. Firefox, Safari, Handy) gibt es einen Hinweis und den Originaltext.
+import { $, h, api, toast, bestaetigen, blatt } from '../common.js';
+import { t, gebiet } from '../i18n.js';
 import { jsonLesen } from '../helfer.js';
+import { Uebersetzer, ZIELSPRACHEN } from './uebersetzer.js';
 import './untertitel.css';
 
 const Erkennung = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
@@ -24,6 +28,18 @@ export class Untertitel {
     this.ebene = h('div', { class: 'untertitel', id: 'untertitel', 'aria-live': 'polite', hidden: true });
     $('#buehne')?.append(this.ebene);
     this.letzteZwischen = 0;
+    this.sprache = '';                // Sprache der eigenen Erkennung (de/en), geht mit jedem Abschnitt mit
+    this.ziel = '';                   // Zielsprache der Übersetzung ('' = Original)
+    this.uebersetzer = new Uebersetzer({ fortschritt: (x) => { if (x < 1) this.ladeHinweis(x); } });
+    this.fehlerGemeldet = false;
+  }
+
+  spracheName(code) { try { return new Intl.DisplayNames([gebiet()], { type: 'language' }).of(code) || code; } catch { return code; } }
+
+  ladeHinweis(x) {
+    if (this.geladen) return;
+    this.geladen = true;
+    toast(t('ut.uebLaden', { n: Math.round(x * 100) }), '', { dauer: 4000 });
   }
 
   static unterstuetzt() { return !!Erkennung; }
@@ -42,6 +58,21 @@ export class Untertitel {
     z.el.querySelector('b').textContent = `${ich ? t('allg.du') : d.name}: `;
     z.el.querySelector('span').textContent = d.text;
     z.el.classList.toggle('zwischen', !d.final);
+    z.el.classList.remove('uebersetzt');
+    z.el.removeAttribute('title');
+    const quelle = typeof d.sprache === 'string' ? d.sprache : '';
+    if (this.ziel && quelle && quelle !== this.ziel) {
+      const nr = (z.nr || 0) + 1;
+      z.nr = nr;
+      this.uebersetzer.uebersetzen(d.text, quelle, this.ziel).then((text) => {
+        if (z.nr !== nr || !z.el.isConnected) return;          // inzwischen neuer Text
+        z.el.querySelector('span').textContent = text;
+        z.el.classList.add('uebersetzt');
+        z.el.title = d.text;                                     // Original beim Darüberfahren
+      }).catch(() => {
+        if (!this.fehlerGemeldet) { this.fehlerGemeldet = true; toast(t('ut.uebFehler'), 'warn', { dauer: 6000 }); }
+      });
+    }
     clearTimeout(z.timer);
     z.timer = setTimeout(() => { z.el.remove(); this.zeilen.delete(d.identity); this.sichtbar(); }, HALTEN_MS);
     while (this.ebene.children.length > 3) {
@@ -80,6 +111,7 @@ export class Untertitel {
   starten() {
     const e = new Erkennung();
     e.lang = (document.documentElement.lang || 'de').slice(0, 2) === 'de' ? 'de-DE' : 'en-US';
+    this.sprache = e.lang.slice(0, 2);
     e.continuous = true;
     e.interimResults = true;
     let satzStart = 0;
@@ -117,12 +149,14 @@ export class Untertitel {
 
   async schicken(text, final, dauer) {
     try {
-      await this.m.api(`/api/raeume/${this.m.code}/untertitel`, { methode: 'POST', json: { text: text.slice(0, 500), final, dauer_ms: Math.min(120000, Math.max(0, dauer)) } });
+      await this.m.api(`/api/raeume/${this.m.code}/untertitel`, { methode: 'POST', json: { text: text.slice(0, 500), final, dauer_ms: Math.min(120000, Math.max(0, dauer)), sprache: this.sprache || undefined } });
     } catch { /* einzelne Abschnitte dürfen fehlen */ }
   }
 
   menueEintraege() {
-    const e = [{ text: this.anzeigen ? t('ut.ausblenden') : t('ut.anzeigen'), symbol: 'chat', an: this.anzeigen, aktion: () => this.anzeigeUmschalten() }];
+    const e = [{ text: this.anzeigen ? t('ut.ausblenden') : t('ut.anzeigen'), symbol: 'chat', an: this.anzeigen, aktion: () => this.anzeigeUmschalten() },
+      { text: this.ziel ? t('ut.uebersetzenAn', { sprache: this.spracheName(this.ziel) }) : t('ut.uebersetzen'), symbol: 'sprache',
+        aktion: () => this.uebersetzenDialog() }];
     if (this.m.rolle !== 'zuschauer') {
       e.push({ text: this.aktiv ? t('ut.eigeneStoppen') : t('ut.eigeneStarten'), symbol: 'mic', an: this.aktiv, aktion: () => this.transkribierenUmschalten() });
     }
@@ -130,6 +164,28 @@ export class Untertitel {
       e.push({ text: t('ut.speichern'), symbol: 'stift', an: this.transkript, aktion: () => this.speichernUmschalten() });
     }
     return e;
+  }
+
+  /** Zielsprache wählen. Der Klick ist die Nutzeraktion, die Chrome für den Modell-Download verlangt. */
+  uebersetzenDialog() {
+    const { inhalt, schliessen } = blatt(t('ut.uebTitel'));
+    const wahl = (code, text) => h('button', { type: 'button', class: `dm-kanal ${this.ziel === code ? 'an' : ''}`, dataset: { ziel: code },
+      'aria-pressed': String(this.ziel === code), onclick: () => { this.zielSetzen(code); schliessen(); } }, h('b', {}, text));
+    inhalt.append(h('p', { class: 'sec klein' }, t('ut.uebText')));
+    if (!this.uebersetzer.verfuegbar) {
+      inhalt.append(h('div', { class: 'status warn', role: 'status', id: 'ut-ueb-hinweis' }, t('ut.uebNichtMoeglich')));
+      return;
+    }
+    inhalt.append(h('div', { class: 'dm-kanaele ut-ziele' }, wahl('', t('ut.uebAus')), ...ZIELSPRACHEN.map((s) => wahl(s, this.spracheName(s)))));
+  }
+
+  zielSetzen(code) {
+    this.ziel = code;
+    this.fehlerGemeldet = false;
+    if (!code) { toast(t('ut.uebAusOk'), '', { dauer: 2500 }); return; }
+    for (const quelle of ['de', 'en']) if (quelle !== code) this.uebersetzer.holen(quelle, code).catch(() => {});   // Modelle vorbereiten
+    if (!this.anzeigen) this.anzeigeUmschalten();
+    toast(t('ut.uebAn', { sprache: this.spracheName(code) }), 'ok', { dauer: 4000 });
   }
 
   async speichernUmschalten() {

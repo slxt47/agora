@@ -22,6 +22,12 @@ def test_untertitel_verteilen_und_nur_mit_schalter_speichern():
     assert ut(g, code, gz, text='Hallo zusammen', final=True, dauer_ms=1500, name='Gefälscht', identity='u1-xxx').status_code == 200
     s = aufrufe('senden')[-1]
     assert s['topic'] == 'untertitel' and s['an'] is None
+    assert 'sprache' not in s['daten']
+    # Sprache der Erkennung geht mit (für die Übersetzung auf dem Gerät), nur gültige Codes
+    ut(g, code, gz, text='Hallo', sprache='de')
+    assert aufrufe('senden')[-1]['daten']['sprache'] == 'de'
+    ut(g, code, gz, text='Hallo', sprache='<script>')
+    assert 'sprache' not in aufrufe('senden')[-1]['daten']
     assert s['daten']['name'] == 'Gabi' and s['daten']['identity'] == gz['identity'] and s['daten']['text'] == 'Hallo zusammen'
     # Ohne „Transkript speichern“ nichts gespeichert
     assert db.verbindung().execute('SELECT COUNT(*) FROM transkript').fetchone()[0] == 0

@@ -203,6 +203,8 @@ Dienst sieht Zeitpunkt, Größe und Gerät, nicht den Text. iPhone/iPad bekommen
 - Live-Untertitel: nichts gespeichert, außer der Besitzer schaltet „Transkript speichern“ ein (alle sehen einen Hinweis);
   dann fertige Abschnitte mit Name und Zeit: 90 Tage, je Meeting oder ganz löschbar, mit dem Raum weg. Die Spracherkennung
   selbst läuft im Browser (bei Chrome/Edge beim Browser-Hersteller) und nur nach Zustimmung der jeweiligen Person.
+- Übersetzung der Untertitel: nur im Browser der Person, die sie einschaltet (Translator-API, Modell vom Browser-Hersteller,
+  Text bleibt auf dem Gerät); der Server speichert dafür nichts, er reicht nur die Sprache der Erkennung (`sprache`) mit.
 - Transkripte aus Aufnahmen (Whisper): `.vtt` neben der Aufnahme, mit ihr gelöscht (90 Tage).
 - API-Schlüssel (Name, SHA-256 des Schlüssels, erste 12 Zeichen, Rechte, Erstellzeit, Ablauf, letzte Nutzung ohne IP):
   bis der Besitzer sie widerruft oder das Konto gelöscht wird; abgelaufene Schlüssel sind sofort ungültig und werden

@@ -171,7 +171,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟢 Virtuelle Hintergründe (Bilder/Video)
 - [x] 🟢 Videofilter, „Aussehen verbessern“
 - [x] 🟢 Live-Untertitel (Speech-to-Text)
-- [ ] 🟢 Live-Übersetzung der Untertitel — *noch offen*
+- [x] 🟢 Live-Übersetzung der Untertitel (auf dem Gerät, Translator-API des Browsers)
 - [x] 🟡 Tastaturnavigation, Screenreader-Support (ARIA)
 - [x] 🟡 Ausreichender Farbkontrast (WCAG 2.1 AA)
 - [x] 🟢 Mehrsprachige Oberfläche (i18n): Deutsch, Englisch

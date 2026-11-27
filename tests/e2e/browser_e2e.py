@@ -665,6 +665,12 @@ with sync_playwright() as p:
             hp.screenshot(path=OUT + '23b-untertitel-zustimmung.png')
             hp.click('dialog button:has-text("Abbrechen")')
             print('Untertitel: Zustimmungsdialog gezeigt, abgelehnt')
+        # Übersetzen nur auf dem Gerät: Zielsprachen (mit Translator-API) oder klarer Hinweis (ohne) – nie ein fremder Dienst
+        hp.click('#s-mehr'); hp.click('.menue [role^=menuitem] >> text=Untertitel übersetzen')
+        hp.wait_for_selector('dialog #ut-ueb-hinweis, dialog .ut-ziele', timeout=10000)
+        hp.screenshot(path=OUT + '23c-untertitel-uebersetzen.png')
+        print('Untertitel übersetzen:', 'Hinweis (keine Translator-API)' if hp.locator('dialog #ut-ueb-hinweis').count() else 'Zielsprachen angeboten')
+        hp.click('dialog .blatt-kopf .icon-btn')
         hp.click('#s-verlassen'); hp.click('.menue [role=menuitem] >> text=Für alle beenden')
         hp.click('dialog .btn.gefahr')
         hp.wait_for_selector('#v-ende .ende-transkript a', timeout=15000)

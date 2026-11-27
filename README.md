@@ -85,6 +85,9 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   geht über den Server an alle; jede Person blendet die Untertitel mit Namen selbst ein. Der Besitzer kann „Transkript
   speichern“ einschalten (alle sehen einen Hinweis) und lädt es als .txt/.vtt (Ende-Bildschirm oder Konto, 90 Tage).
   Optional „Transkript aus Aufnahme erstellen“ über einen Whisper-Dienst (`AGORA_WHISPER_URL`).
+  **Untertitel übersetzen:** jede Person wählt für sich eine Zielsprache; übersetzt wird nur auf dem eigenen Gerät mit der
+  eingebauten Translator-API des Browsers (derzeit Chrome am Computer, ab 138). Agora schickt Untertitel nie an einen
+  Übersetzungsdienst – ohne die API gibt es einen Hinweis und den Originaltext.
 - **Anmerkungen auf geteilten Bildschirmen:** Stift, Textmarker, Pfeil, Text, Radierer, sechs Farben, eigene oder (Host,
   Co-Host, teilende Person) alle löschen. Die Ebene skaliert mit dem Videobild, auch im Vollbild; Werkzeugleiste mit
   Pfeiltasten bedienbar, Esc beendet. Host, Co-Hosts und die teilende Person können Anmerkungen für andere sperren

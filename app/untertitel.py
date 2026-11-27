@@ -64,6 +64,9 @@ async def senden(code: str, req: Request):
     dauer = dauer if isinstance(dauer, int) and not isinstance(dauer, bool) and 0 <= dauer <= 120000 else 0
     jetzt_ms = int(time.time() * 1000)
     seg = {'identity': t['identity'], 'name': t['name'], 'text': text, 'final': final, 'zeit': jetzt_ms}
+    sprache = d.get('sprache')                  # Sprache der Erkennung (für die Übersetzung auf dem Gerät der Zuschauer)
+    if isinstance(sprache, str) and re.fullmatch(r'[a-z]{2,3}', sprache):
+        seg['sprache'] = sprache
     await lk.senden(r['code'], seg, topic='untertitel')
     if final and r['transkript_speichern']:
         db.verbindung().execute('INSERT INTO transkript (raum_id, sitzung, identity, name, text, beginn_ms, ende_ms, zeit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',

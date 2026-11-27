@@ -825,4 +825,12 @@ export const en = {
   'dm.zuweisen': 'Assign', 'dm.listeSendung': 'on air ({sprache})', 'dm.listeBereitschaft': 'Standby', 'dm.aufSendungSetzen': 'Put on air',
   'dm.entfernen': 'Remove as interpreter', 'dm.keine': 'No interpreters yet.',
   // ==== Ende Block Dolmetscher-Kanäle ====
+  // ==== Block Live-Übersetzung der Untertitel (web/src/raum/untertitel.js, uebersetzer.js) ====
+  'ut.uebersetzen': 'Translate captions …', 'ut.uebersetzenAn': 'Captions translated: {sprache}', 'ut.uebTitel': 'Translate captions',
+  'ut.uebText': 'Other people’s captions appear in your language. Translation happens only on your device with your browser’s built-in translator – Agora sends the text to no translation service. The first time, the browser downloads a language model for it.',
+  'ut.uebNichtMoeglich': 'Your browser can’t translate on the device (currently this works in Chrome on a computer, version 138 or later). Agora deliberately sends captions to no outside translation service – so you see them in the original.',
+  'ut.uebAus': 'Don’t translate (original)', 'ut.uebAusOk': 'Captions are back in the original.',
+  'ut.uebAn': 'Captions are translated into {sprache} on this device.', 'ut.uebLaden': 'The browser is downloading the translation model ({n} %) …',
+  'ut.uebFehler': 'Your browser can’t translate this language – you see the original text.',
+  // ==== Ende Block Live-Übersetzung der Untertitel ====
 };

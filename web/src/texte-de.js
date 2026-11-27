@@ -829,4 +829,12 @@ export const de = {
   'dm.zuweisen': 'Zuweisen', 'dm.listeSendung': 'auf Sendung ({sprache})', 'dm.listeBereitschaft': 'Bereitschaft', 'dm.aufSendungSetzen': 'Auf Sendung',
   'dm.entfernen': 'Als Dolmetscher entfernen', 'dm.keine': 'Noch keine Dolmetscher.',
   // ==== Ende Block Dolmetscher-Kanäle ====
+  // ==== Block Live-Übersetzung der Untertitel (web/src/raum/untertitel.js, uebersetzer.js) ====
+  'ut.uebersetzen': 'Untertitel übersetzen …', 'ut.uebersetzenAn': 'Untertitel übersetzt: {sprache}', 'ut.uebTitel': 'Untertitel übersetzen',
+  'ut.uebText': 'Die Untertitel der anderen erscheinen in deiner Sprache. Übersetzt wird nur auf deinem Gerät mit der eingebauten Übersetzung deines Browsers – Agora schickt den Text an keinen Übersetzungsdienst. Beim ersten Mal lädt der Browser dafür ein Sprachmodell.',
+  'ut.uebNichtMoeglich': 'Dein Browser kann nicht auf dem Gerät übersetzen (das geht derzeit mit Chrome am Computer, ab Version 138). Agora schickt Untertitel bewusst an keinen fremden Übersetzungsdienst – du siehst sie deshalb im Original.',
+  'ut.uebAus': 'Nicht übersetzen (Original)', 'ut.uebAusOk': 'Untertitel wieder im Original.',
+  'ut.uebAn': 'Untertitel werden auf diesem Gerät nach {sprache} übersetzt.', 'ut.uebLaden': 'Der Browser lädt das Übersetzungsmodell ({n} %) …',
+  'ut.uebFehler': 'Diese Sprache kann dein Browser nicht übersetzen – du siehst den Originaltext.',
+  // ==== Ende Block Live-Übersetzung der Untertitel ====
 };

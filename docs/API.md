@@ -663,3 +663,11 @@ Gruppe wieder. Neue Browser-Gruppen über 2000 werden verworfen (Server-Ausnahme
 Server: unerwartete Ausnahmen einer Route → 500 `{fehler: "Interner Fehler"}` (mit allen Sicherheits-Kopfzeilen) und eine
 Gruppe `server/ausnahme` mit Route (`GET /api/raeume/{code}/…`) und Frames (nur Dateinamen, ohne Bibliotheken).
 `/api/metriken`: Zähler `agora_fehlerberichte_total{quelle}`.
+
+## Objektspeicher (app/speicher.py, app/s3.py)
+Kein neuer Endpunkt, keine Änderung am Vertrag: Aufnahmen (`/api/aufnahmen/{id}/datei`, Freigaben, `/api/v1/download`),
+Dateien aus Meetings und Whisper-Transkripte werden lokal (`FileResponse`) oder aus S3 (`S3Antwort`, gestreamt) mit
+denselben Kopfzeilen ausgeliefert: `Content-Disposition`, `Accept-Ranges: bytes`, ein Bereich `bytes=a-b|a-|-n` → 206 mit
+`Content-Range`, unerfüllbar → 416, mehrere Bereiche → 200 mit der ganzen Datei (bei S3; lokal wie Starlette). Schlüssel:
+`aufnahmen/<id>`, `aufnahmen/<id>.vtt`, `dateien/<id>` (optional mit `AGORA_S3_PRAEFIX`). `/api/gesund?tief=1` prüft mit S3
+zusätzlich `objektspeicher`.

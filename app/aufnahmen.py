@@ -8,10 +8,9 @@ import time
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import db
+from . import db, speicher
 from .kern import SEITE, benutzer_aus_sitzung, client_ip, fehler, grenze, hash_pw, iso, jetzt, json_body, pw_ok
 from .raeume import CODE_RE
 
@@ -29,7 +28,12 @@ _freigabe_ok = {}          # Cache: sha256(token + passwort) → gültig bis (so
 
 
 def pfad(i):
+    """Lokaler Pfad (nur Speicher „lokal“; mit S3 liegt die Aufnahme unter dem Schlüssel `aufnahmen/<id>`)."""
     return os.path.join(db.DATEN, 'aufnahmen', i)
+
+
+def schluessel(i):
+    return f'aufnahmen/{i}'
 
 
 ZIEL = []                  # f(benutzer_id, raum_code) → Ziel-Dict (Bibliothek einer Organisation) oder None (orgs.py)
@@ -65,10 +69,7 @@ def aufnahme_json(a):
 
 
 def aufnahme_entfernen(i):
-    try:
-        os.remove(pfad(i))
-    except FileNotFoundError:
-        pass
+    speicher.loeschen(schluessel(i))
     for f in BEIM_ENTFERNEN:
         f(i)
     db.verbindung().execute('DELETE FROM aufnahmen WHERE id = ?', (i,))
@@ -86,8 +87,7 @@ def eigene(req, i):
 def datei_antwort(a, herunterladen=False):
     endung = TYPEN.get(a['typ'], 'webm')
     name = re.sub(r'[^A-Za-z0-9 ._-]', '_', a['titel'])[:80] or 'aufnahme'
-    return FileResponse(pfad(a['id']), media_type=a['typ'], filename=f'{name}.{endung}',
-                        content_disposition_type='attachment' if herunterladen else 'inline')
+    return speicher.antwort(schluessel(a['id']), a['typ'], f'{name}.{endung}', 'attachment' if herunterladen else 'inline')
 
 
 @router.post('/api/aufnahmen')
@@ -125,16 +125,25 @@ async def hochladen(req: Request):
                 f.write(teil)
         if n == 0:
             fehler(400, 'Leere Datei')
+        # Erst ablegen (S3: Upload kann dauern – nicht unter der Schreibsperre der Datenbank), dann eintragen
+        await run_in_threadpool(speicher.ablegen, schluessel(i), tmp)
         c = db.verbindung()
-        c.execute('BEGIN IMMEDIATE')
-        if z['belegt']() + n > z['kontingent']:          # nochmal unter Sperre (parallele Uploads)
-            c.execute('ROLLBACK')
-            fehler(507, z['voll'])
-        c.execute('INSERT INTO aufnahmen (id, benutzer_id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf, org_id) '
-                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (i, b['id'], titel, code or None, n, typ, dauer, jetzt(), jetzt() + AUFBEWAHRUNG_S,
-                                                            z['org_id']))
-        os.replace(tmp, pfad(i))
-        c.execute('COMMIT')
+        eingetragen = False
+        try:
+            c.execute('BEGIN IMMEDIATE')
+            if z['belegt']() + n > z['kontingent']:          # nochmal unter Sperre (parallele Uploads)
+                c.execute('ROLLBACK')
+                fehler(507, z['voll'])
+            c.execute('INSERT INTO aufnahmen (id, benutzer_id, titel, raum_code, groesse, typ, dauer, erstellt, ablauf, org_id) '
+                      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (i, b['id'], titel, code or None, n, typ, dauer, jetzt(), jetzt() + AUFBEWAHRUNG_S,
+                                                                z['org_id']))
+            c.execute('COMMIT')
+            eingetragen = True
+        finally:
+            if not eingetragen:
+                if c.in_transaction:
+                    c.execute('ROLLBACK')
+                speicher.loeschen(schluessel(i))
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)

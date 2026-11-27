@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 153 Punkte erledigt (152 live auf https://agora.slxt.dev), 14 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
+> Stand 27.11.2026: 155 Punkte erledigt (152 live auf https://agora.slxt.dev), 12 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
 
 ---
 
@@ -157,7 +157,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Lokale Aufzeichnung im Browser
 - [x] 🟡 Server-seitige Aufzeichnung (Composite oder Einzelspuren)
 - [x] 🟡 Einwilligungs-Hinweis / Aufnahme-Indikator für alle Teilnehmer
-- [ ] 🟡 Speicherung (S3-kompatibel / Object Storage) + Retention-Regeln — *lokal + Aufbewahrungsregeln (kein S3)*
+- [x] 🟡 Speicherung (S3-kompatibel / Object Storage) + Retention-Regeln — *lokal (Standard) oder S3 (`AGORA_S3_*`), Aufbewahrungsregeln wie bisher; in Produktion nicht eingeschaltet*
 - [x] 🟡 Aufzeichnungen-Bibliothek: Liste, Wiedergabe, Download, Löschen
 - [x] 🟢 Freigabelinks mit Passwort / Ablaufdatum
 - [x] 🟢 Automatisches Transkript
@@ -206,7 +206,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🔴 Datenbank-Schema (Users, Meetings, Participants, Recordings, Chat)
 - [x] 🔴 Migrationen
 - [ ] 🟡 Redis für Präsenz, Pub/Sub, Rate-Limits — *nur für Egress vorbereitet; Begrenzer im Speicher (1 Prozess)*
-- [ ] 🟡 Object Storage für Aufzeichnungen und Dateien — *lokal unter daten/ (im Server-Backup)*
+- [x] 🟡 Object Storage für Aufzeichnungen und Dateien — *optional S3-kompatibel (Aufnahmen, Transkripte, Dateien), Migration per Skript; Standard weiter lokal unter daten/*
 - [x] 🟡 E-Mail-Versand (Einladungen, Reset)
 - [x] 🟡 Hintergrund-Jobs / Queue (Transkodierung, Mails, Aufräumen)
 - [ ] 🟡 Horizontale Skalierung von SFU-Nodes + Load-Balancing / Regionen — *ein Server; Redis für LiveKit vorbereitet*

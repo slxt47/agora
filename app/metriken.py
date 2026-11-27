@@ -248,5 +248,13 @@ async def gesund_tief(req: Request):
     else:
         ok = (alter is not None and alter <= HINTERGRUND_MAX_S) or (not letzter and time.time() - START < HINTERGRUND_MAX_S)
     p['hintergrund'] = {'ok': ok, 'alter_s': alter}
+    from . import speicher
+    if speicher.aktiv().art == 's3':        # Objektspeicher: Bucket antwortet (HEAD auf einen Schlüssel, 404 ist ok)
+        t0 = time.perf_counter()
+        try:
+            await run_in_threadpool(speicher.aktiv().existiert, 'aufnahmen/gesund')
+            p['objektspeicher'] = {'ok': True, 'ms': round((time.perf_counter() - t0) * 1000, 1)}
+        except Exception as e:   # noqa: BLE001
+            p['objektspeicher'] = {'ok': False, 'fehler': type(e).__name__}
     alles = all(x['ok'] for x in p.values())
     return JSONResponse({'ok': alles, 'version': VERSION, 'pruefungen': p}, status_code=200 if alles else 503)

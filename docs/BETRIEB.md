@@ -4,7 +4,7 @@
 
 | Dienst | Lauscht auf | Aufgabe |
 |---|---|---|
-| `app` | 127.0.0.1:8110 | Webseite und API, SQLite und Aufnahmen in `./daten` |
+| `app` | 127.0.0.1:8110 | Webseite und API, SQLite und Aufnahmen in `./daten` (Aufnahmen/Dateien optional in S3) |
 | `livekit` | 127.0.0.1:7880 (Signalisierung), öffentlich UDP 7882 und TCP 7881 | SFU für Video und Ton |
 | `redis`, `egress` | 127.0.0.1:6390, 7884 | nur Profil `egress`: Server-Aufnahme + Livestream (siehe unten) |
 | `cloudflared` | – | Tunnel `agora`: `HOST/rtc` geht an 127.0.0.1:7880, alles andere an 127.0.0.1:8110 |
@@ -189,6 +189,42 @@ Das ganze Transkript mit Namen geht an diese Adresse – deshalb nur einen eigen
 oder Ollama mit OpenAI-API auf 127.0.0.1). Die Oberfläche nennt Host:Port vor dem Senden, die API verlangt
 `zustimmung: true`, im Protokoll steht „KI-Zusammenfassung angefordert (Host)“. Ein Auftrag nach dem anderen. Ohne die
 Variablen gibt es nur „Stichwort-Kapitel“ (läuft auf dem Server, ohne KI).
+
+## Objektspeicher (S3-kompatibel) – optional, standardmäßig aus
+
+Ohne Einstellung liegen Aufnahmen (`daten/aufnahmen/<id>`), Whisper-Transkripte (`<id>.vtt`) und Dateien aus Meetings
+(`daten/dateien/<id>`) wie bisher auf der Platte. Mit diesen Zeilen in `app.env` kommen sie in ein Bucket:
+`AGORA_S3_ENDPOINT` (z. B. `https://fsn1.your-objectstorage.com`), `AGORA_S3_BUCKET`, `AGORA_S3_KEY`, `AGORA_S3_SECRET`,
+`AGORA_S3_REGION` (Standard `us-east-1`); optional `AGORA_S3_SSE=AES256|aws:kms` (+ `AGORA_S3_KMS_KEY`),
+`AGORA_S3_PFADSTIL=0` (virtuelle Hosts), `AGORA_S3_PRAEFIX=agora/`. Fehlt einer der vier Pflichtwerte, startet die App nicht.
+
+- Client: eigener SigV4-Client (`app/s3.py`, nur Standardbibliothek) statt boto3 (~90 MB) oder `minio` (urllib3, certifi,
+  pycryptodome). Gegen die AWS-Testvektoren und einen MinIO getestet.
+- Hochladen: wie bisher erst nach `daten/tmp` (Größe, Kontingent, Virenprüfung), dann gestreamt per PUT
+  (`UNSIGNED-PAYLOAD`, also nur über https:// sicher), erst danach der Eintrag in der Datenbank. `daten/tmp` braucht weiter
+  Platz für die größte Datei (500 MB). Ausliefern gestreamt durch die App (kein öffentliches Bucket, keine vorsignierten
+  Links), Range bleibt. Whisper bekommt eine temporäre Kopie in `daten/tmp`.
+- Aufbewahrung unverändert (Aufnahmen 90 Tage, Dateien wie bisher) – die App löscht die Objekte selbst; eine
+  Lifecycle-Regel im Bucket ist nicht nötig (höchstens als Netz: Objekte älter als 120 Tage löschen).
+- Rechte des Schlüssels: nur dieses Bucket, `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket`.
+- Backup: Objekte sind nicht mehr im nächtlichen Home-Backup – Versionierung/Replikation beim Anbieter einschalten.
+- `/api/gesund?tief=1` prüft das Bucket (`objektspeicher`).
+
+Umzug (erst Probe, dann kopieren, Dienst läuft weiter):
+
+```sh
+docker compose run --rm --no-deps app python -m app.speicher_migrieren --trocken   # zeigt, was kopiert würde
+docker compose run --rm --no-deps app python -m app.speicher_migrieren             # kopiert (idempotent, prüft Größe)
+# AGORA_S3_* in app.env eintragen, dann:
+docker compose up -d app
+docker compose run --rm --no-deps app python -m app.speicher_migrieren             # Nachzügler seit der ersten Kopie
+docker compose run --rm --no-deps app python -m app.speicher_migrieren --loeschen  # lokale Kopien entfernen (erst nach Prüfung)
+```
+
+Der erste Lauf vor dem Umschalten braucht die `AGORA_S3_*`-Werte schon in der Umgebung
+(`docker compose run -e AGORA_S3_ENDPOINT=… …` oder `app.env` vorher ergänzen und die App erst danach neu starten).
+Zurück: `AGORA_S3_*` entfernen – Objekte müssen dann von Hand zurück nach `daten/` (gleiche Schlüssel = gleiche Pfade).
+Test: `sh tests/speicher/lauf.sh` (Wegwerf-MinIO auf 127.0.0.1:9351/9352, Daten im tmpfs).
 
 ## Aufbewahrung
 

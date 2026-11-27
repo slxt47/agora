@@ -27,7 +27,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from . import aufnahmen, db, push, texte, untertitel
+from . import aufnahmen, db, push, speicher, texte, untertitel
 from .kern import fehler, grenze, iso, jetzt, json_body
 from .raeume import besitzer_raum
 
@@ -392,11 +392,8 @@ def raum_kapitel(code: str, req: Request, sitzung: int = 0):
 
 # ---------------------------------------------------------------- API: Whisper-Transkript einer Aufnahme (Besitzer)
 def _aufnahme_abschnitte(a):
-    try:
-        with open(untertitel.vtt_pfad(a['id']), encoding='utf-8') as f:
-            return abschnitte_vtt(f.read(20 * 1024 * 1024))
-    except FileNotFoundError:
-        return []
+    vtt = untertitel.vtt_lesen(a['id'])
+    return abschnitte_vtt(vtt) if vtt is not None else []
 
 
 @router.get('/api/aufnahmen/{i}/zusammenfassung')
@@ -432,7 +429,7 @@ def aufraeumen(_t=None):
     c.execute('DELETE FROM zusammenfassungen WHERE raum_id IS NOT NULL AND NOT EXISTS '
               '(SELECT 1 FROM transkript x WHERE x.raum_id = zusammenfassungen.raum_id AND x.sitzung = zusammenfassungen.sitzung)')
     for z in c.execute('SELECT id, aufnahme_id FROM zusammenfassungen WHERE aufnahme_id IS NOT NULL').fetchall():
-        if not os.path.isfile(untertitel.vtt_pfad(z['aufnahme_id'])):
+        if not speicher.existiert(untertitel.vtt_schluessel(z['aufnahme_id'])):
             c.execute('DELETE FROM zusammenfassungen WHERE id = ?', (z['id'],))
     c.execute("UPDATE zusammenfassungen SET status = 'fehler', fehler = 'Abgebrochen (Neustart)' WHERE status = 'laeuft' AND erstellt < ?",
               (jetzt() - 6 * 3600,))

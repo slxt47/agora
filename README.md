@@ -135,6 +135,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 - **Admin-Bereich** `/admin` (nur Konten aus `AGORA_ADMIN_MAILS`, für alle anderen 404): Übersicht (Konten, laufende Meetings
   und Teilnehmende live aus LiveKit, Meetings der letzten 7/30 Tage, Speicher der Aufnahmen), Konten suchen, sperren,
   2FA zurücksetzen, löschen, Meldungen bearbeiten, Protokoll mit Filter, laufende Meetings beenden. Jede Aktion wird protokolliert.
+- **Optionaler Objektspeicher (S3-kompatibel):** Aufnahmen, Whisper-Transkripte und Dateien aus Meetings liegen
+  standardmäßig unter `daten/`; mit `AGORA_S3_ENDPOINT/BUCKET/KEY/SECRET/REGION` in einem S3-Bucket (AWS, Hetzner,
+  MinIO …). Eigener kleiner SigV4-Client ohne neue Abhängigkeit, Upload und Download gestreamt, Range bleibt, optional
+  serverseitige Verschlüsselung; Migration mit `python -m app.speicher_migrieren`.
 - **Fehler-Monitoring (selbst gehostet, statt Sentry):** JS-Fehler, unbehandelte Promises, unerwartete LiveKit-Trennungen
   und API-Antworten ≥ 500 aus dem Browser (`POST /api/fehlerbericht`) sowie Ausnahmen des Servers, gruppiert nach
   Fingerabdruck mit Anzahl, erstem/letztem Auftreten, Version und Browser-Familie. Admin-Reiter „Fehler“ (Details, erledigt;
@@ -202,6 +206,8 @@ sh desktop/scripts/docker-bauen.sh     # Desktop-App: Tests + AppImage/deb (arm6
 sh tests/egress/lauf.sh    # Server-Aufnahme + Livestream gegen eigenen Wegwerf-Stapel (Redis, LiveKit, Egress, App)
 sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```
+
+Objektspeicher gegen einen Wegwerf-MinIO: `sh tests/speicher/lauf.sh` (ohne MinIO überspringt pytest diese Tests).
 
 ## Lizenz
 

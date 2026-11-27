@@ -22,7 +22,7 @@ import urllib.request
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from . import aufnahmen, db, meeting, raeume
+from . import aufnahmen, db, meeting, raeume, speicher
 from . import livekit_dienst as lk
 from .kern import benutzer_aus_sitzung, fehler, grenze, iso, jetzt, json_body, text_feld
 from .raeume import besitzer_raum
@@ -153,7 +153,17 @@ def loeschen(code: str, req: Request, sitzung: int = 0):
 
 # ---------------------------------------------------------------- Transkript aus Aufnahme (Whisper)
 def vtt_pfad(aufnahme_id):
+    """Lokaler Pfad (nur Speicher „lokal“); allgemein: vtt_schluessel + speicher.*"""
     return aufnahmen.pfad(aufnahme_id) + '.vtt'
+
+
+def vtt_schluessel(aufnahme_id):
+    return aufnahmen.schluessel(aufnahme_id) + '.vtt'
+
+
+def vtt_lesen(aufnahme_id):
+    roh = speicher.lesen(vtt_schluessel(aufnahme_id))
+    return None if roh is None else roh.decode('utf-8', 'replace')
 
 
 def status(aufnahme_id):
@@ -200,15 +210,13 @@ def whisper_anfrage(pfad, typ):
     return text
 
 
-def _job(aufnahme_id, pfad, typ):
+def _job(aufnahme_id, typ):
     c = db.verbindung()
     with _whisper_lock:                           # ein Job nach dem anderen (Whisper ist rechenintensiv)
         try:
-            vtt = whisper_anfrage(pfad, typ)
-            tmp = vtt_pfad(aufnahme_id) + '.neu'
-            with open(tmp, 'w', encoding='utf-8') as f:
-                f.write(vtt)
-            os.replace(tmp, vtt_pfad(aufnahme_id))
+            with speicher.lokal(aufnahmen.schluessel(aufnahme_id)) as pfad:     # S3: gestreamt nach daten/tmp
+                vtt = whisper_anfrage(pfad, typ)
+            speicher.schreiben(vtt_schluessel(aufnahme_id), vtt.encode('utf-8'))
             c.execute("UPDATE aufnahme_transkript SET status = 'fertig', fehler = NULL, fertig = ? WHERE aufnahme_id = ?", (jetzt(), aufnahme_id))
             a = c.execute('SELECT * FROM aufnahmen WHERE id = ?', (aufnahme_id,)).fetchone()
             for f in NACH_TRANSKRIPT:
@@ -231,7 +239,7 @@ def aufnahme_transkript(i: str, req: Request):
         fehler(409, 'Das Transkript wird schon erstellt.')
     db.verbindung().execute('INSERT OR REPLACE INTO aufnahme_transkript (aufnahme_id, status, fehler, erstellt) VALUES (?, ?, NULL, ?)',
                             (a['id'], 'laeuft', jetzt()))
-    threading.Thread(target=_job, args=(a['id'], aufnahmen.pfad(a['id']), a['typ']), daemon=True).start()
+    threading.Thread(target=_job, args=(a['id'], a['typ']), daemon=True).start()
     db.protokollieren('Transkript aus Aufnahme angefordert', b['id'])
     return {'transkript': {'status': 'laeuft', 'fehler': None}}
 
@@ -241,10 +249,9 @@ def aufnahme_transkript_lesen(i: str, req: Request, format: str = ''):
     _b, a = aufnahmen.eigene(req, i)
     if not format:
         return {'transkript': status(a['id']), 'verfuegbar': bool(WHISPER_URL)}
-    if format not in ('vtt', 'txt') or not os.path.isfile(vtt_pfad(a['id'])):
+    vtt = vtt_lesen(a['id']) if format in ('vtt', 'txt') else None
+    if vtt is None:
         fehler(404, 'Kein Transkript vorhanden.')
-    with open(vtt_pfad(a['id']), encoding='utf-8') as f:
-        vtt = f.read()
     name = re.sub(r'[^A-Za-z0-9 ._-]', '_', a['titel'])[:80] or 'aufnahme'
     if format == 'txt':
         zeilen = [z for z in vtt.splitlines() if z.strip() and z.strip() != 'WEBVTT' and '-->' not in z and not z.strip().isdigit()]
@@ -254,10 +261,7 @@ def aufnahme_transkript_lesen(i: str, req: Request, format: str = ''):
 
 
 def _aufnahme_entfernt(i):
-    try:
-        os.remove(vtt_pfad(i))
-    except FileNotFoundError:
-        pass
+    speicher.loeschen(vtt_schluessel(i))
 
 
 aufnahmen.BEIM_ENTFERNEN.append(_aufnahme_entfernt)

@@ -24,10 +24,9 @@ import time
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import db, verlauf
+from . import db, speicher, verlauf
 from . import livekit_dienst as lk
 from .kern import benutzer_aus_sitzung, fehler, grenze, iso, jetzt
 from .meeting import protokoll, teilnahme
@@ -92,14 +91,16 @@ def clamav_pruefen(pfad, adresse, block=64 * 1024, zeit=60):
 
 
 def pfad(i):
+    """Lokaler Pfad (nur Speicher „lokal“; mit S3 Schlüssel `dateien/<id>`)."""
     return os.path.join(db.DATEN, 'dateien', i)
 
 
+def schluessel(i):
+    return f'dateien/{i}'
+
+
 def entfernen(i):
-    try:
-        os.remove(pfad(i))
-    except FileNotFoundError:
-        pass
+    speicher.loeschen(schluessel(i))
     db.verbindung().execute('DELETE FROM dateien WHERE id = ?', (i,))
 
 
@@ -121,13 +122,12 @@ def aufraeumen(t=None):
     c = db.verbindung()
     for d in c.execute('SELECT id FROM dateien WHERE ablauf IS NOT NULL AND ablauf < ?', (t,)).fetchall():
         entfernen(d['id'])
-    ordner = os.path.join(db.DATEN, 'dateien')
-    if os.path.isdir(ordner):
+    vorhanden = speicher.liste('dateien')
+    if vorhanden:
         bekannt = {d['id'] for d in c.execute('SELECT id FROM dateien').fetchall()}
-        for n in os.listdir(ordner):
-            p = os.path.join(ordner, n)
-            if n not in bekannt and os.path.getmtime(p) < time.time() - 3600:
-                os.remove(p)
+        for n, zeit in vorhanden:
+            if n not in bekannt and zeit < time.time() - 3600 and ID_RE.match(n):
+                speicher.loeschen(schluessel(n))
 
 
 def endung(name):
@@ -153,11 +153,9 @@ def antwort(d, vorschau=False):
     e = d['endung']
     inline = vorschau and e in BILDER
     typ = 'application/octet-stream' if e in GEFAEHRLICH else d['typ']
-    r = FileResponse(pfad(d['id']), media_type=typ, filename=d['name'], content_disposition_type='inline' if inline else 'attachment')
-    r.headers['Content-Security-Policy'] = "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
-    r.headers['X-Content-Type-Options'] = 'nosniff'
-    r.headers['Cross-Origin-Resource-Policy'] = 'same-origin'
-    return r
+    return speicher.antwort(schluessel(d['id']), typ, d['name'], 'inline' if inline else 'attachment', {
+        'Content-Security-Policy': "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'",
+        'X-Content-Type-Options': 'nosniff', 'Cross-Origin-Resource-Policy': 'same-origin'})
 
 
 def laden(r, i):
@@ -199,7 +197,6 @@ async def hochladen(code: str, req: Request):
         fehler(507, 'Der Speicher für Dateien in diesem Meeting ist voll (200 MB).')
     i = secrets.token_urlsafe(16)
     tmp = os.path.join(db.DATEN, 'tmp', 'datei-' + i)
-    os.makedirs(os.path.join(db.DATEN, 'dateien'), exist_ok=True)
     n = 0
     try:
         with open(tmp, 'wb') as f:
@@ -219,16 +216,24 @@ async def hochladen(code: str, req: Request):
         if not sauber:
             protokoll(t, r, 'Datei abgelehnt: Virus gefunden')
             fehler(422, f'Die Datei wurde abgelehnt: Virenprüfung meldet „{befund}“.')
+        await run_in_threadpool(speicher.ablegen, schluessel(i), tmp)      # S3: Upload nicht unter der DB-Sperre
         c = db.verbindung()
-        c.execute('BEGIN IMMEDIATE')
-        if belegt(r) + n > MAX_MEETING:          # nochmal unter Sperre (parallele Uploads)
-            c.execute('ROLLBACK')
-            fehler(507, 'Der Speicher für Dateien in diesem Meeting ist voll (200 MB).')
-        c.execute('INSERT INTO dateien (id, raum_id, sitzung, identity, von_name, name, endung, typ, groesse, geprueft, erstellt) '
-                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                  (i, r['id'], r['sitzung'], t['identity'], t['name'], name, e, TYPEN.get(e, 'application/octet-stream'), n, int(bool(adresse)), jetzt()))
-        os.replace(tmp, pfad(i))
-        c.execute('COMMIT')
+        eingetragen = False
+        try:
+            c.execute('BEGIN IMMEDIATE')
+            if belegt(r) + n > MAX_MEETING:          # nochmal unter Sperre (parallele Uploads)
+                c.execute('ROLLBACK')
+                fehler(507, 'Der Speicher für Dateien in diesem Meeting ist voll (200 MB).')
+            c.execute('INSERT INTO dateien (id, raum_id, sitzung, identity, von_name, name, endung, typ, groesse, geprueft, erstellt) '
+                      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                      (i, r['id'], r['sitzung'], t['identity'], t['name'], name, e, TYPEN.get(e, 'application/octet-stream'), n, int(bool(adresse)), jetzt()))
+            c.execute('COMMIT')
+            eingetragen = True
+        finally:
+            if not eingetragen:
+                if c.in_transaction:
+                    c.execute('ROLLBACK')
+                speicher.loeschen(schluessel(i))
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)

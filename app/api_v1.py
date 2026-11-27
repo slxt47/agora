@@ -6,12 +6,11 @@ kein CORS. Antworten wie die übrige API: JSON, Fehler `{"fehler": "…"}`.
 """
 import hashlib
 import hmac
-import os
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from . import aufnahmen, db, raeume
+from . import aufnahmen, db, raeume, speicher
 from . import livekit_dienst as lk
 from .api_schluessel import pruefen
 from .kern import GEHEIM, SEITE, client_ip, fehler, grenze, iso, jetzt, json_body
@@ -195,6 +194,6 @@ def download(aufnahme_id: str, req: Request, bis: int = 0, sig: str = ''):
     grenze.pruefen('v1-download:' + client_ip(req), 120, 600)
     a = db.verbindung().execute('SELECT * FROM aufnahmen WHERE id = ?', (aufnahme_id,)).fetchone() if aufnahmen.ID_RE.match(aufnahme_id) else None
     if not a or bis < jetzt() or bis > jetzt() + DOWNLOAD_S or len(sig) != 64 \
-            or not hmac.compare_digest(sig, signatur(a['id'], a['benutzer_id'], bis)) or not os.path.isfile(aufnahmen.pfad(a['id'])):
+            or not hmac.compare_digest(sig, signatur(a['id'], a['benutzer_id'], bis)) or not speicher.existiert(aufnahmen.schluessel(a['id'])):
         return JSONResponse({'fehler': 'Der Download-Link ist ungültig oder abgelaufen.'}, status_code=403)
     return aufnahmen.datei_antwort(a, herunterladen=True)

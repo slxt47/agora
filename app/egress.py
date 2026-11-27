@@ -15,7 +15,6 @@ im Hintergrund jede Minute.
 import os
 import re
 import secrets
-import shutil
 import socket
 import time
 from urllib.parse import urlsplit
@@ -23,7 +22,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Request
 from starlette.concurrency import run_in_threadpool
 
-from . import aufnahmen, db, meeting, raeume
+from . import aufnahmen, db, meeting, raeume, speicher
 from . import livekit_dienst as lk
 from .kern import fehler, grenze, iso, jetzt, json_body, text_feld
 from .netz import oeffentlich
@@ -116,7 +115,7 @@ def registrieren(e, info):
               'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
               (i, e['benutzer_id'], e['titel'] or 'Server-Aufnahme', e['raum_code'], groesse, 'video/mp4', info.get('dauer'), jetzt(),
                jetzt() + aufnahmen.AUFBEWAHRUNG_S, org_id))
-    shutil.move(quelle, aufnahmen.pfad(i))       # gleiches Dateisystem: umbenennen, sonst kopieren + löschen
+    speicher.ablegen(aufnahmen.schluessel(i), quelle)   # lokal: umbenennen (sonst kopieren + löschen); S3: hochladen + löschen
     db.protokollieren('Server-Aufnahme in der Bibliothek', e['benutzer_id'], e['raum_code'])
     zeile = c.execute('SELECT * FROM aufnahmen WHERE id = ?', (i,)).fetchone()
     for f in aufnahmen.NACH_NEU + NACH_SERVER_AUFNAHME:

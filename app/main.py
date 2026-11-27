@@ -48,12 +48,14 @@ from . import android         # Android-TWA: /.well-known/assetlinks.json (nur m
 from . import push            # Push-Benachrichtigungen (Web Push, opt-in je Gerät)
 from . import dolmetsch       # Dolmetscher-Kanäle (Spur dolmetsch:<sprache>, Rechte vom Server)
 from . import zusammenfassung  # KI-Zusammenfassung + Kapitel (AGORA_KI_URL), Stichwort-Kapitel ohne KI
+from . import speicher         # Speicher für Aufnahmen/Dateien: lokal (Standard) oder S3-kompatibel (AGORA_S3_*)
 from . import fehlerbericht    # Fehler-Monitoring (Browser + Server, gruppiert, Admin-Reiter „Fehler“)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
 
 db.einrichten()      # idempotent; gleich beim Laden, damit auch Tests ohne Lifespan eine Datenbank haben
+speicher.aktiv()     # Objektspeicher (lokal oder S3) prüfen: unvollständige AGORA_S3_*-Angaben → Start bricht ab
 
 
 @asynccontextmanager

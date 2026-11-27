@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 157 Punkte erledigt und live auf https://agora.slxt.dev (HLS und Server-Aufnahme brauchen Egress, das in Produktion aus ist), 10 offen – jeweils mit Grund.
+> Stand 27.11.2026: 158 Punkte erledigt und live auf https://agora.slxt.dev (HLS und Server-Aufnahme brauchen Egress, das in Produktion aus ist), 9 offen – jeweils mit Grund.
 
 ---
 
@@ -193,7 +193,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🔴 Web-App (Chrome, Firefox, Safari, Edge)
 - [x] 🟡 PWA (installierbar)
 - [x] 🟢 Desktop-App (Electron/Tauri) mit systemweiten Tastenkürzeln — *Electron in `desktop/`, Linux-Pakete lokal gebaut + Smoke-Test; Windows/macOS nur im Workflow, unsigniert (Zertifikate: Florian), siehe [`DESKTOP.md`](DESKTOP.md)*
-- [ ] 🟢 Mobile Apps (iOS/Android oder React Native/Flutter) — *Android als TWA in `mobil/android/` + Workflow (APK lokal nicht gebaut: Build-Werkzeuge nur x86_64), Play-Store-Eintrag/Signatur und iOS-App (Mac + Apple-Konto) offen (Florian); iOS nutzt die PWA, siehe [`MOBIL.md`](MOBIL.md)*
+- [ ] 🟢 Mobile Apps (iOS/Android oder React Native/Flutter) — *Android: TWA in `mobil/android/`, Debug-APK baut in GitHub Actions (geprüft 27.11.2026); offen: Play-Store-Signatur/-Eintrag und iOS-App (Mac + Apple-Entwicklerkonto, Florian)*
 - [x] 🟢 Browser-Kompatibilitätsmatrix testen (insbesondere Safari/iOS) — *Chromium, Firefox, WebKit automatisch (`BROWSER=… sh tests/e2e/lauf.sh`, [`BROWSER.md`](BROWSER.md)); echter Safari/iOS-Praxistest (Mac/iPhone) bleibt Handarbeit*
 - [x] 🟢 Einbettbares SDK / iFrame / Widget
 
@@ -205,7 +205,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🔴 WebSocket-Gateway für Signalisierung & Events
 - [x] 🔴 Datenbank-Schema (Users, Meetings, Participants, Recordings, Chat)
 - [x] 🔴 Migrationen
-- [ ] 🟡 Redis für Präsenz, Pub/Sub, Rate-Limits — *optional umgesetzt: Begrenzer + Präsenz in Redis (`AGORA_REDIS_URL`), mehrere Worker getestet; Pub/Sub fehlt (Ereignisse laufen über den LiveKit-Datenkanal), in Produktion nicht eingeschaltet*
+- [x] 🟡 Redis für Präsenz, Pub/Sub, Rate-Limits — *optional (`AGORA_REDIS_URL`): Begrenzer + Präsenz, mehrere Worker getestet; Pub/Sub nicht nötig, Ereignisse laufen über den LiveKit-Datenkanal*
 - [x] 🟡 Object Storage für Aufzeichnungen und Dateien — *optional S3-kompatibel (Aufnahmen, Transkripte, Dateien), Migration per Skript; Standard weiter lokal unter daten/*
 - [x] 🟡 E-Mail-Versand (Einladungen, Reset)
 - [x] 🟡 Hintergrund-Jobs / Queue (Transkodierung, Mails, Aufräumen)

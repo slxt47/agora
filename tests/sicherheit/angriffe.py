@@ -1234,6 +1234,281 @@ def fernsteuerung(br, lk_js):
         c.close()
 
 
+# ---------------------------------------------------------------- Anmeldung über OAuth/OIDC + Firmen-Login
+# Die Instanz zeigt „Google“ auf einen nachgebauten Anbieter (IDP_URL, startet hier im Test-Container, siehe
+# docker-compose.sicherheit.yml). Er signiert id_token mit einem eigenen RSA-Schlüssel (reines Python – im Playwright-
+# Image gibt es kein cryptography) und kann jedes Feld verfälschen; der Token-Endpunkt prüft PKCE wie ein echter Anbieter.
+IDP_URL = os.environ.get('IDP_URL', 'http://127.0.0.1:8201')
+_SHA256_INFO = bytes.fromhex('3031300d060960864801650304020105000420')
+
+
+def _primzahl(bits):
+    while True:
+        n = secrets.randbits(bits) | (1 << (bits - 1)) | 1
+        if all(n % p for p in (3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37)) and _mr(n):
+            return n
+
+
+def _mr(n, runden=24):
+    d, r = n - 1, 0
+    while d % 2 == 0:
+        d //= 2
+        r += 1
+    for _ in range(runden):
+        x = pow(secrets.randbelow(n - 3) + 2, d, n)
+        if x in (1, n - 1):
+            continue
+        for _ in range(r - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
+
+
+class RsaSchluessel:
+    def __init__(self):
+        while True:
+            p, q = _primzahl(1024), _primzahl(1024)
+            phi = (p - 1) * (q - 1)
+            if p != q and phi % 65537:
+                break
+        self.n, self.e = p * q, 65537
+        self.d = pow(self.e, -1, phi)
+
+    def jwk(self, kid):
+        zahl = lambda x: b64u(x.to_bytes((x.bit_length() + 7) // 8, 'big'))   # noqa: E731
+        return {'kty': 'RSA', 'n': zahl(self.n), 'e': zahl(self.e), 'kid': kid, 'use': 'sig', 'alg': 'RS256'}
+
+    def signieren(self, daten):
+        k = (self.n.bit_length() + 7) // 8
+        t = _SHA256_INFO + hashlib.sha256(daten).digest()
+        em = b'\x00\x01' + b'\xff' * (k - len(t) - 3) + b'\x00' + t
+        return pow(int.from_bytes(em, 'big'), self.d, self.n).to_bytes(k, 'big')
+
+
+def jwt_bauen(kopf, claims, key=None, hs_geheim=None):
+    teil = lambda d: b64u(json.dumps(d, separators=(',', ':')).encode())   # noqa: E731
+    roh = f'{teil(kopf)}.{teil(claims)}'.encode()
+    if kopf.get('alg') == 'none':
+        return roh.decode() + '.'
+    if hs_geheim is not None:
+        return roh.decode() + '.' + b64u(hmac.new(hs_geheim, roh, hashlib.sha256).digest())
+    return roh.decode() + '.' + b64u(key.signieren(roh))
+
+
+class FakeAnbieter:
+    """Kleiner OIDC-Anbieter (Discovery, JWKS, Token mit PKCE-Prüfung). Codes stellt der Test selbst aus."""
+    def __init__(self, url):
+        import http.server
+        import threading
+        self.url = url.rstrip('/')
+        u = urllib.parse.urlsplit(self.url)
+        self.key, self.fremd = RsaSchluessel(), RsaSchluessel()
+        self.codes = {}
+        anbieter = self
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def antwort(self, status, d):
+                b = json.dumps(d).encode()
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(b)))
+                self.end_headers()
+                self.wfile.write(b)
+
+            def do_GET(self):
+                if self.path == '/.well-known/openid-configuration':
+                    self.antwort(200, {'issuer': anbieter.url, 'authorization_endpoint': anbieter.url + '/auth',
+                                       'token_endpoint': anbieter.url + '/token', 'jwks_uri': anbieter.url + '/jwks'})
+                elif self.path == '/jwks':
+                    self.antwort(200, {'keys': [anbieter.key.jwk('k1')]})
+                else:
+                    self.antwort(404, {'error': 'not_found'})
+
+            def do_POST(self):
+                f = {k: v[0] for k, v in urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length', 0))).decode()).items()}
+                self.antwort(*anbieter.token(f))
+
+        self.server = http.server.ThreadingHTTPServer((u.hostname, u.port), H)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def code(self, start_url, art=None, **claims):
+        q = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlsplit(start_url).query).items()}
+        c = secrets.token_urlsafe(16)
+        self.codes[c] = {'q': q, 'art': art, 'claims': claims}
+        return q['state'], c
+
+    def token(self, f):
+        e = self.codes.pop(f.get('code'), None)
+        if f.get('client_id') != 'agora-angriff' or f.get('client_secret') != 'angriff-geheim':
+            return 401, {'error': 'invalid_client'}
+        if not e:
+            return 400, {'error': 'invalid_grant'}
+        q = e['q']
+        if b64u(hashlib.sha256(f.get('code_verifier', '').encode()).digest()) != q['code_challenge'] or f.get('redirect_uri') != q['redirect_uri']:
+            return 400, {'error': 'invalid_grant'}          # PKCE / redirect_uri passen nicht
+        t = int(time.time())
+        claims = {'iss': self.url, 'aud': 'agora-angriff', 'sub': 'x', 'email': 'x@example.org', 'email_verified': True,
+                  'name': 'Angriff', 'iat': t, 'exp': t + 600, 'nonce': q.get('nonce')} | e['claims']
+        kopf, art = {'alg': 'RS256', 'typ': 'JWT', 'kid': 'k1'}, e['art']
+        if art == 'none':
+            tok = jwt_bauen({'alg': 'none', 'typ': 'JWT'}, claims)
+        elif art == 'hs256':      # öffentlichen Schlüssel als HMAC-Geheimnis (Algorithmus-Verwechslung)
+            tok = jwt_bauen({'alg': 'HS256', 'typ': 'JWT', 'kid': 'k1'}, claims, hs_geheim=json.dumps(self.key.jwk('k1')).encode())
+        elif art == 'fremd':
+            tok = jwt_bauen(kopf, claims, self.fremd)
+        elif art == 'kid':
+            tok = jwt_bauen(kopf | {'kid': 'unbekannt'}, claims, self.fremd)
+        elif art == 'kaputt':
+            tok = jwt_bauen(kopf, claims, self.key)[:-6] + 'AAAAAA'
+        else:
+            tok = jwt_bauen(kopf, claims, self.key)
+        return 200, {'access_token': 'x', 'token_type': 'Bearer', 'id_token': tok}
+
+
+class Browser(Sitzung):
+    """Sitzung, die zusätzlich das Bindungs-Cookie der Anmeldung (<cookie>-anmeldung) mitführt."""
+    def __init__(self):
+        super().__init__()
+        self.bindung = None
+
+    def __call__(self, methode, pfad, j=None, kopf=None, **kw):
+        k = dict(kopf or {})
+        if self.bindung:
+            k['Cookie'] = '; '.join(filter(None, [f'{COOKIE}={self.cookie}' if self.cookie else '', f'{COOKIE}-anmeldung={self.bindung}']))
+        r = super().__call__(methode, pfad, j, kopf=k, **kw)
+        for v in r.kopf.get('set-cookie', []):
+            m = re.match(rf'{COOKIE}-anmeldung=([^;]*)', v)
+            if m:
+                self.bindung = m.group(1).strip('"') or None
+        return r
+
+    def angemeldet(self):
+        return bool(self.get('/api/konto/ich').json().get('angemeldet'))
+
+
+def _grund(r):
+    ort = r.k('location')
+    return urllib.parse.parse_qs(urllib.parse.urlsplit(ort).query).get('grund', [ort])[0]
+
+
+def oauth():
+    fake = FakeAnbieter(IDP_URL)
+    e = roh('GET', '/api/einstellungen').json()
+    if not pruefen('Gegenprobe: Instanz bietet „Google“ (nachgebauter Anbieter) an', e.get('anmeldung') == [{'id': 'google', 'name': 'Google'}], e):
+        return
+
+    def start(b, **j):
+        r = b.post('/api/anmeldung/google/start', j)
+        assert r.status == 200, r
+        return r.json()['url']
+
+    def zurueck(b, state, code):
+        return b.get('/api/anmeldung/google/zurueck?' + urllib.parse.urlencode({'state': state, 'code': code}))
+
+    def lauf(art=None, b=None, start_json=None, **claims):
+        b = b or Browser()
+        s, c = fake.code(start(b, **(start_json or {})), art, **claims)
+        return b, zurueck(b, s, c)
+
+    # Gegenprobe: ein normaler Ablauf klappt
+    b, r = lauf(sub='gegen-' + secrets.token_hex(4), email=f'oauth{secrets.token_hex(4)}@example.org')
+    pruefen('Gegenprobe: gültiges id_token → angemeldet', r.status == 303 and r.k('location') == '/' and b.angemeldet(), r)
+
+    # Nicht eingerichtete Anbieter gibt es nicht
+    for a in ('microsoft', 'github', 'saml', '..%2Fgoogle'):
+        pruefen(f'nicht eingerichteter Anbieter {a}: Start abgelehnt', abgelehnt(Browser().post(f'/api/anmeldung/{a}/start')))
+
+    # id_token verfälscht → nie angemeldet, kein Konto
+    t = int(time.time())
+    falsch = [('aud fremd', None, {'aud': 'fremde-app'}), ('aud-Liste ohne azp', None, {'aud': ['agora-angriff', 'fremd']}),
+              ('iss fremd', None, {'iss': 'https://boese.example'}), ('abgelaufen', None, {'exp': t - 3600, 'iat': t - 4000}),
+              ('iat in der Zukunft', None, {'iat': t + 3600, 'exp': t + 7200}), ('nonce fremd', None, {'nonce': 'fremd'}),
+              ('nonce fehlt', None, {'nonce': None}), ('alg none', 'none', {}), ('HS256 mit öffentlichem Schlüssel', 'hs256', {}),
+              ('fremder Schlüssel', 'fremd', {}), ('unbekannte kid', 'kid', {}), ('Signatur kaputt', 'kaputt', {})]
+    for name, art, claims in falsch:
+        email = f'tok{secrets.token_hex(4)}@example.org'
+        b, r = lauf(art, sub='tok-' + secrets.token_hex(4), email=email, **claims)
+        pruefen(f'id_token {name}: abgelehnt', _grund(r) == 'token' and not b.cookie and not b.angemeldet(), r)
+
+    # state / Bindung / Wiederholung / PKCE
+    b = Browser()
+    pruefen('erfundener state: abgelehnt', _grund(zurueck(b, 'x' * 43, 'abc')) == 'ungueltig' and not b.cookie)
+    angreifer = Browser()
+    s, c = fake.code(start(angreifer), sub='csrf-' + secrets.token_hex(4), email=f'csrf{secrets.token_hex(4)}@example.org')
+    opfer = Browser()
+    r = zurueck(opfer, s, c)
+    pruefen('Login-CSRF: fremder code+state im Opfer-Browser abgelehnt', _grund(r) == 'ungueltig' and not opfer.angemeldet(), r)
+    r = zurueck(angreifer, s, c)
+    pruefen('Gegenprobe: eigener Browser schließt ab', r.k('location') == '/' and angreifer.angemeldet(), r)
+    pruefen('state ein zweites Mal: abgelehnt', _grund(zurueck(Browser(), s, c)) == 'ungueltig' and _grund(zurueck(angreifer, s, c)) == 'ungueltig')
+    # Code-Injektion: Angreifer stiehlt keinen Code, sondern schiebt seinen eigenen (an seine PKCE-challenge gebunden) in
+    # den Vorgang des Opfers – der code_verifier des Opfers passt nicht → der Anbieter verweigert den Tausch
+    a2, o2 = Browser(), Browser()
+    _sa, ca = fake.code(start(a2), sub='inj-' + secrets.token_hex(4), email=f'inj{secrets.token_hex(4)}@example.org')
+    so, _co = fake.code(start(o2))
+    r = zurueck(o2, so, ca)
+    pruefen('Code-Injektion (PKCE): abgelehnt', _grund(r) == 'anbieter' and not o2.angemeldet(), r)
+
+    # offene Umleitung über `weiter`
+    for w in ('//evil.example', 'https://evil.example', '/\\evil.example', '/%2F%2Fevil.example', 'javascript:alert(1)', '/\t/evil.example'):
+        b, r = lauf(start_json={'weiter': w}, sub='w-' + secrets.token_hex(4), email=f'w{secrets.token_hex(4)}@example.org')
+        pruefen(f'weiter={w!r}: keine fremde Umleitung', r.status == 303 and r.k('location') == '/', r.k('location'))
+
+    # Kontoübernahme
+    opfer = konto_anlegen('OAuth Opfer')
+    b, r = lauf(sub='take-' + secrets.token_hex(4), email=opfer.email, email_verified=False)
+    pruefen('unbestätigte Adresse eines bestehenden Kontos: abgelehnt', _grund(r) == 'email_unbestaetigt' and not b.angemeldet(), r)
+    b, r = lauf(sub='take2-' + secrets.token_hex(4), email=opfer.email)
+    pruefen('bestätigte Adresse eines bestehenden Kontos: NICHT angemeldet (Passwort nötig)',
+            r.k('location').startswith('/#verknuepfen=') and not b.angemeldet() and not b.cookie, r)
+    token = r.k('location').split('=', 1)[1]
+    fremd = Browser()
+    pruefen('Verknüpfen-Token aus anderem Browser: abgelehnt',
+            abgelehnt(fremd.post('/api/anmeldung/verknuepfen', {'token': token, 'passwort': opfer.pw})) and not fremd.angemeldet())
+    pruefen('Verknüpfen-Info aus anderem Browser: nichts', abgelehnt(fremd.post('/api/anmeldung/offen', {'token': token})))
+    stati = [b.post('/api/anmeldung/verknuepfen', {'token': token, 'passwort': f'falsch-{i}-xxxxx'}).status for i in range(6)]
+    r = b.post('/api/anmeldung/verknuepfen', {'token': token, 'passwort': opfer.pw})
+    pruefen('Verknüpfen: Passwort raten – nach 5 Versuchen ist das Token tot', abgelehnt(r) and not b.angemeldet(), (stati, r))
+    # vorab registriertes (unbestätigtes) Konto mit Angreifer-Passwort
+    email = f'vorab{secrets.token_hex(4)}@example.org'
+    Sitzung().post('/api/konto/registrieren', {'name': 'Vorab', 'email': email, 'passwort': 'angreifer-passwort-1'})
+    b, r = lauf(sub='vorab-' + secrets.token_hex(4), email=email)
+    pruefen('Gegenprobe: echte Person meldet sich über den Anbieter an', r.k('location') == '/' and b.angemeldet(), r)
+    r = Sitzung().post('/api/konto/anmelden', {'email': email, 'passwort': 'angreifer-passwort-1'})
+    pruefen('vorab angelegtes Konto: Angreifer-Passwort gilt danach nicht', abgelehnt(r) and 'ok' not in (r.json() or {}), r)
+    # Trennen nur mit Passwort im Konto
+    lid = b.get('/api/konto/anmeldungen').json()['verknuepft'][0]['id']
+    pruefen('Konto ohne Passwort: letzte Verknüpfung trennen abgelehnt', b.delete(f'/api/konto/anmeldungen/{lid}').status == 409)
+    pruefen('fremde Verknüpfung trennen: 404', opfer.delete(f'/api/konto/anmeldungen/{lid}').status == 404)
+    pruefen('Konto ohne Passwort löschen ohne Bestätigung: abgelehnt', abgelehnt(b.delete('/api/konto', {})))
+
+    # Firmen-Login: nur Owner, keine Ziele im eigenen Netz, Geheimnis nie lesbar
+    chef = konto_anlegen('Firma Chef', email=f'chef{secrets.token_hex(3)}@angriff-firma.example')
+    fremd = konto_anlegen('Firma Fremd')
+    slug = chef.post('/api/orgs', {'name': 'SSO ' + secrets.token_hex(3)}).json()['org']['slug']
+    basis = {'client_id': 'x', 'client_secret': 'geheim-' + secrets.token_hex(8), 'domain': chef.email.split('@')[1]}
+    for ziel in ('http://127.0.0.1:8110', 'https://127.0.0.1', 'https://localhost', 'https://169.254.169.254/latest', 'https://[::1]',
+                 'https://10.0.0.1', 'https://[64:ff9b::7f00:1]', 'https://[::ffff:127.0.0.1]', 'file:///etc/passwd', IDP_URL):
+        r = chef.put(f'/api/orgs/{slug}/sso', basis | {'issuer': ziel})
+        pruefen(f'Firmen-Login SSRF: Aussteller {ziel} abgelehnt', r.status == 400, r)
+    for m, j in (('GET', None), ('PUT', basis | {'issuer': 'https://idp.example.org'}), ('DELETE', None)):
+        r = fremd(m, f'/api/orgs/{slug}/sso', j)
+        pruefen(f'Firmen-Login {m} durch Fremde: 404', r.status == 404, r)
+    for dom in ('gmail.com', 'example.org', 'slxt.dev'):
+        r = chef.put(f'/api/orgs/{slug}/sso', basis | {'issuer': 'https://idp.example.org', 'domain': dom})
+        pruefen(f'Firmen-Login: fremde/Freemail-Domain {dom} abgelehnt', r.status == 400, r)
+    g = chef.get(f'/api/orgs/{slug}/sso')
+    pruefen('Firmen-Login: Geheimnis nie in der Antwort', g.status == 200 and basis['client_secret'] not in g.text, g)
+    r = Browser().post('/api/anmeldung/firma/start', {'email': 'x@nirgends.example'})
+    pruefen('Firmen-Login ohne Einrichtung: kein Start', r.status == 404, r)
+
+
 # ================================================================= Ablauf
 def main():
     print(f'Sicherheitstest gegen {B} (LiveKit {LK_URL})', flush=True)
@@ -1243,7 +1518,7 @@ def main():
     ctx = adm = None
     schritte = [('kopfzeilen', kopfzeilen), ('csrf', csrf), ('anmeldung', anmeldung), ('idor', idor), ('rollen', rollen),
                 ('token', None), ('ssrf', ssrf), ('pfade', None), ('groessen', groessen), ('brute', brute), ('sqli', sqli),
-                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('fehlerbericht', None), ('hls', hls), ('browser', None)]
+                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('fehlerbericht', None), ('hls', hls), ('oauth', oauth), ('browser', None)]
     abbrueche = []
     noetig = set(NUR)
     for n in list(NUR):

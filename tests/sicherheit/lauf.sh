@@ -9,6 +9,7 @@
 set -e
 cd "$(dirname "$0")"
 export APP_PORT=${APP_PORT:-8195} LK_PORT=${LK_PORT:-7790}
+export IDP_PORT=${IDP_PORT:-$((APP_PORT+9))}          # nachgebauter OIDC-Anbieter (startet angriffe.py)
 export COMPOSE_PROJECT_NAME="agora-sicherheit-$APP_PORT"
 export LK_CONFIG="/tmp/agora-livekit-sicherheit-$APP_PORT.yaml"
 LKJS="$(cd ../../web && pwd)/node_modules/livekit-client/dist/livekit-client.umd.js"
@@ -28,5 +29,5 @@ docker build -q -t agora-playwright:1.64.1 -f ../e2e/Dockerfile.playwright ../e2
 FSJS="$(cd ../../desktop/src && pwd)/fernsteuerung.js"     # Prüfregeln der Desktop-App (Fernsteuerung)
 docker run --rm --network host --ipc=host -v "$PWD:/s:ro" -v "$LKJS:/lk.js:ro" -v "$FSJS:/fs.js:ro" -e FS_JS=/fs.js \
   -e "BASIS=http://127.0.0.1:$APP_PORT" -e "LK_URL=ws://127.0.0.1:$LK_PORT" -e "LK_API=http://127.0.0.1:$LK_PORT" \
-  -e LK_KEY=testschluessel -e LK_SECRET=testgeheimnis-testgeheimnis-testgeheimnis-123 -e LK_JS=/lk.js \
+  -e "IDP_URL=http://127.0.0.1:$IDP_PORT" -e LK_KEY=testschluessel -e LK_SECRET=testgeheimnis-testgeheimnis-testgeheimnis-123 -e LK_JS=/lk.js \
   agora-playwright:1.64.1 python3 /s/angriffe.py

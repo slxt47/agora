@@ -8,3 +8,9 @@ services:
       AGORA_WEBHOOK_LOKAL: "0"
       AGORA_EGRESS: "1"                 # Egress-/HLS-Endpunkte angreifbar machen (ohne Egress-Dienst: Start → 502)
       AGORA_HLS: "1"
+      # „Google“ zeigt auf einen nachgebauten Anbieter, den angriffe.py selbst startet (verfälschte id_token, PKCE)
+      AGORA_GOOGLE_CLIENT_ID: agora-angriff
+      AGORA_GOOGLE_CLIENT_SECRET: angriff-geheim
+      AGORA_GOOGLE_DISCOVERY: http://127.0.0.1:${IDP_PORT:-8204}/.well-known/openid-configuration
+      AGORA_GOOGLE_ISSUER: http://127.0.0.1:${IDP_PORT:-8204}
+      AGORA_FIRMEN_LOGIN: "1"           # Firmen-Login an, aber OHNE AGORA_SSO_LOKAL: Ziele im eigenen Netz verboten (SSRF)

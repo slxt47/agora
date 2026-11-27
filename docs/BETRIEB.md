@@ -38,6 +38,10 @@ beiden, bleibt der Anbieter aus (keine Knöpfe, Routen 404). Registrierung bei d
 `accounts.google.com`/`oauth2.googleapis.com`/`www.googleapis.com`, `login.microsoftonline.com`, `github.com` und
 `api.github.com`. **Microsoft-Geheimnis läuft ab** (höchstens 24 Monate): Termin notieren und rechtzeitig erneuern.
 Fehlversuche stehen im Protokoll (`Anmeldung Google gescheitert: token (…)`), ohne Codes oder Tokens.
+Beweis ohne echte Zugangsdaten: `APP_PORT=8291 LK_PORT=7900 sh tests/e2e/sso.sh` startet einen Wegwerf-Dex
+(`dexidp/dex:v2.44.0`, per Digest gepinnt, Port `DEX_PORT`=5556) und meldet sich im Browser über „Google“ (→ Dex) und den
+Firmen-Login an; der Sicherheitstest (`tests/sicherheit/lauf.sh`) greift mit einem eigenen bösen Anbieter an
+(`IDP_PORT`, Standard APP_PORT+9).
 
 ## Firmen-Login (OIDC je Organisation) – optional, standardmäßig aus
 

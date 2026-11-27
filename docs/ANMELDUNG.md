@@ -5,7 +5,8 @@ Zugangsdaten einträgt – ohne `AGORA_<ANBIETER>_CLIENT_ID` **und** `_CLIENT_SE
 
 Code: `app/anmeldung.py` (Ablauf, Konten), `app/oidc.py` (Protokoll: PKCE, Discovery, JWKS, id_token-Prüfung),
 `web/src/anmeldung-start.js` (Startseite), `web/src/anmeldung-konto.js` (Profil). Tests: `tests/test_anmeldung.py`
-(nachgebauter Anbieter, alle Angriffe), `tests/e2e/sso.sh` (echter Dex im Browser).
+(nachgebauter Anbieter, alle Angriffe), `tests/test_firmen_login.py`, `tests/e2e/sso.sh` (echter Dex im Browser:
+„Google“ und Firmen-Login), `tests/sicherheit/angriffe.py` (Bereich `oauth`, Black-Box mit eigenem bösen Anbieter).
 
 ## Was Florian einrichten muss
 
@@ -131,6 +132,14 @@ Adressen der Domain (`email_verified=false` wird abgelehnt), bestehende Konten n
 Google). „Erzwingen“ sperrt für Mitglieder mit Adresse in der Domain Passwort-Login und Google/Microsoft/GitHub; Owner
 bleiben ausgenommen (Notzugang). Wer per „Passwort vergessen“ ein Passwort setzt, verliert die Firmen-Verknüpfung
 (Postfach bewiesen → der IdP kommt nicht mehr in das Konto) und verknüpft beim nächsten Firmen-Login mit Passwort neu.
+
+## Beweis ohne echte Zugangsdaten
+
+| Test | Was | Aufruf |
+|---|---|---|
+| API | nachgebauter Anbieter in `tests/idp_fake.py`: id_token falsch (aud, aud-Liste/azp, iss, exp, iat, nonce, alg none, HS256 mit öffentlichem Schlüssel, fremder Schlüssel, unbekannte kid), state/Bindung/Ablauf, PKCE, `weiter`, Kontoübernahme, Microsoft-Mandanten, GitHub, Firmen-Login inkl. SSRF | `pytest tests/test_anmeldung.py tests/test_firmen_login.py` |
+| Browser | echter **Dex** (`dexidp/dex:v2.44.0@sha256:5d06…`, arm64/amd64) mit festen Test-Konten: „Google“ → Dex (gleicher Code-Pfad wie Google) und Firmen-Login (Owner richtet Dex in der Oberfläche ein) | `APP_PORT=8291 LK_PORT=7900 sh tests/e2e/sso.sh` |
+| Black-Box | eigener böser OIDC-Anbieter im Test-Container (RSA in reinem Python), Bereich `oauth` | `APP_PORT=8292 LK_PORT=7905 sh tests/sicherheit/lauf.sh` |
 
 ## Vorschlag für die Datenschutzerklärung (slxt.org/datenschutz, Abschnitt Agora)
 

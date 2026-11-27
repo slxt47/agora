@@ -72,6 +72,17 @@ Server angenommen), E2EE (Schlüssel nur im Fragment, Server kennt nur HKDF-Prü
   nativen Dialog der App, und Klicks/Tasten in Agora-Fenster, bei Fokus auf Agora und eigene Kürzel gibt die App nie weiter.
   Im Sicherheitstest geprüft: Pakete einer nicht freigegebenen identity (auch mit gefälschtem Absender im Inhalt) werden
   mit den Regeln der App verworfen, die freigegebene kommt durch, erteilen/beenden nur durch die Berechtigten.
+- **Anmeldung über Google/Microsoft/GitHub und Firmen-Login** (Nachtrag 27.11.2026, `docs/ANMELDUNG.md`, ADR 0008):
+  im Sicherheitstest (Bereich `oauth`, eigener nachgebauter Anbieter) geprüft: verfälschte id_token (aud, aud-Liste ohne
+  azp, iss, exp, iat, nonce, alg none, HS256 mit öffentlichem Schlüssel, fremder Schlüssel, unbekannte kid, kaputte
+  Signatur), erfundener/wiederholter state, Login-CSRF (fremder code+state), Code-Injektion (PKCE), offene Umleitung über
+  `weiter`, Kontoübernahme (unbestätigte Adresse, bestehendes Konto ohne Passwort, Token in fremdem Browser, Passwort
+  raten, vorab registriertes Konto), Firmen-Login-SSRF (localhost, Metadaten-Dienst, NAT64, gemappte IPv4, file:, http:),
+  Rechte (nur Owner), Geheimnis nie in Antworten – alles abgewehrt. Restrisiken: Microsoft-Firmenkonten nur mit
+  `xms_edov` (sonst keine neuen Konten); die Domain einer Organisation ist nur über die bestätigte Adresse des Owners
+  „bewiesen“ (kein DNS-TXT) – belegen ja, fremde Konten übernehmen nein; Konten ohne Passwort hängen am Anbieter (Ausfall
+  oder Sperre dort → „Passwort vergessen“); Discovery/JWKS liegen bis 1 h im Speicher (Schlüsselwechsel beim Anbieter
+  greift über das Neuladen bei unbekannter `kid`).
 - **Sperre eines Kontos durch Admins** beendet Sitzungen und laufende Meetings, lässt aber Freigabe-Links, das
   Kalender-Abo und Gast-Beitritte in die Räume des Kontos bestehen (Richtlinienfrage).
 - **Login-CSRF über Bestätigungslinks:** wer jemandem den Bestätigungslink eines eigenen neuen Kontos schickt,

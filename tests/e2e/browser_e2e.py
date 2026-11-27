@@ -22,7 +22,10 @@ def effekt_waehlen(page, wert, bild):
     page.keyboard.press('Escape')
 
 # Bekannte Browser-Meldung aus @livekit/track-processors (Chromium räumt VideoFrames selbst auf) – kein Fehler von Agora
-BEKANNT = lambda text: 'VideoFrame was garbage collected without being closed' in text
+# „could not find published track“: livekit-client meldet unter Last eine verspätete Track-Info (>3 s) als Fehler,
+# verbindet sich aber selbst weiter – kein Fehler von Agora (beobachtet 26./27.11.2026 bei Serverlast 4–5).
+BEKANNT = lambda text: ('VideoFrame was garbage collected without being closed' in text
+                        or 'could not find published track' in text)
 
 
 def totp(geheim, versatz=0):

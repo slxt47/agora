@@ -56,6 +56,33 @@ def mit_sprache(s):
 
 # ---------------------------------------------------------------- Fehlermeldungen
 FEHLER_EN = {
+    # ==== Block Push-Benachrichtigungen ====
+    'Ungültige Push-Adresse.': 'Invalid push address.',
+    'Dieser Push-Dienst ist nicht freigegeben.': 'This push service isn’t allowed.',
+    'Ungültige Push-Schlüssel.': 'Invalid push keys.',
+    'Höchstens 10 Geräte je Konto – entferne zuerst ein altes.': 'At most 10 devices per account – remove an old one first.',
+    'Gerät nicht gefunden': 'Device not found',
+    'Ereignisse: erinnerung, warteraum, einladung, fertig.': 'Events: erinnerung, warteraum, einladung, fertig.',
+    'Auf keinem Gerät eingeschaltet.': 'Not turned on on any device.',
+    # ==== Ende Block Push-Benachrichtigungen ====
+    # ==== Block Dolmetscher-Kanäle ====
+    'Sprachen: höchstens 8 Sprachcodes wie de, en, fr.': 'Languages: at most 8 language codes like de, en, fr.',
+    'Diese Sprache nutzt noch ein Dolmetscher – erst die Zuweisung entfernen.': 'An interpreter still uses this language – remove the assignment first.',
+    'Diese Sprache ist im Meeting nicht eingerichtet.': 'This language isn’t set up in the meeting.',
+    'Bitte zwei verschiedene Sprachen wählen.': 'Please choose two different languages.',
+    'Höchstens 20 Dolmetscher je Meeting.': 'At most 20 interpreters per meeting.',
+    'Dolmetscher nicht gefunden': 'Interpreter not found',
+    'Du bist in diesem Meeting kein Dolmetscher.': 'You aren’t an interpreter in this meeting.',
+    'Für dieses Sprachpaar ist niemand in Bereitschaft.': 'Nobody is on standby for this language pair.',
+    # ==== Ende Block Dolmetscher-Kanäle ====
+    # ==== Block Zusammenfassung + Kapitel ====
+    'Art: ki oder stichwort.': 'Kind: ki or stichwort.',
+    'Kein Transkript vorhanden.': 'No transcript available.',
+    'Die Zusammenfassung wird schon erstellt.': 'The summary is already being created.',
+    'Die KI-Zusammenfassung ist nicht eingerichtet.': 'The AI summary isn’t set up.',
+    'Bitte bestätige, dass das Transkript an den KI-Dienst geschickt wird.': 'Please confirm that the transcript is sent to the AI service.',
+    'Keine Kapitel vorhanden.': 'No chapters available.',
+    # ==== Ende Block Zusammenfassung + Kapitel ====
     # ==== Block Öffentliche API, Webhooks, Einbetten ====
     'Ungültige Herkunft.': 'Invalid origin.',
     'Zum Einbetten mindestens eine Herkunft angeben (z. B. https://beispiel.de).': 'To embed, provide at least one origin (e.g. https://example.com).',
@@ -403,6 +430,15 @@ MAIL = {
                        'Wenn du das nicht erwartet hast, ignoriere diese Mail einfach.',
         'org.betreff': 'Einladung in „{org}“', 'org.titel': 'Einladung in eine Organisation', 'org.knopf': 'Einladung ansehen',
         'org.vorschau': '{von} lädt dich in „{org}“ ein',
+        # ==== Block Push-Benachrichtigungen (app/push.py) ====
+        'push.erinnerung.titel': '{titel} beginnt bald', 'push.erinnerung.text': '{wann} – in {n} Minuten. Tippen zum Beitreten.',
+        'push.warteraum.titel': 'Jemand wartet: {titel}', 'push.warteraum.text': '{name} wartet im Warteraum deines Meetings.',
+        'push.einladung.titel': 'Einladung: {titel}', 'push.einladung.text': '{name} hat dich eingeladen.',
+        'push.aufnahme.titel': 'Aufnahme fertig', 'push.aufnahme.text': '„{titel}“ liegt jetzt in deiner Bibliothek.',
+        'push.transkript.titel': 'Transkript fertig', 'push.transkript.text': 'Das Transkript zu „{titel}“ ist fertig.',
+        'push.test.titel': 'Agora', 'push.test.text': 'So sehen Benachrichtigungen von Agora aus.',
+        'push.zusammenfassung.titel': 'Zusammenfassung fertig', 'push.zusammenfassung.text': 'Die Zusammenfassung zu „{titel}“ ist fertig.',
+        # ==== Ende Block Push-Benachrichtigungen ====
     },
     'en': {
         'hallo': 'Hi {name},',
@@ -448,6 +484,15 @@ MAIL = {
                        'If you didn’t expect this, just ignore this email.',
         'org.betreff': 'Invitation to “{org}”', 'org.titel': 'Invitation to an organization', 'org.knopf': 'View invitation',
         'org.vorschau': '{von} invites you to “{org}”',
+        # ==== Block Push-Benachrichtigungen (app/push.py) ====
+        'push.erinnerung.titel': '{titel} starts soon', 'push.erinnerung.text': '{wann} – in {n} minutes. Tap to join.',
+        'push.warteraum.titel': 'Someone is waiting: {titel}', 'push.warteraum.text': '{name} is waiting in your meeting’s waiting room.',
+        'push.einladung.titel': 'Invitation: {titel}', 'push.einladung.text': '{name} invited you.',
+        'push.aufnahme.titel': 'Recording ready', 'push.aufnahme.text': '“{titel}” is now in your library.',
+        'push.transkript.titel': 'Transcript ready', 'push.transkript.text': 'The transcript for “{titel}” is ready.',
+        'push.test.titel': 'Agora', 'push.test.text': 'This is what notifications from Agora look like.',
+        'push.zusammenfassung.titel': 'Summary ready', 'push.zusammenfassung.text': 'The summary for “{titel}” is ready.',
+        # ==== Ende Block Push-Benachrichtigungen ====
     },
 }
 

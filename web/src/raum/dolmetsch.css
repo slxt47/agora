@@ -1,0 +1,25 @@
+/* Agora – Dolmetscher-Kanäle: Pult für Dolmetscher (unten links über der Bühne), Kanalwahl, Verwaltung. */
+.dolmetsch-pille.leer { color: var(--warn); }
+.dolmetsch-pult { position: absolute; left: 16px; bottom: 16px; z-index: 7; width: min(340px, calc(100% - 32px));
+  display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; background: rgba(8, 8, 16, .86); color: #fff;
+  border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+.dolmetsch-pult .dm-kopf { display: flex; align-items: center; gap: 8px; }
+.dolmetsch-pult .dm-kopf svg, .dolmetsch-pult .btn svg { width: 18px; height: 18px; }
+.dolmetsch-pult .dm-status { margin: 0; font-size: .875rem; color: #d6d6e6; }
+.dolmetsch-pult .dm-status[data-zustand="sendet"] { color: #7ee2a8; font-weight: 600; }
+.dolmetsch-pult .dm-status[data-zustand="sendet"]::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px;
+  border-radius: 50%; background: #e5484d; vertical-align: middle; }
+.dolmetsch-pult .dm-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; }
+.dolmetsch-pult .btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.dm-kanaele { display: grid; gap: 8px; }
+.dm-kanal { display: grid; text-align: left; gap: 2px; min-height: 48px; padding: 10px 14px; border-radius: 14px; cursor: pointer;
+  background: var(--tile); border: 1px solid var(--card-line); color: inherit; font: inherit; }
+.dm-kanal small { color: var(--sec); font-size: .8125rem; }
+.dm-kanal.an { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.dm-kanal:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.dm-sprachen { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 8px; }
+.dm-sprache { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.dm-sprache input[type="text"] { width: 6.5em; }
+.dm-zuweisen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dm-zuweisen select { min-height: 44px; flex: 1 1 120px; }
+@media (max-width: 640px) { .dolmetsch-pult { left: 8px; right: 8px; width: auto; bottom: 8px; } }

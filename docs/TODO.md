@@ -148,7 +148,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Teilnehmer melden / blockieren
 - [x] 🟢 Teilnehmer umbenennen
 - [x] 🟢 Breakout-Rooms (Zuweisung manuell/automatisch, Timer, Rückruf)
-- [ ] 🟢 Dolmetscher-Kanäle (Simultanübersetzung) — *noch offen*
+- [x] 🟢 Dolmetscher-Kanäle (Simultanübersetzung)
 
 ---
 
@@ -161,7 +161,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Aufzeichnungen-Bibliothek: Liste, Wiedergabe, Download, Löschen
 - [x] 🟢 Freigabelinks mit Passwort / Ablaufdatum
 - [x] 🟢 Automatisches Transkript
-- [ ] 🟢 Zusammenfassung & Kapitelmarken (KI) — *noch offen (bräuchte ein KI-Modell)*
+- [x] 🟢 Zusammenfassung & Kapitelmarken (KI) — *KI nur mit eingerichtetem Modell (`AGORA_KI_URL`), sonst Stichwort-Kapitel ohne KI*
 
 ---
 
@@ -171,7 +171,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟢 Virtuelle Hintergründe (Bilder/Video)
 - [x] 🟢 Videofilter, „Aussehen verbessern“
 - [x] 🟢 Live-Untertitel (Speech-to-Text)
-- [ ] 🟢 Live-Übersetzung der Untertitel — *noch offen*
+- [x] 🟢 Live-Übersetzung der Untertitel (auf dem Gerät, Translator-API des Browsers)
 - [x] 🟡 Tastaturnavigation, Screenreader-Support (ARIA)
 - [x] 🟡 Ausreichender Farbkontrast (WCAG 2.1 AA)
 - [x] 🟢 Mehrsprachige Oberfläche (i18n): Deutsch, Englisch
@@ -256,7 +256,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [ ] 🟢 Abrechnung & Pläne (Free/Pro, Zeitlimits) — *Geschäftsentscheidung (Florian)*
 - [ ] 🟢 Telefon-Einwahl (SIP / PSTN) — *braucht SIP-Anbieter (Florian)*
 - [x] 🟢 Integrationen (Slack, Teams, Webhooks, öffentliche API)
-- [ ] 🟢 Benachrichtigungen (Push, E-Mail-Erinnerungen) — *E-Mail-Erinnerungen fertig, Push offen*
+- [x] 🟢 Benachrichtigungen (Push, E-Mail-Erinnerungen)
 - [x] 🟢 Persistenter Raum-Chat außerhalb von Meetings
 
 ---

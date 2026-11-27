@@ -16,3 +16,7 @@
 /* Meeting-Verlauf: Umfragen im Inhalt-Dialog */
 .verlauf-umfrage { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--tile); border: 1px solid var(--card-line); }
 .verlauf-umfrage ul { margin: 0; padding-left: 18px; }
+/* Zusammenfassung + Kapitel (zusammenfassung-konto.js) */
+.zf-text { margin: 0; line-height: 1.55; white-space: pre-line; }
+.zf-kapitel .mono, .zf-sprung .btn { font-variant-numeric: tabular-nums; }
+.zf-sprung .btn { flex: 0 1 auto; }

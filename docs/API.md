@@ -486,7 +486,7 @@ Streams. Ereignis (Topic `agora`, nur an Host/Co-Hosts): `{typ:"egress", art, st
 ## Live-Untertitel + Transkript (app/untertitel.py)
 | Methode + Pfad | Wer | Body / Antwort |
 |---|---|---|
-| POST `/api/raeume/{code}/untertitel` | X-Teilnahme (nicht `zuschauer`) | `{text ≤500, final: bool, dauer_ms?: 0–120000}` → `{ok}`; verteilt `{identity, name, text, final, zeit}` über Topic `untertitel` (nur vom Server angenommen). Gespeichert nur `final` und nur mit `transkript_speichern`. Grenze 60 je 30 s |
+| POST `/api/raeume/{code}/untertitel` | X-Teilnahme (nicht `zuschauer`) | `{text ≤500, final: bool, dauer_ms?: 0–120000, sprache?: "de"}` → `{ok}`; verteilt `{identity, name, text, final, zeit, sprache?}` (`sprache` = Sprache der Erkennung, nur `^[a-z]{2,3}$`; Grundlage der Übersetzung auf dem Gerät) über Topic `untertitel` (nur vom Server angenommen). Gespeichert nur `final` und nur mit `transkript_speichern`. Grenze 60 je 30 s |
 | PATCH `/api/raeume/{code}/transkript` | Besitzer (Cookie) | `{speichern: bool}`; Metadaten `transkript: true`, Ereignis `{typ:"transkript", an}` |
 | GET `/api/raeume/{code}/transkripte` | Besitzer | `{speichern, aktuelle_sitzung, transkripte:[{sitzung, abschnitte, beginn, ende}]}` |
 | GET `/api/raeume/{code}/transkript?sitzung=&format=txt\|vtt` | Besitzer | Datei (ohne `sitzung`: neuestes Meeting); 404 wenn leer |
@@ -596,3 +596,50 @@ Zustände: Störung `untersuchung → erkannt → beobachtung → behoben`, Wart
 den letzten 14 Tagen beendet. `gesamt`: `stoerung` bei einem ausgefallenen Dienst oder einer offenen Störungs-Meldung,
 `eingeschraenkt` bei einem gestörten Dienst, `wartung` bei laufender Wartung. Uptime = Anteil erfolgreicher Proben (null =
 keine Messung).
+## Push-Benachrichtigungen (app/push.py, app/webpush.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/push` | angemeldet | `{schluessel (VAPID, Base64url, 65 Byte), ereignisse:[…], alle_ereignisse:["erinnerung","warteraum","einladung","fertig"], geraete:[{id, geraet, kennung, erstellt, benutzt}]}` – `kennung` = erste 16 Hex-Zeichen von SHA-256(Adresse), die Adresse selbst kommt nie zurück |
+| POST `/api/push/abo` | angemeldet | wie `PushSubscription.toJSON()`: `{endpoint, keys:{p256dh, auth}, geraet?, alt?}` → `{geraet}`. Nur `https://` bei bekannten Push-Diensten (`AGORA_PUSH_DIENSTE`), Schlüssel geprüft (Punkt auf P-256, 16 Byte auth); gleiches Gerät ersetzt; `alt` = alte Adresse nach `pushsubscriptionchange`; höchstens 10 Geräte; 30/h |
+| DELETE `/api/push/abo/{id}` | angemeldet (eigene) | `{ok}` |
+| PUT `/api/push/ereignisse` | angemeldet | `{ereignisse:[…]}` (Teilmenge) → `{ereignisse}`; ohne Eintrag gelten alle |
+| POST `/api/push/test` | angemeldet | `{geraete: n}`; 400 ohne Gerät; 10/h |
+
+Nutzlast (verschlüsselt, RFC 8291 aes128gcm, VAPID RFC 8292 mit `sub` = `AGORA_VAPID_SUBJEKT` bzw. `AGORA_SEITE`):
+`{titel, text, url, tag}` – `url` ist immer ein Pfad dieser Seite (`/r/<code>`, `/konto#aufnahmen`); der Service Worker
+öffnet nur Pfade der eigenen Herkunft. Kopfzeilen: `TTL` (Erinnerung: Minuten bis zum Termin, Warteraum 30 min, sonst 1 Tag),
+`Urgency` (`high` beim Warteraum), `Topic` (= `tag`). Antwort 404/410 → Gerät gelöscht.
+Hooks: `raeume.NEUE_ANFRAGE` (async f(raum, name)), `raeume.NACH_EINLADUNG` (f(raum, benutzer, adressen)),
+`egress.NACH_SERVER_AUFNAHME`, `untertitel.NACH_TRANSKRIPT` (f(aufnahme_zeile)).
+
+## Dolmetscher-Kanäle (app/dolmetsch.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/dolmetsch` | X-Teilnahme | Zustand `{sprachen:[…], dolmetscher:{identity:{name, a, b, sprache, aktiv}}, kanaele:{sprache: identity}}` |
+| PUT `/api/raeume/{code}/dolmetsch/sprachen` | Host/Co-Host | `{sprachen:["de","en",…]}` (ISO 639, `^[a-z]{2,3}$`, höchstens 8; doppelte entfernt) → Zustand; 400 wenn eine entfernte Sprache noch zugewiesen ist |
+| POST `/api/raeume/{code}/dolmetsch` | Host/Co-Host | `{ziel: identity, a, b}` (zwei verschiedene Sprachen aus der Liste) → Zustand; neue Zielsprache = `b`; auf Sendung, wenn im Paar noch niemand sendet, sonst Bereitschaft; setzt die LiveKit-Rechte neu (Quelle Mikrofon dazu) und Attribut `dolmetsch=1`; höchstens 20 |
+| DELETE `/api/raeume/{code}/dolmetsch/{identity}` | Host/Co-Host | → Zustand; Bereitschaft desselben Paares übernimmt; Rechte zurück, Attribut `dolmetsch` leer |
+| POST `/api/raeume/{code}/dolmetsch/kanal` | der Dolmetscher selbst | `{sprache}` (a oder b) → Zustand |
+| POST `/api/raeume/{code}/dolmetsch/uebergabe` | Dolmetscher bzw. Host/Co-Host | `{an?}`: auf Sendung → an `an` oder die erste Bereitschaft; in Bereitschaft ohne `an` → selbst übernehmen; Host/Co-Host: `an` auf Sendung. Kanal (Zielsprache) bleibt gleich |
+
+Jede Änderung: Raum-Metadaten `dolmetsch` (Zustand oder `null`) und Ereignis `{typ:"dolmetsch", zustand}` (Topic `agora`).
+Spurname `dolmetsch:<sprache>`, Quelle Mikrofon. Zuhörende abonnieren nur die Spur von `kanaele[sprache]`; der Server
+schaltet minütlich (Hook `raeume.BEI_LISTE_ASYNC`) jede andere `dolmetsch:`-Spur stumm (`livekit_dienst.spur_stumm`).
+`livekit_dienst.teilnehmer()` liefert je Spur zusätzlich `name`; `livekit_dienst.extra_quellen(code, identity)` (von
+dolmetsch.py gesetzt) ergänzt die Quellen bei jedem `aktualisieren` mit Rolle.
+
+## Zusammenfassung + Kapitel (app/zusammenfassung.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/zusammenfassung?sitzung=` | wer den Raum verwalten darf (`darf_verwalten`) | `{zusammenfassung: null\|{art, status, fehler, modell, erstellt, fertig, ergebnis}, ki_verfuegbar, ki_ziel}`; ohne `sitzung`: neuestes Transkript |
+| POST `/api/raeume/{code}/zusammenfassung?sitzung=` | ebenso | `{art: "stichwort"}` → sofort `fertig`; `{art: "ki", zustimmung: true}` → `laeuft` (Hintergrund), 404 ohne KI, 400 ohne `zustimmung`, 409 läuft schon, 20/h; ersetzt ein vorhandenes Ergebnis |
+| DELETE `/api/raeume/{code}/zusammenfassung?sitzung=` | ebenso | `{ok}` |
+| GET `/api/raeume/{code}/kapitel.vtt?sitzung=` | ebenso | WebVTT-Kapitel; 404 ohne Kapitel |
+| GET/POST/DELETE `/api/aufnahmen/{id}/zusammenfassung`, GET `/api/aufnahmen/{id}/kapitel.vtt` | Besitzer der Aufnahme | wie oben, Quelle ist das Whisper-Transkript `<id>.vtt` (404 ohne) |
+
+`ergebnis` = `{zusammenfassung: Text|null, kapitel:[{start_ms, titel, sprecher?}], aufgaben:[{text, wer}], teile?}` (Stichwort: ohne
+Zusammenfassung/Aufgaben). `aufnahme_json` hat zusätzlich `zusammenfassung: null|{art, status}`. Die KI bekommt Zeilen
+`[MM:SS] Name: Text` in Teilen von `AGORA_KI_ZEICHEN` Zeichen und antwortet mit JSON; ein Schluss-Aufruf fasst Teile zusammen.
+Hooks: `untertitel.BEIM_LOESCHEN` (f()), `untertitel.NACH_TRANSKRIPT` (neues Whisper-Transkript löscht die alte Zusammenfassung).
+Push-Ereignis `fertig` bei fertiger KI-Zusammenfassung.
+

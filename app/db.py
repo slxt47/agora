@@ -631,6 +631,67 @@ SCHEMA = [
     CREATE INDEX status_meldungen_beginn ON status_meldungen(beginn);
     """,
     # ======== Ende Block „Status-Seite“ ========
+    # ======== Block „Push-Benachrichtigungen“ (app/push.py, app/webpush.py) – Version 28 ========
+    # Je Gerät eine Subscription (Adresse beim Push-Dienst + Schlüssel des Browsers). Nur nach ausdrücklichem Einschalten,
+    # weg beim Ausschalten, wenn der Dienst 404/410 meldet, nach 10 Fehlschlägen in Folge und mit dem Konto.
+    """
+    CREATE TABLE push_abos (
+      id INTEGER PRIMARY KEY,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,
+      endpunkt TEXT NOT NULL UNIQUE,   -- https-Adresse beim Push-Dienst (Fähigkeits-URL)
+      p256dh TEXT NOT NULL,            -- öffentlicher Schlüssel des Browsers (Base64url)
+      auth TEXT NOT NULL,              -- Auth-Geheimnis des Browsers (Base64url)
+      geraet TEXT NOT NULL DEFAULT '', -- Bezeichnung, z. B. „Chrome · Android“
+      erstellt INTEGER NOT NULL,
+      benutzt INTEGER,                 -- letzte erfolgreiche Zustellung
+      fehler_folge INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX push_abos_benutzer ON push_abos(benutzer_id);
+    CREATE TABLE push_einstellung (    -- welche Ereignisse (JSON-Liste); fehlt die Zeile, gelten alle
+      benutzer_id INTEGER PRIMARY KEY REFERENCES benutzer(id) ON DELETE CASCADE,
+      ereignisse TEXT NOT NULL
+    );
+    """,
+    # ======== Ende Block „Push-Benachrichtigungen“ ========
+    # ======== Block „Dolmetscher-Kanäle“ (app/dolmetsch.py) – Version 29 ========
+    # Sprachliste am Raum (bleibt); Zuweisungen nur für das laufende Meeting (beim Ende gelöscht).
+    """
+    ALTER TABLE raeume ADD COLUMN dolmetsch_sprachen TEXT;   -- JSON-Liste von ISO-639-Codes, höchstens 8
+    CREATE TABLE dolmetscher (
+      raum_id INTEGER NOT NULL REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER NOT NULL,
+      identity TEXT NOT NULL,
+      name TEXT NOT NULL,
+      sprache_a TEXT NOT NULL, sprache_b TEXT NOT NULL,   -- Sprachpaar
+      sprache TEXT NOT NULL,           -- aktuelle Zielsprache (a oder b) = Kanal
+      aktiv INTEGER NOT NULL DEFAULT 0, -- 1 = auf Sendung (je Paar höchstens eine Person)
+      seit INTEGER NOT NULL,           -- ms, Reihenfolge
+      PRIMARY KEY (raum_id, identity)
+    );
+    """,
+    # ======== Ende Block „Dolmetscher-Kanäle“ ========
+    # ======== Block „Zusammenfassung + Kapitel“ (app/zusammenfassung.py) – Version 30 ========
+    # Eine Zusammenfassung je Quelle: Transkript eines Meetings (raum_id + sitzung) oder Whisper-Transkript einer Aufnahme.
+    # Weg mit der Aufnahme (CASCADE), mit dem Raum (CASCADE) und – über aufraeumen() – mit dem Transkript (90 Tage).
+    """
+    CREATE TABLE zusammenfassungen (
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER,
+      aufnahme_id TEXT REFERENCES aufnahmen(id) ON DELETE CASCADE,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,   -- wer es ausgelöst hat
+      art TEXT NOT NULL,               -- ki | stichwort
+      status TEXT NOT NULL,            -- laeuft | fertig | fehler
+      fehler TEXT,
+      ergebnis TEXT,                   -- JSON {zusammenfassung, kapitel:[{start_ms, titel, sprecher?}], aufgaben:[{text, wer}], teile?}
+      modell TEXT,
+      erstellt INTEGER NOT NULL,
+      fertig INTEGER,
+      UNIQUE (raum_id, sitzung),
+      UNIQUE (aufnahme_id)
+    );
+    """,
+    # ======== Ende Block „Zusammenfassung + Kapitel“ ========
 ]
 
 

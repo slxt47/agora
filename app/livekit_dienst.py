@@ -54,20 +54,22 @@ def ort(code, identity):          # wird von breakout.py ersetzt: LiveKit-Raum, 
     return code
 
 
+def extra_quellen(code, identity):   # wird von dolmetsch.py ersetzt: zusätzliche Quellen (Dolmetscher: Mikrofon)
+    return []
+
+
 def alle_raeume(code):
     """Breakout-Räume zuerst, der Hauptraum zuletzt (im Testmodus ist der letzte Aufruf so der des Hauptraums)."""
     return [*nebenraeume(code), code]
 
 
-def quellen(rolle, rechte):
+def quellen(rolle, rechte, extra=()):
     """Welche Quellen darf jemand senden? Bildschirm nur Host/Co-Host oder wenn Recht „bildschirm“ an ist.
-    Webinar-Zuschauer senden nichts (can_publish false)."""
-    if rolle == 'zuschauer':
-        return []
-    q = ['kamera', 'mikrofon']
-    if rolle in ('host', 'cohost') or rechte.get('bildschirm'):
+    Webinar-Zuschauer senden nichts (can_publish false) – außer `extra` (vom Server, z. B. Mikrofon für Dolmetscher)."""
+    q = [] if rolle == 'zuschauer' else ['kamera', 'mikrofon']
+    if rolle != 'zuschauer' and (rolle in ('host', 'cohost') or rechte.get('bildschirm')):
         q += ['bildschirm', 'bildschirm_ton']
-    return q
+    return q + [x for x in extra if x not in q]
 
 
 def token(code, identity, name, rolle, farbe, rechte):
@@ -77,9 +79,10 @@ def token(code, identity, name, rolle, farbe, rechte):
             .with_attributes({'rolle': rolle, 'farbe': farbe}).with_ttl(TOKEN_TTL).to_jwt())
 
 
-def berechtigung(rolle, rechte):
-    return api.ParticipantPermission(can_subscribe=True, can_publish=bool(quellen(rolle, rechte)), can_publish_data=True, can_update_metadata=False,
-                                     can_publish_sources=[QUELLEN_PROTO[q] for q in quellen(rolle, rechte)])
+def berechtigung(rolle, rechte, extra=()):
+    q = quellen(rolle, rechte, extra)
+    return api.ParticipantPermission(can_subscribe=True, can_publish=bool(q), can_publish_data=True, can_update_metadata=False,
+                                     can_publish_sources=[QUELLEN_PROTO[x] for x in q])
 
 
 def _client():
@@ -143,7 +146,7 @@ async def teilnehmer(code):
     async def f(lk, raum):
         r = await lk.room.list_participants(api.ListParticipantsRequest(room=raum))
         return [{'identity': p.identity, 'name': p.name, 'raum': raum,
-                 'tracks': [{'sid': t.sid, 'quelle': QUELLE_NAME.get(t.source, ''), 'stumm': t.muted} for t in p.tracks]}
+                 'tracks': [{'sid': t.sid, 'quelle': QUELLE_NAME.get(t.source, ''), 'stumm': t.muted, 'name': t.name} for t in p.tracks]}
                 for p in r.participants]
     alle = []
     try:
@@ -194,8 +197,11 @@ async def entfernen(code, identity):
 
 
 async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, rechte=None, attribute=None):
-    """Name, Attribut rolle und Rechte (Quellen) eines Teilnehmers ändern; attribute: weitere Attribute (z. B. hand)."""
-    async def f(lk, code, identity, name, rolle, farbe, rechte, attribute):
+    """Name, Attribut rolle und Rechte (Quellen) eines Teilnehmers ändern; attribute: weitere Attribute (z. B. hand).
+    Zu den Quellen der Rolle kommen `extra_quellen` (Dolmetscher) – nur vom Server bestimmt."""
+    q = quellen(rolle, rechte or {}, extra_quellen(code, identity)) if rolle is not None else None
+
+    async def f(lk, code, identity, name, rolle, farbe, rechte, attribute, quellen=None):
         req = api.UpdateParticipantRequest(room=code, identity=identity)
         if name is not None:
             req.name = name
@@ -205,11 +211,20 @@ async def aktualisieren(code, identity, name=None, rolle=None, farbe=None, recht
             req.attributes['rolle'] = rolle
             if farbe:
                 req.attributes['farbe'] = farbe
-            req.permission.CopyFrom(berechtigung(rolle, rechte or {}))
+            req.permission.CopyFrom(api.ParticipantPermission(can_subscribe=True, can_publish=bool(quellen), can_publish_data=True,
+                                                              can_update_metadata=False, can_publish_sources=[QUELLEN_PROTO[x] for x in quellen]))
         await lk.room.update_participant(req)
         return True
     return await _aufruf('aktualisieren', f, code=ort(code, identity), identity=identity, name=name, rolle=rolle, farbe=farbe, rechte=rechte,
-                         attribute=attribute)
+                         attribute=attribute, **({'quellen': q} if q is not None else {}))
+
+
+async def spur_stumm(raum, identity, sid):
+    """Eine bestimmte Spur serverseitig stumm schalten (Dolmetsch-Spur ohne Zuweisung)."""
+    async def f(lk, raum, identity, sid):
+        await lk.room.mute_published_track(api.MuteRoomTrackRequest(room=raum, identity=identity, track_sid=sid, muted=True))
+        return True
+    return await _aufruf('spur_stumm', f, raum=raum, identity=identity, sid=sid)
 
 
 async def senden(code, daten, topic='agora', an=None):

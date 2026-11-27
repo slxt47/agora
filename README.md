@@ -21,6 +21,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
     speichern und daraus sofort starten oder planen
   - Einladung per E-Mail mit `.ics`
   - Erinnerungs-Mails (opt-in): für eigene Termine 10/15/30/60 min vorher, für Eingeladene nur mit Haken „Erinnerung schicken“
+  - Push-Benachrichtigungen (Web Push, opt-in je Gerät im Profil): Erinnerung vor eigenen Terminen, „Jemand wartet im
+    Warteraum“ (nur wenn weder Host noch Co-Host im Meeting ist), Einladungen, Server-Aufnahme/Transkript fertig. Eigene
+    kleine RFC-8291/8292-Umsetzung auf `cryptography` (Inhalt für das Gerät verschlüsselt, VAPID-Schlüssel selbst erzeugt);
+    der Service Worker zeigt die Benachrichtigung und öffnet die passende Seite. iPhone/iPad: nur als installierte App (ab iOS 16.4).
   - Kalender ohne OAuth: „Zu Google Kalender“, „Zu Outlook/Office 365“, „Zu Outlook.com“ (mit Join-Link, Google auch mit Wiederholung) und `.ics`;
     privates Kalender-Abo (iCal-Feed mit geheimem Link, neu erzeugbar) für Apple, Google und Outlook
 - **Audio und Video:**
@@ -81,11 +85,24 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   geht über den Server an alle; jede Person blendet die Untertitel mit Namen selbst ein. Der Besitzer kann „Transkript
   speichern“ einschalten (alle sehen einen Hinweis) und lädt es als .txt/.vtt (Ende-Bildschirm oder Konto, 90 Tage).
   Optional „Transkript aus Aufnahme erstellen“ über einen Whisper-Dienst (`AGORA_WHISPER_URL`).
+  **Zusammenfassung & Kapitel:** zu gespeicherten Transkripten (und Whisper-Transkripten von Aufnahmen) erstellt der Besitzer
+  auf Knopfdruck Kapitelmarken, Zusammenfassung und Aufgaben – mit KI nur, wenn ein OpenAI-kompatibles Modell eingerichtet
+  ist (`AGORA_KI_URL`, `AGORA_KI_MODELL`) und nach einem Hinweis, wohin das Transkript geht; ohne KI immer als
+  „Stichwort-Kapitel“ (Pausen, Sprecherwechsel, häufige Wörter – so beschriftet). Kapitel als WebVTT im Spieler.
+  **Untertitel übersetzen:** jede Person wählt für sich eine Zielsprache; übersetzt wird nur auf dem eigenen Gerät mit der
+  eingebauten Translator-API des Browsers (derzeit Chrome am Computer, ab 138). Agora schickt Untertitel nie an einen
+  Übersetzungsdienst – ohne die API gibt es einen Hinweis und den Originaltext.
 - **Anmerkungen auf geteilten Bildschirmen:** Stift, Textmarker, Pfeil, Text, Radierer, sechs Farben, eigene oder (Host,
   Co-Host, teilende Person) alle löschen. Die Ebene skaliert mit dem Videobild, auch im Vollbild; Werkzeugleiste mit
   Pfeiltasten bedienbar, Esc beendet. Host, Co-Hosts und die teilende Person können Anmerkungen für andere sperren
   (Recht vom Server in den Raum-Metadaten). Die teilende Person sieht die Anmerkungen auf einer Vorschau ihres Bildschirms.
   Striche laufen direkt zwischen den Browsern (normiert, begrenzt) und werden nicht gespeichert.
+- **Dolmetscher-Kanäle (Simultanübersetzung):** Host/Co-Host legen Sprachen fest und machen Teilnehmende zu Dolmetschern
+  mit Sprachpaar (auch Webinar-Zuschauer – das Mikrofon-Recht gibt nur der Server per LiveKit-UpdateParticipant).
+  Dolmetscher senden eine eigene Spur `dolmetsch:<sprache>` über ihr Pult (Kanal wechseln, starten/stoppen, Übergabe
+  zwischen zwei Dolmetschern desselben Paares); Zuhörende wählen einen Sprachkanal, hören genau diese Spur und den Saal
+  leise (20 %). Welche Spur zu welchem Kanal gehört, steht nur in den Raum-Metadaten des Servers; fremde
+  `dolmetsch:`-Spuren schaltet der Server stumm. Funktioniert auch im Webinar.
 - **Zusammenarbeit:** Chat an alle oder privat (Verlauf optional speicherbar), Reaktionen, Hand heben.
 - **Whiteboard:** gemeinsame Tafel über der Bühne – Stift, Linie, Pfeil, Rechteck, Ellipse, Text, Notizzettel, Radierer,
   Auswählen/Verschieben, Rückgängig/Wiederholen (je Person), Farben, Strichstärke, Zoom/Verschieben, Export als PNG. Änderungen gehen als

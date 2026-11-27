@@ -665,6 +665,12 @@ with sync_playwright() as p:
             hp.screenshot(path=OUT + '23b-untertitel-zustimmung.png')
             hp.click('dialog button:has-text("Abbrechen")')
             print('Untertitel: Zustimmungsdialog gezeigt, abgelehnt')
+        # Übersetzen nur auf dem Gerät: Zielsprachen (mit Translator-API) oder klarer Hinweis (ohne) – nie ein fremder Dienst
+        hp.click('#s-mehr'); hp.click('.menue [role^=menuitem] >> text=Untertitel übersetzen')
+        hp.wait_for_selector('dialog #ut-ueb-hinweis, dialog .ut-ziele', timeout=10000)
+        hp.screenshot(path=OUT + '23c-untertitel-uebersetzen.png')
+        print('Untertitel übersetzen:', 'Hinweis (keine Translator-API)' if hp.locator('dialog #ut-ueb-hinweis').count() else 'Zielsprachen angeboten')
+        hp.click('dialog .blatt-kopf .icon-btn')
         hp.click('#s-verlassen'); hp.click('.menue [role=menuitem] >> text=Für alle beenden')
         hp.click('dialog .btn.gefahr')
         hp.wait_for_selector('#v-ende .ende-transkript a', timeout=15000)
@@ -1170,6 +1176,209 @@ window.addEventListener('message', function (e) {{ if (e.origin !== '{B}') windo
         se.close()
         print('Status-Seite: Meldung angelegt und sichtbar, Balken 90/24, JSON ohne Interna, Englisch')
         # ==== Ende Block Status-Seite ====
+        # ==== Block Push: Chromium headless hat keinen Push-Dienst (FCM) – Knopf versuchen, dann den Server-Weg prüfen:
+        # Schlüssel per WebCrypto, Abo mit lokalem Fake-Dienst (AGORA_WEBHOOK_LOKAL), „Test senden“ und Warteraum-Ereignis;
+        # die Nachricht entschlüsselt der Browser selbst nach RFC 8291 (WebCrypto) – das prüft die Server-Verschlüsselung.
+        push_empfangen = []
+
+        class PushDienst(BaseHTTPRequestHandler):
+            def do_POST(self):
+                push_empfangen.append((dict(self.headers), self.rfile.read(int(self.headers.get('content-length') or 0))))
+                self.send_response(201); self.end_headers()
+
+            def log_message(self, *a):
+                pass
+        push_server = ThreadingHTTPServer(('127.0.0.1', 0), PushDienst)
+        threading.Thread(target=push_server.serve_forever, daemon=True).start()
+        host.grant_permissions(['notifications'], origin=B)
+        hp.goto(B + '/konto#profil'); hp.reload()
+        hp.wait_for_selector('#push p.sec')
+        hp.screenshot(path=OUT + '53a-push-aus.png', full_page=True)
+        print('Push im Profil:', hp.inner_text('#push').replace('\n', ' | ')[:300])
+        if hp.locator('#push-hier').count():
+            hp.click('#push-hier')
+            try:
+                hp.wait_for_selector('#push-geraete li', timeout=8000)
+                print('Push: echtes Abo im Browser angelegt')
+            except Exception:      # noqa: BLE001 – erwartet ohne FCM
+                print('Push: Browser-Abo nicht möglich (headless ohne Push-Dienst) – prüfe den Server-Weg')
+        time.sleep(0.5)
+        schl = hp.evaluate("""async () => {
+            const k = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+            const roh = new Uint8Array(await crypto.subtle.exportKey('raw', k.publicKey));
+            const auth = crypto.getRandomValues(new Uint8Array(16));
+            const b64 = (a) => btoa(String.fromCharCode(...a)).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
+            return { jwk: await crypto.subtle.exportKey('jwk', k.privateKey), p256dh: b64(roh), auth: b64(auth) };
+        }""")
+        r = hp.request.post(B + '/api/push/abo', headers={'X-Agora': '1'}, data={
+            'endpoint': f'http://127.0.0.1:{push_server.server_address[1]}/push/e2e', 'keys': {'p256dh': schl['p256dh'], 'auth': schl['auth']},
+            'geraet': 'E2E · Fake-Dienst'})
+        if r.status != 200: fehler.append(f'Push-Abo: {r.status} {r.text()[:120]}')
+        hp.reload()
+        hp.wait_for_selector('#push-geraete li:has-text("E2E · Fake-Dienst")')
+        hp.click('#push-test')
+        hp.wait_for_selector('.toast:has-text("Test an")')
+        hp.screenshot(path=OUT + '53b-push-geraete.png', full_page=True)
+        ENTSCHLUESSELN = """async ([body64, jwk, auth64]) => {
+            const ab = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+            const cat = (...t) => { const o = new Uint8Array(t.reduce((n, x) => n + x.length, 0)); let i = 0; for (const x of t) { o.set(x, i); i += x.length; } return o; };
+            const enc = (s) => new TextEncoder().encode(s);
+            const hm = async (k, d) => new Uint8Array(await crypto.subtle.sign('HMAC', await crypto.subtle.importKey('raw', k, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']), d));
+            const b = ab(body64), salz = b.slice(0, 16), idlen = b[20], asPub = b.slice(21, 21 + idlen), geheim = b.slice(21 + idlen);
+            const priv = await crypto.subtle.importKey('jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+            const { d, ...pubJwk } = jwk;
+            const uaPub = new Uint8Array(await crypto.subtle.exportKey('raw', await crypto.subtle.importKey('jwk', { ...pubJwk, key_ops: [] }, { name: 'ECDH', namedCurve: 'P-256' }, true, [])));
+            const asKey = await crypto.subtle.importKey('raw', asPub, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+            const ecdh = new Uint8Array(await crypto.subtle.deriveBits({ name: 'ECDH', public: asKey }, priv, 256));
+            const ikm = await hm(await hm(ab(auth64), ecdh), cat(enc('WebPush: info\\0'), uaPub, asPub, new Uint8Array([1])));
+            const prk = await hm(salz, ikm);
+            const cek = (await hm(prk, enc('Content-Encoding: aes128gcm\\0\\x01'))).slice(0, 16);
+            const nonce = (await hm(prk, enc('Content-Encoding: nonce\\0\\x01'))).slice(0, 12);
+            const k = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt']);
+            let klar = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, k, geheim));
+            let n = klar.length; while (n && klar[n - 1] === 0) n--;
+            if (klar[n - 1] !== 2) throw new Error('kein Ende-Begrenzer');
+            return JSON.parse(new TextDecoder().decode(klar.slice(0, n - 1)));
+        }"""
+        ende = time.time() + 10
+        while not push_empfangen and time.time() < ende: time.sleep(0.2)
+        if not push_empfangen: fehler.append('Push: Test kam beim Fake-Dienst nicht an')
+        else:
+            kopf, body = push_empfangen[-1]
+            if kopf.get('Content-Encoding') != 'aes128gcm' or not kopf.get('Authorization', '').startswith('vapid t='): fehler.append(f'Push: Kopfzeilen {kopf}')
+            n = hp.evaluate(ENTSCHLUESSELN, [base64.urlsafe_b64encode(body).decode().rstrip('='), schl['jwk'], schl['auth']])
+            print('Push (Test), im Browser entschlüsselt:', n)
+            if n.get('titel') != 'Agora' or n.get('url') != '/konto#profil': fehler.append(f'Push-Inhalt falsch: {n}')
+        # Warteraum: Host ist nicht im Meeting → Push „Jemand wartet“
+        r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Push-Warteraum', warteraum:true})})).json())""")
+        pcode = r['raum']['code']
+        vorher = len(push_empfangen)
+        wk = br.new_context()
+        w = wk.request.post(B + f'/api/raeume/{pcode}/beitreten', headers={'X-Agora': '1'}, data={'name': 'Wanda Wartend'})
+        if w.json().get('status') != 'wartet': fehler.append(f'Push-Warteraum: {w.text()[:120]}')
+        ende = time.time() + 10
+        while len(push_empfangen) <= vorher and time.time() < ende: time.sleep(0.2)
+        if len(push_empfangen) <= vorher: fehler.append('Push: Warteraum-Benachrichtigung fehlt')
+        else:
+            n = hp.evaluate(ENTSCHLUESSELN, [base64.urlsafe_b64encode(push_empfangen[-1][1]).decode().rstrip('='), schl['jwk'], schl['auth']])
+            print('Push (Warteraum):', n)
+            if 'Wanda Wartend' not in n.get('text', '') or n.get('url') != f'/r/{pcode}': fehler.append(f'Push-Warteraum-Inhalt falsch: {n}')
+        wk.close()
+        push_server.shutdown()
+        # ==== Ende Block Push ====
+        # ==== Block Dolmetschen: Host legt Sprachen fest und macht Dora zur Dolmetscherin (DE ⇄ EN), Dora sendet auf
+        # „dolmetsch:en“ (Mikro-Attrappe), Host wählt den Kanal Englisch → abonniert genau diese Spur, Saal leiser
+        r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Dolmetsch-Test'})})).json())""")
+        dcode = r['raum']['code']
+        hp.goto(f'{B}/r/{dcode}')
+        hp.wait_for_selector('#v-lobby:not([hidden])')
+        hp.click('#beitreten-knopf')
+        hp.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
+        dk = br.new_context(locale='de-DE', viewport={'width': 1100, 'height': 760}, permissions=['camera', 'microphone'])
+        dp = dk.new_page(); beobachten(dp, 'dolmetscherin')
+        dp.goto(f'{B}/r/{dcode}')
+        dp.wait_for_selector('#v-lobby:not([hidden])')
+        dp.fill('#f-beitritt [name=name]', 'Dora Dolmetsch')
+        dp.click('#beitreten-knopf')
+        dp.wait_for_selector('#v-meeting:not([hidden])', timeout=20000)
+        warten_bis(hp, '#buehne .kv', 2)
+        hp.click('#s-mehr')
+        hp.click('.menue [role=menuitem]:has-text("Dolmetschen verwalten")')
+        hp.wait_for_selector('dialog .dm-sprachen')
+        hp.check('dialog .dm-sprache input[value="de"]')
+        hp.check('dialog .dm-sprache input[value="en"]')
+        hp.click('#dm-sprachen-speichern')
+        hp.wait_for_selector('dialog form.dm-zuweisen')
+        hp.select_option('dialog form.dm-zuweisen select[name=ziel]', label='Dora Dolmetsch')
+        hp.select_option('dialog form.dm-zuweisen select[name=a]', 'de')
+        hp.select_option('dialog form.dm-zuweisen select[name=b]', 'en')
+        hp.click('dialog form.dm-zuweisen button[type=submit]')
+        hp.wait_for_selector('dialog .dm-liste li[data-dolmetscher]')
+        hp.screenshot(path=OUT + '54a-dolmetsch-verwalten.png')
+        hp.click('dialog .blatt-kopf .icon-btn')         # Schließen-Knopf (der Inhalt wurde neu gezeichnet, Fokus liegt nicht im Dialog)
+        hp.wait_for_selector('dialog.blatt', state='detached')
+        dp.wait_for_selector('#dolmetsch-pult:not([hidden]) #dm-senden', timeout=10000)
+        dp.click('#dm-senden')
+        dp.wait_for_selector('#dolmetsch-pult .dm-status[data-zustand="sendet"]', timeout=15000)
+        dp.screenshot(path=OUT + '54b-dolmetsch-pult.png')
+        hp.click('#s-mehr')
+        hp.click('.menue [role=menuitem]:has-text("Sprachkanal")')
+        hp.wait_for_selector('dialog .dm-kanal[data-kanal="en"]')
+        hp.screenshot(path=OUT + '54c-dolmetsch-kanalwahl.png')
+        hp.click('dialog .dm-kanal[data-kanal="en"]')
+        hp.wait_for_selector('#audio-ablage audio[data-dolmetsch="en"]', state='attached', timeout=20000)
+        warten_js(hp, "[...document.querySelectorAll('#audio-ablage audio:not([data-dolmetsch])')].some((a) => Math.abs(a.volume - 0.2) < 0.01)", 10)
+        laut = hp.evaluate("[...document.querySelectorAll('#audio-ablage audio')].map((a) => [a.dataset.dolmetsch || 'saal', a.volume])")
+        print('Dolmetschen: Host hört', laut, '| Kanal-Anzeige:', hp.inner_text('#m-dolmetsch'))
+        if not any(k == 'en' and v == 1 for k, v in laut): fehler.append(f'Dolmetschen: Kanal nicht laut: {laut}')
+        if any(k == 'saal' and v > 0.21 for k, v in laut): fehler.append(f'Dolmetschen: Saal nicht leiser: {laut}')
+        hp.screenshot(path=OUT + '54d-dolmetsch-zuhoeren.png')
+        # zurück zum Originalton → Spur abbestellt, Saal wieder laut
+        hp.click('#s-mehr')
+        hp.click('.menue [role=menuitem]:has-text("Sprachkanal")')
+        hp.click('dialog .dm-kanal[data-kanal=""]')
+        hp.wait_for_selector('#audio-ablage audio[data-dolmetsch]', state='detached', timeout=15000)
+        warten_js(hp, "[...document.querySelectorAll('#audio-ablage audio')].every((a) => a.volume === 1)", 10)
+        print('Dolmetschen: zurück zum Originalton, Dolmetsch-Spur abbestellt')
+        dk.close()
+        hp.goto(B + '/konto')                          # Meeting verlassen (endet nach Leerlauf von selbst)
+        time.sleep(1)
+        # ==== Ende Block Dolmetschen ====
+        # ==== Block Zusammenfassung: Fake-KI (OpenAI-kompatibel, AGORA_KI_URL im Test-Stapel) auf KI_PORT; Transkript per API,
+        # im Konto erst Stichwort-Kapitel (ohne KI), dann „Mit KI“ nach Bestätigung des Hinweises
+        ki_anfragen = []
+
+        class FakeKI(BaseHTTPRequestHandler):
+            def do_POST(self):
+                d = json.loads(self.rfile.read(int(self.headers.get('content-length') or 0)))
+                ki_anfragen.append(d)
+                inhalt = {'zusammenfassung': 'Kurze Runde zum Budget; Folien kommen per Mail.', 'kapitel': [{'zeit': '00:00', 'titel': 'Begrüßung und Budget'}],
+                          'aufgaben': [{'text': 'Folien verschicken', 'wer': 'Florian'}]}
+                body = json.dumps({'choices': [{'message': {'role': 'assistant', 'content': json.dumps(inhalt, ensure_ascii=False)}}]}).encode()
+                self.send_response(200); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(body)))
+                self.end_headers(); self.wfile.write(body)
+
+            def log_message(self, *a):
+                pass
+        ki_server = ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('KI_PORT', '8116'))), FakeKI)
+        threading.Thread(target=ki_server.serve_forever, daemon=True).start()
+        r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Budgetrunde'})})).json())""")
+        zcode = r['raum']['code']
+        J = {'X-Agora': '1', 'Content-Type': 'application/json'}
+        hp.request.patch(f'{B}/api/raeume/{zcode}/transkript', data=json.dumps({'speichern': True}), headers=J)
+        zz = hp.request.post(f'{B}/api/raeume/{zcode}/beitreten', data=json.dumps({'name': 'Florian Test'}), headers=J).json()['zugang']
+        for satz in ('Willkommen zur Budgetrunde, heute geht es um das Budget.', 'Die Folien zum Budget schicke ich per Mail.'):
+            hp.request.post(f'{B}/api/raeume/{zcode}/untertitel', data=json.dumps({'text': satz, 'final': True, 'dauer_ms': 1500}),
+                            headers={**J, 'X-Teilnahme': zz['teilnahme']})
+            time.sleep(0.3)
+        hp.goto(B + '/konto#meetings'); hp.reload()
+        hp.click(f'[data-transkripte="{zcode}"]')
+        hp.click(f'dialog [data-zusammenfassung="{zcode}"]')
+        hp.wait_for_selector('dialog #zf-stichwort')
+        hp.click('dialog #zf-stichwort')
+        hp.wait_for_selector('dialog #zf-status[data-art="stichwort"]')
+        st = hp.inner_text('dialog .zf-kapitel')
+        print('Stichwort-Kapitel:', st.replace('\n', ' | '))
+        if 'Budget' not in st: fehler.append(f'Stichwort-Kapitel ohne Stichwort: {st}')
+        hp.screenshot(path=OUT + '55a-stichwort-kapitel.png')
+        hp.click('dialog #zf-ki')
+        hp.wait_for_selector('dialog:has-text("Transkript an den KI-Dienst schicken?")')
+        hinweis = hp.inner_text('dialog:has-text("Transkript an den KI-Dienst schicken?")')
+        if '127.0.0.1' not in hinweis: fehler.append('KI-Hinweis nennt das Ziel nicht')
+        if ki_anfragen: fehler.append('KI vor der Bestätigung aufgerufen')
+        hp.click('dialog button:has-text("Ja, schicken")')
+        hp.wait_for_selector('dialog #zf-status[data-art="ki"]', timeout=30000)
+        ki_text = hp.inner_text('#zf-inhalt')
+        print('KI-Zusammenfassung:', ki_text.replace('\n', ' | ')[:200])
+        if 'Folien kommen per Mail' not in ki_text or 'Folien verschicken' not in ki_text: fehler.append('KI-Zusammenfassung fehlt')
+        if not ki_anfragen or 'Florian Test: Willkommen zur Budgetrunde' not in ki_anfragen[0]['messages'][-1]['content']:
+            fehler.append('KI bekam das Transkript nicht')
+        vtt = hp.request.get(f'{B}/api/raeume/{zcode}/kapitel.vtt').text()
+        if 'Begrüßung und Budget' not in vtt: fehler.append(f'Kapitel-VTT falsch: {vtt[:80]}')
+        hp.screenshot(path=OUT + '55b-ki-zusammenfassung.png')
+        ki_server.shutdown()
+        hp.goto(B + '/konto')
+        # ==== Ende Block Zusammenfassung ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

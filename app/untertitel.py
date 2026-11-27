@@ -33,6 +33,8 @@ WHISPER_URL = os.environ.get('AGORA_WHISPER_URL', '').strip()
 WHISPER_MODELL = os.environ.get('AGORA_WHISPER_MODELL', 'whisper-1')
 WHISPER_TIMEOUT_S = int(os.environ.get('AGORA_WHISPER_TIMEOUT', '3600'))
 _whisper_lock = threading.Lock()
+BEIM_LOESCHEN = []            # f() – Transkript (teilweise) gelöscht oder abgelaufen (Zusammenfassungen aufräumen)
+NACH_TRANSKRIPT = []          # f(aufnahme_zeile) – Whisper-Transkript fertig (Push)
 
 
 def _meta(r):
@@ -45,6 +47,8 @@ raeume.RAUM_JSON_EXTRA.append(lambda r, b: {'transkript_speichern': bool(r['tran
 
 def aufraeumen(t=None):
     db.verbindung().execute('DELETE FROM transkript WHERE zeit < ?', ((t or jetzt()) - AUFBEWAHRUNG_S,))
+    for f in BEIM_LOESCHEN:
+        f()
 
 
 # ---------------------------------------------------------------- Live-Untertitel
@@ -63,6 +67,9 @@ async def senden(code: str, req: Request):
     dauer = dauer if isinstance(dauer, int) and not isinstance(dauer, bool) and 0 <= dauer <= 120000 else 0
     jetzt_ms = int(time.time() * 1000)
     seg = {'identity': t['identity'], 'name': t['name'], 'text': text, 'final': final, 'zeit': jetzt_ms}
+    sprache = d.get('sprache')                  # Sprache der Erkennung (für die Übersetzung auf dem Gerät der Zuschauer)
+    if isinstance(sprache, str) and re.fullmatch(r'[a-z]{2,3}', sprache):
+        seg['sprache'] = sprache
     await lk.senden(r['code'], seg, topic='untertitel')
     if final and r['transkript_speichern']:
         db.verbindung().execute('INSERT INTO transkript (raum_id, sitzung, identity, name, text, beginn_ms, ende_ms, zeit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -138,6 +145,8 @@ def loeschen(code: str, req: Request, sitzung: int = 0):
         c.execute('DELETE FROM transkript WHERE raum_id = ? AND sitzung = ?', (r['id'], sitzung))
     else:
         c.execute('DELETE FROM transkript WHERE raum_id = ?', (r['id'],))
+    for f in BEIM_LOESCHEN:
+        f()
     db.protokollieren('Transkript gelöscht', b['id'], code)
     return {'ok': True}
 
@@ -201,6 +210,10 @@ def _job(aufnahme_id, pfad, typ):
                 f.write(vtt)
             os.replace(tmp, vtt_pfad(aufnahme_id))
             c.execute("UPDATE aufnahme_transkript SET status = 'fertig', fehler = NULL, fertig = ? WHERE aufnahme_id = ?", (jetzt(), aufnahme_id))
+            a = c.execute('SELECT * FROM aufnahmen WHERE id = ?', (aufnahme_id,)).fetchone()
+            for f in NACH_TRANSKRIPT:
+                if a:
+                    f(a)
         except Exception as e:   # noqa: BLE001
             print(f'whisper-fehler {type(e).__name__}', flush=True)
             c.execute("UPDATE aufnahme_transkript SET status = 'fehler', fehler = ? WHERE aufnahme_id = ?",

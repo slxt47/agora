@@ -14,6 +14,9 @@ if [ "${1:-}" != --ohne-e2e ]; then
   # Sicherheits-Regressionstest (Black-Box gegen Wegwerf-Instanz, ca. 1 min) – docs/SICHERHEIT.md
   ERG=$(sh tests/sicherheit/lauf.sh 2>&1) || { echo "$ERG" | grep -E '!!|ANGRIFF|ABGEBROCHEN' | tail -30; echo "✗ Sicherheitstest fehlgeschlagen"; exit 1; }
   echo "$ERG" | tail -1
+  # Neubeitritt nach Ausfall des LiveKit-Knotens (ADR 0007, ca. 2 min)
+  ERG=$(sh tests/e2e/neubeitritt.sh 2>&1) || { echo "$ERG" | tail -20; echo "✗ Neubeitritt nach Knotenausfall fehlgeschlagen"; exit 1; }
+  echo "$ERG" | tail -1
 fi
 docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.0 git /repo --no-banner --log-opts=main >/dev/null 2>&1 || { echo "✗ gitleaks hat etwas gefunden"; exit 1; }
 echo "✓ gitleaks sauber"

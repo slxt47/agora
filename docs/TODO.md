@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 158 Punkte erledigt und live auf https://agora.slxt.dev, 9 offen – jeweils mit Grund.
+> Stand 27.11.2026: 161 Punkte erledigt und live auf https://agora.slxt.dev, 7 offen – jeweils mit Grund.
 
 ---
 
@@ -210,7 +210,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 E-Mail-Versand (Einladungen, Reset)
 - [x] 🟡 Hintergrund-Jobs / Queue (Transkodierung, Mails, Aufräumen)
 - [x] 🟡 Horizontale Skalierung von SFU-Nodes + Load-Balancing / Regionen — *Konfiguration + App fertig (`livekit-mehrknoten.yaml`, `AGORA_LIVEKIT_KNOTEN`, Ausweichen bei Ausfall, Gesundheit/Metriken je Knoten), auf einem Rechner mit zwei Wegwerf-Knoten bewiesen (`tests/skalierung/lauf.sh`, ADR 0007). Produktion: weiter ein Knoten, bis Florian einen zweiten Server bestellt (Schritte in BETRIEB.md)*
-- [ ] 🟢 Automatischer Neubeitritt über die App, wenn der Knoten wegfällt, über den ein Browser signalisiert — *heute: neu laden; ADR 0007*
+- [x] 🟢 Automatischer Neubeitritt über die App, wenn der Knoten wegfällt — *hängt die Verbindung > 20 s oder gibt livekit-client auf, holt der Browser einen frischen Zugang und verbindet neu (5 Versuche, Mikro/Kamera wie vorher); Test `tests/e2e/neubeitritt.sh` (Knoten 45 s aus)*
 - [x] 🟡 Container-Deployment (Docker; optional Kubernetes)
 - [x] 🟡 Reverse-Proxy, TLS-Zertifikate (Let's Encrypt), HTTP/2/3
 - [x] 🟡 Firewall-/Port-Konzept für UDP-Medienports

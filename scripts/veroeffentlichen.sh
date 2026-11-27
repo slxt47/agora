@@ -8,6 +8,9 @@ cd "$(dirname "$0")/.."
 docker build -q --target test -t agora:test . >/dev/null
 ERG=$(docker run --rm agora:test 2>&1) || { echo "$ERG" | tail -30; echo "✗ API-Tests fehlgeschlagen"; exit 1; }
 echo "$ERG" | tail -1
+# Frontend-Tests (node:test, u. a. Übersetzungen vollständig) – liefen bis 27.11.2026 nur in der GitHub-CI
+ERG=$(docker run --rm -v "$PWD/web:/web" -w /web node:22.23.5-alpine sh -c "npm ci --ignore-scripts >/dev/null 2>&1 && npm test 2>&1; s=\$?; chown -R 1000:1000 /web; exit \$s") || { echo "$ERG" | grep -E "not ok|fail" | head -20; echo "✗ Frontend-Tests fehlgeschlagen"; exit 1; }
+echo "$ERG" | grep -E "^# (pass|fail)" | tr "\n" " "; echo
 if [ "${1:-}" != --ohne-e2e ]; then
   ERG=$(sh tests/e2e/lauf.sh 2>&1) || { echo "$ERG" | tail -30; echo "✗ Browser-E2E fehlgeschlagen"; exit 1; }
   echo "$ERG" | tail -2

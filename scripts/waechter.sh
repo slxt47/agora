@@ -73,6 +73,9 @@ warn=''
 [ "$d_lk" -gt 5 ] && warn="$warn $d_lk LiveKit-Fehler;"
 [ "$d_login" -gt 50 ] && warn="$warn $d_login fehlgeschlagene Anmeldungen;"
 [ "$d_hg" -gt 0 ] && warn="$warn $d_hg Hintergrund-Fehler;"
+# Mehrere LiveKit-Knoten (ADR 0007): einer weg ist eine Warnung – die anderen übernehmen neue Räume
+knoten_weg=$(jq -r '[.pruefungen.livekit.knoten // [] | .[] | select(.ok != true) | .name] | join(", ")' "$TMP/gesund")
+[ -n "$knoten_weg" ] && warn="$warn LiveKit-Knoten nicht erreichbar: $knoten_weg;"
 if [ -n "$warn" ]; then echo "agora WARNUNG –${warn%;} | $details"; exit 1; fi
 echo "agora OK – $details"
 exit 0

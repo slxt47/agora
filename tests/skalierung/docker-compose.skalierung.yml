@@ -1,0 +1,57 @@
+# Wegwerf-Stapel für den Skalierungsbeweis (ADR 0007): zwei LiveKit-Knoten mit gemeinsamem Redis + App (Testmodus),
+# alles im Host-Netz und nur auf 127.0.0.1. Start/Ablauf/Aufräumen: tests/skalierung/lauf.sh.
+# Ports: Knoten A 7860 (Signal/API) · 7861 ICE-TCP · 7862 UDP · 7863 Prometheus
+#        Knoten B 7870 · 7871 · 7872 · 7873   ·   Redis 6392   ·   App 8261
+# REGION_A/REGION_B setzt lauf.sh je Abschnitt (erst beide eu-central, dann eu-central/eu-west); die App kennt die Knoten
+# über AGORA_LIVEKIT_KNOTEN (dieselben Regionen).
+name: agora-skalierung
+x-haertung: &haertung
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+x-livekit: &livekit
+  image: livekit/livekit-server:v1.13.11@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
+  network_mode: host
+  command: ["--config", "/etc/livekit.yaml"]
+  user: "1000:1000"
+  <<: *haertung
+  mem_limit: 1g
+  depends_on: [redis-skal]
+services:
+  redis-skal:
+    image: redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    network_mode: host
+    environment: { REDIS_PASSWORD: skalierung-test-passwort }
+    command: ["sh", "-c", "exec redis-server --bind 127.0.0.1 --port 6392 --requirepass \"$$REDIS_PASSWORD\" --save '' --appendonly no --maxmemory 64mb --maxmemory-policy noeviction"]
+    user: "1000:1000"
+    <<: *haertung
+    mem_limit: 128m
+  lk-a:
+    <<: *livekit
+    environment: { LIVEKIT_REGION: "${REGION_A:-eu-central}", REDIS_HOST: "127.0.0.1:6392", REDIS_PASSWORD: skalierung-test-passwort }
+    volumes: ["./livekit-a.yaml:/etc/livekit.yaml:ro"]
+  lk-b:
+    <<: *livekit
+    environment: { LIVEKIT_REGION: "${REGION_B:-eu-west}", REDIS_HOST: "127.0.0.1:6392", REDIS_PASSWORD: skalierung-test-passwort }
+    volumes: ["./livekit-b.yaml:/etc/livekit.yaml:ro"]
+  app-skal:
+    build: { context: ../.., target: laufzeit }
+    image: agora:test-skalierung
+    network_mode: host
+    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8261", "--workers", "1", "--no-access-log"]
+    environment:
+      AGORA_TEST: "1"
+      AGORA_GRENZEN_AUS: "1"
+      AGORA_COOKIE: agora
+      AGORA_COOKIE_SECURE: "0"
+      AGORA_SEITE: http://127.0.0.1:8261
+      # Zwei Knoten: „<region> <signal-url> <api-url>“ – die erste Zeile ist der Standard ohne Wunsch-Region
+      AGORA_LIVEKIT_KNOTEN: "${REGION_A:-eu-central} ws://127.0.0.1:7860 http://127.0.0.1:7860, ${REGION_B:-eu-west} ws://127.0.0.1:7870 http://127.0.0.1:7870"
+      AGORA_LIVEKIT_LAENDER: "DE:eu-central,AT:eu-central,FR:eu-west"   # CF-IPCountry → Wunsch-Region
+      AGORA_LIVEKIT_URL: ws://127.0.0.1:7860                           # nur noch Rückfall/Anzeige
+      LIVEKIT_API_KEY: testschluessel
+      LIVEKIT_API_SECRET: testgeheimnis-testgeheimnis-testgeheimnis-123
+    tmpfs: ["/daten:uid=1000,gid=1000", "/tmp"]
+    user: "1000:1000"
+    <<: *haertung
+    depends_on: [lk-a, lk-b]

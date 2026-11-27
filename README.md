@@ -190,6 +190,7 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 | `app/` | FastAPI + SQLite, argon2, LiveKit-Server-API (`livekit-api`), Mails über SMTP |
 | `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), RNNoise (`scripts/rnnoise.mjs`), `hls.js` 1.7.4 (light, nur Zuschauerseite `/h/`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
+| `livekit-mehrknoten.yaml` | nur mit mehreren Servern: gemeinsames Redis, `node_selector: regionaware`, Prometheus je Knoten ([ADR 0007](docs/adr/0007-skalierung.md), BETRIEB.md) |
 | `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges); `redis` + `egress` nur mit Profil `egress` |
 
 Für das Monitoring gibt es `/api/metriken` (Prometheus), `/api/gesund?tief=1` und `scripts/waechter.sh` (eine Zeile Status) – nur lokal, siehe [`docs/BETRIEB.md`](docs/BETRIEB.md).
@@ -215,6 +216,7 @@ BROWSER=firefox sh tests/e2e/lauf.sh   # Browser-Matrix (firefox|webkit|chromium
 sh desktop/scripts/docker-bauen.sh     # Desktop-App: Tests + AppImage/deb (arm64, x64); Smoke-Test: desktop/scripts/docker-smoke.sh
 sh tests/egress/lauf.sh    # Server-Aufnahme + Livestream gegen eigenen Wegwerf-Stapel (Redis, LiveKit, Egress, App)
 sh tests/egress/hls-lauf.sh  # Öffentliche Übertragung (HLS): Segmente + Zuschauerseite in Chromium (nativ und hls.js)
+sh tests/skalierung/lauf.sh  # zwei LiveKit-Knoten + Redis: Verteilung, Regionen (CF-IPCountry), Ausfall eines Knotens – mit Chromium
 sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```
 

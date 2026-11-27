@@ -71,12 +71,17 @@ def ip_gruppe(wert):
 
 
 def livekit_herkunft():
-    """Für die CSP: Herkunft der LiveKit-URL als ws(s) und http(s) (der Client prüft vorab per HTTP)."""
-    u = urlparse(LIVEKIT_URL)
-    if not u.netloc:
-        return ''
-    ws = 'wss' if u.scheme in ('wss', 'https') else 'ws'
-    return f'{ws}://{u.netloc} {"https" if ws == "wss" else "http"}://{u.netloc}'
+    """Für die CSP: Herkunft der LiveKit-URL(s) als ws(s) und http(s) (der Client prüft vorab per HTTP).
+    Mit mehreren Knoten (AGORA_LIVEKIT_KNOTEN, ADR 0007) die Signal-URLs aller Knoten."""
+    from .livekit_dienst import knoten
+    teile = []
+    for url in dict.fromkeys(k['signal'] for k in knoten()):
+        u = urlparse(url)
+        if not u.netloc:
+            continue
+        ws = 'wss' if u.scheme in ('wss', 'https') else 'ws'
+        teile.append(f'{ws}://{u.netloc} {"https" if ws == "wss" else "http"}://{u.netloc}')
+    return ' '.join(teile)
 
 
 class Begrenzer:

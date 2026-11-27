@@ -1,0 +1,33 @@
+# Wegwerf-Knoten B für den Skalierungsbeweis (tests/skalierung/lauf.sh), nur 127.0.0.1.
+# Region kommt aus LIVEKIT_REGION (wie in Produktion aus livekit.env), Redis aus REDIS_HOST/REDIS_PASSWORD.
+# Knoten A (livekit-a.yaml) ist bis auf die Ports gleich – node_selector und Regionen müssen auf allen Knoten gleich sein.
+port: 7870
+bind_addresses: ["127.0.0.1"]
+prometheus:
+  port: 7873
+rtc:
+  tcp_port: 7871
+  udp_port: 7872
+  node_ip: 127.0.0.1            # in Produktion: NODE_IP = öffentliche IP dieses Servers
+  use_external_ip: false
+  enable_loopback_candidate: true
+  interfaces:
+    includes: [lo]
+keys:
+  testschluessel: testgeheimnis-testgeheimnis-testgeheimnis-123
+node_selector:
+  kind: regionaware
+  # Beide Test-Knoten teilen sich eine CPU – nach Last sortiert wären sie gleich. „rooms“ zeigt die Verteilung
+  # nachvollziehbar (Produktion: livekit-mehrknoten.yaml).
+  sort_by: rooms
+  regions:
+    - name: eu-central          # z. B. Hetzner Falkenstein
+      lat: 50.4777
+      lon: 12.3649
+    - name: eu-west             # z. B. Paris
+      lat: 48.8566
+      lon: 2.3522
+room:
+  empty_timeout: 60
+logging:
+  level: info

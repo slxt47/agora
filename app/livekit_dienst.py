@@ -10,8 +10,15 @@ Jeder Aufruf öffnet einen eigenen LiveKitAPI-Client (aiohttp-Sitzung gehört zu
 aus FastAPI-Endpunkten und aus dem Hintergrund-Thread (asyncio.run) gleichermaßen. Fehler werden protokolliert und
 als None/False gemeldet: Ein kurz nicht erreichbares LiveKit darf keine Raum-Aktion der Datenbank kaputt machen.
 
-Testmodus (AGORA_TEST=1 ohne LIVEKIT_API_HOST): Fälschung, die alle Aufrufe in AUFRUFE mitschreibt; die
+Testmodus (AGORA_TEST=1 ohne LIVEKIT_API_HOST und AGORA_LIVEKIT_KNOTEN): Fälschung, die alle Aufrufe in AUFRUFE mitschreibt; die
 Teilnehmerliste kommt aus FAKE_TEILNEHMER[code] (von Tests befüllt).
+
+Mehrere LiveKit-Knoten (ADR 0007, optional): `AGORA_LIVEKIT_KNOTEN` nennt je Knoten Region, Signal-URL (für Browser)
+und API-URL. Server-API-Aufrufe gehen an den ersten erreichbaren Knoten (bevorzugt in der gewünschten Region); ist
+ein Knoten nicht erreichbar (Verbindungsaufbau scheitert), wird er 15 s gemieden und der nächste gefragt. Welcher
+Knoten den Raum trägt, entscheidet LiveKit (gemeinsames Redis, `node_selector`): Mit `regionaware` landet ein neuer
+Raum in der Region des Knotens, der CreateRoom bekommt – deshalb schickt raum_anlegen() den Aufruf an einen Knoten der
+Wunsch-Region. Ohne die Variable: genau ein Knoten aus AGORA_LIVEKIT_URL/LIVEKIT_API_HOST (wie bisher).
 
 Breakout-Räume sind eigene LiveKit-Räume (`<code>__b<n>`). Damit Ereignisse, Metadaten, Stummschalten, Entfernen
 und das Ende des Meetings alle erreichen, arbeiten diese Aufrufe über alle Räume eines Meetings: `nebenraeume(code)`
@@ -30,10 +37,11 @@ from livekit import api
 API_HOST = os.environ.get('LIVEKIT_API_HOST', '')
 API_KEY = os.environ.get('LIVEKIT_API_KEY', '')
 API_SECRET = os.environ.get('LIVEKIT_API_SECRET', '')
-FAKE = os.environ.get('AGORA_TEST') == '1' and not API_HOST
+FAKE = os.environ.get('AGORA_TEST') == '1' and not API_HOST and not os.environ.get('AGORA_LIVEKIT_KNOTEN')
 if FAKE:
     API_KEY = API_KEY or 'agora-test'
     API_SECRET = API_SECRET or 'agora-test-geheimnis-mit-genug-laenge-0123456789'
+KNOTEN_MEIDEN_S = 15                          # nicht erreichbarer Knoten: so lange erst die anderen fragen
 TOKEN_TTL = datetime.timedelta(minutes=15)   # nur zum Verbinden; LiveKit erneuert das Token verbundener Teilnehmer
 LEER_TIMEOUT_S = 300                          # LiveKit schließt leere Räume selbst nach 5 min
 
@@ -44,6 +52,93 @@ QUELLEN_JWT = {'kamera': 'camera', 'mikrofon': 'microphone', 'bildschirm': 'scre
 QUELLEN_PROTO = {'kamera': api.TrackSource.CAMERA, 'mikrofon': api.TrackSource.MICROPHONE,
                  'bildschirm': api.TrackSource.SCREEN_SHARE, 'bildschirm_ton': api.TrackSource.SCREEN_SHARE_AUDIO}
 QUELLE_NAME = {v: k for k, v in QUELLEN_PROTO.items()}
+
+
+# ---------------------------------------------------------------- Knoten (ADR 0007)
+def knoten_lesen(text):
+    """`<region> <signal-url> <api-url>` je Knoten, durch Komma getrennt → [{name, region, signal, api}]."""
+    erg = []
+    for i, teil in enumerate(t for t in (text or '').split(',') if t.strip()):
+        f = teil.split()
+        if len(f) != 3 or not f[1].startswith(('ws://', 'wss://')) or not f[2].startswith(('http://', 'https://')):
+            raise ValueError(f'AGORA_LIVEKIT_KNOTEN: Eintrag {i + 1} braucht „<region> <ws(s)://signal> <http(s)://api>“')
+        erg.append({'name': f'{f[0]}-{i + 1}', 'region': f[0], 'signal': f[1].rstrip('/'), 'api': f[2].rstrip('/')})
+    return erg
+
+
+def laender_lesen(text):
+    """`DE:eu-central,FR:eu-west` → {'DE': 'eu-central', …} (Land aus CF-IPCountry → Wunsch-Region)."""
+    return {k.strip().upper(): v.strip() for k, _, v in (x.partition(':') for x in (text or '').split(',')) if k.strip() and v.strip()}
+
+
+KNOTEN = knoten_lesen(os.environ.get('AGORA_LIVEKIT_KNOTEN', ''))
+LAENDER = laender_lesen(os.environ.get('AGORA_LIVEKIT_LAENDER', ''))
+_GEMIEDEN = {}          # api-url → monotonic-Zeit, bis zu der der Knoten nach hinten rückt
+_RAUM_REGION = {}       # LiveKit-Raum → Region des Knotens, über den er angelegt wurde (nur Hinweis für die Signal-URL)
+
+
+def knoten():
+    """Alle Knoten; ohne AGORA_LIVEKIT_KNOTEN genau einer (AGORA_LIVEKIT_URL + LIVEKIT_API_HOST)."""
+    if KNOTEN:
+        return KNOTEN
+    from .kern import LIVEKIT_URL
+    return [{'name': 'livekit', 'region': '', 'signal': LIVEKIT_URL, 'api': API_HOST}]
+
+
+def regionen():
+    return {k['region'] for k in KNOTEN}
+
+
+def region_wahl(wunsch=None, land=None):
+    """Wunsch-Region: ausdrücklich (nur bekannte Regionen) → Land (CF-IPCountry über AGORA_LIVEKIT_LAENDER) → None."""
+    if isinstance(wunsch, str) and wunsch in regionen():
+        return wunsch
+    r = LAENDER.get((land or '').strip().upper())
+    return r if r in regionen() else None
+
+
+def reihenfolge(region=None):
+    """Knoten in Frage-Reihenfolge: Wunsch-Region zuerst, sonst Reihenfolge der Konfiguration; gemiedene ans Ende."""
+    alle = knoten()
+    if region:
+        alle = [k for k in alle if k['region'] == region] + [k for k in alle if k['region'] != region]
+    t = time.monotonic()
+    return [k for k in alle if _GEMIEDEN.get(k['api'], 0) <= t] + [k for k in alle if _GEMIEDEN.get(k['api'], 0) > t]
+
+
+def raum_region(raum):
+    """Region, in der ein Raum (oder sein Hauptraum bei Breakout `<code>__b<n>`) angelegt wurde – oder None."""
+    return _RAUM_REGION.get(raum) or _RAUM_REGION.get(raum.split('__b')[0])
+
+
+def signal_url(region=None):
+    """URL für den Browser: erster erreichbarer Knoten der Region. Jeder Knoten nimmt jeden Raum an (LiveKit leitet
+    die Signalisierung über Redis zum Knoten des Raums weiter); die Medien gehen direkt an den Knoten des Raums."""
+    return reihenfolge(region)[0]['signal']
+
+
+# Nur Fehler beim Verbindungsaufbau lösen den Wechsel aus: Dann hat der Knoten die Anfrage sicher nicht bekommen
+# (ein Zeitlimit mitten in der Antwort könnte einen Aufruf sonst doppelt ausführen).
+WECHSELN_BEI = (aiohttp.ClientConnectorError, aiohttp.ConnectionTimeoutError)
+
+
+async def mit_knoten(f, region=None, timeout=5):
+    """f(lk, knoten) am ersten erreichbaren Knoten ausführen; Fehler des Knotens (Twirp) gehen unverändert hoch."""
+    letzter = None
+    for k in reihenfolge(region):
+        try:
+            async with api.LiveKitAPI(url=k['api'], api_key=API_KEY, api_secret=API_SECRET, failover=False,
+                                      timeout=aiohttp.ClientTimeout(total=timeout, sock_connect=min(2, timeout))) as lk:
+                erg = await f(lk, k)
+            _GEMIEDEN.pop(k['api'], None)
+            return erg
+        except WECHSELN_BEI as e:
+            letzter = e
+            _GEMIEDEN[k['api']] = time.monotonic() + KNOTEN_MEIDEN_S
+            if len(knoten()) > 1:
+                _fehler_zaehlen('knoten_' + k['name'])
+                print(f'livekit-knoten {k["name"]} nicht erreichbar: {type(e).__name__}', flush=True)
+    raise letzter
 
 
 def nebenraeume(code):            # wird von breakout.py ersetzt: offene Breakout-Räume (LiveKit-Raumnamen)
@@ -85,39 +180,50 @@ def berechtigung(rolle, rechte, extra=()):
                                      can_publish_sources=[QUELLEN_PROTO[x] for x in q])
 
 
-def _client():
-    return api.LiveKitAPI(url=API_HOST, api_key=API_KEY, api_secret=API_SECRET,
-                          timeout=aiohttp.ClientTimeout(total=5), failover=False)
-
-
 def _fehler_zaehlen(aufruf):
     from .metriken import zaehlen      # spät importiert (metriken importiert dieses Modul)
     zaehlen('agora_livekit_fehler_total', aufruf=aufruf)
 
 
 async def _aufruf(_name, _art, **kw):
-    """Einen RoomService-Aufruf ausführen; bei Fehler None."""
+    """Einen RoomService-Aufruf ausführen (erster erreichbarer Knoten); bei Fehler None."""
     if FAKE:
         AUFRUFE.append((_name, kw))
         return True
     try:
-        async with _client() as lk:
-            return await _art(lk, **kw)
+        return await mit_knoten(lambda lk, _k: _art(lk, **kw))
     except Exception as e:   # noqa: BLE001
         _fehler_zaehlen(_name)
         print(f'livekit-fehler {_name}: {type(e).__name__}: {str(e)[:200]}', flush=True)
         return None
 
 
-async def raum_anlegen(code, metadaten, max_teilnehmer):
-    """Legt den LiveKit-Raum an (oder liefert den bestehenden) – mit unseren Metadaten."""
-    async def f(lk, code, metadaten, max_teilnehmer):
+async def raum_anlegen(code, metadaten, max_teilnehmer, region=None):
+    """Legt den LiveKit-Raum an (oder liefert den bestehenden) – mit unseren Metadaten. region: Wunsch-Region für einen
+    neuen Raum (CreateRoom geht an einen Knoten dort; ein bestehender Raum bleibt, wo er ist). Breakout-Räume folgen
+    ohne Angabe der Region ihres Hauptraums."""
+    region = region or raum_region(code)
+    if FAKE:
+        AUFRUFE.append(('raum_anlegen', {'code': code, 'metadaten': metadaten, 'max_teilnehmer': max_teilnehmer}
+                        | ({'region': region} if region else {})))
+        return True
+
+    async def f(lk, k):
         await lk.room.create_room(api.CreateRoomRequest(name=code, empty_timeout=LEER_TIMEOUT_S, departure_timeout=20,
                                                         max_participants=max_teilnehmer, metadata=json.dumps(metadaten)))
         # Ein schon bestehender Raum übernimmt die Metadaten aus create_room nicht zwingend
         await lk.room.update_room_metadata(api.UpdateRoomMetadataRequest(room=code, metadata=json.dumps(metadaten)))
+        if k['region'] and code not in _RAUM_REGION:
+            if len(_RAUM_REGION) > 5000:
+                _RAUM_REGION.pop(next(iter(_RAUM_REGION)))
+            _RAUM_REGION[code] = k['region']
         return True
-    return await _aufruf('raum_anlegen', f, code=code, metadaten=metadaten, max_teilnehmer=max_teilnehmer)
+    try:
+        return await mit_knoten(f, region)
+    except Exception as e:   # noqa: BLE001
+        _fehler_zaehlen('raum_anlegen')
+        print(f'livekit-fehler raum_anlegen: {type(e).__name__}: {str(e)[:200]}', flush=True)
+        return None
 
 
 async def metadaten(code, daten):
@@ -148,16 +254,17 @@ async def teilnehmer(code):
         return [{'identity': p.identity, 'name': p.name, 'raum': raum,
                  'tracks': [{'sid': t.sid, 'quelle': QUELLE_NAME.get(t.source, ''), 'stumm': t.muted, 'name': t.name} for t in p.tracks]}
                 for p in r.participants]
-    alle = []
+    async def alle(lk, _k):
+        erg = []
+        for raum in alle_raeume(code):
+            try:
+                erg += await f(lk, raum)
+            except api.TwirpError as e:
+                if getattr(e, 'code', '') != 'not_found':   # Raum gibt es bei LiveKit (noch/nicht mehr) nicht → leer
+                    raise
+        return erg
     try:
-        async with _client() as lk:
-            for raum in alle_raeume(code):
-                try:
-                    alle += await f(lk, raum)
-                except api.TwirpError as e:
-                    if getattr(e, 'code', '') != 'not_found':   # Raum gibt es bei LiveKit (noch/nicht mehr) nicht → leer
-                        raise
-        return alle
+        return await mit_knoten(alle)
     except api.TwirpError as e:
         _fehler_zaehlen('teilnehmer')
         print(f'livekit-fehler teilnehmer: {e}', flush=True)
@@ -277,9 +384,7 @@ def schwaerzen(text, *geheim):
 async def _egress(_name, _f, _geheim=(), **kw):
     """Egress-Aufruf; (ergebnis, None) oder (None, Fehlertext ohne Geheimnisse)."""
     try:
-        async with api.LiveKitAPI(url=API_HOST, api_key=API_KEY, api_secret=API_SECRET,
-                                  timeout=aiohttp.ClientTimeout(total=15), failover=False) as lk:
-            return await _f(lk, **kw), None
+        return await mit_knoten(lambda lk, _k: _f(lk, **kw), timeout=15), None
     except Exception as e:   # noqa: BLE001
         _fehler_zaehlen(_name)
         text = schwaerzen(getattr(e, 'message', None) or str(e), *_geheim)
@@ -381,7 +486,25 @@ async def egress_info(egress_id, geheim=()):
 # ======== Ende Block „Egress“ ========
 
 
+async def knoten_lage():
+    """Je Knoten (nur bei mehreren): [{name, region, ok, ms}] – ein ListRooms direkt an genau diesen Knoten."""
+    erg = []
+    for k in knoten() if len(knoten()) > 1 and not FAKE else []:
+        t0 = time.perf_counter()
+        try:
+            async with api.LiveKitAPI(url=k['api'], api_key=API_KEY, api_secret=API_SECRET, failover=False,
+                                      timeout=aiohttp.ClientTimeout(total=3)) as lk:
+                await lk.room.list_rooms(api.ListRoomsRequest())
+            ok = True
+        except Exception:   # noqa: BLE001
+            ok = False
+        erg.append({'name': k['name'], 'region': k['region'], 'ok': ok, 'ms': round((time.perf_counter() - t0) * 1000, 1)})
+    return erg
+
+
 def fake_zuruecksetzen():
+    _RAUM_REGION.clear()
+    _GEMIEDEN.clear()
     AUFRUFE.clear()
     FAKE_TEILNEHMER.clear()
     FAKE_EGRESS.clear()

@@ -184,7 +184,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟢 Registrierungsseite für Teilnehmer
 - [x] 🟢 Livestream per RTMP (YouTube, Twitch)
 - [x] 🟢 HLS-Broadcast für sehr viele Zuschauer — *optional (`AGORA_EGRESS=1` + `AGORA_HLS=1`), Webinar → `/h/<code>`, 720p (+360p), ADR 0003; Cloudflare-Cache-Regel setzt Florian*
-- [ ] 🟢 Cascading SFUs für horizontale Skalierung — *erst bei mehreren Servern sinnvoll*
+- [ ] 🟢 Cascading SFUs für horizontale Skalierung — *bewusst nicht: open-source LiveKit kann einen Raum nicht über mehrere Knoten verteilen (nur LiveKit Cloud); Eigenbau (Relay-SFU) lohnt bei ≤ 50 Personen je Meeting nicht – Begründung [ADR 0007](adr/0007-skalierung.md). Skaliert wird über mehr Meetings auf mehr Knoten (Punkt 12)*
 
 ---
 
@@ -209,11 +209,12 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Object Storage für Aufzeichnungen und Dateien — *optional S3-kompatibel (Aufnahmen, Transkripte, Dateien), Migration per Skript; Standard weiter lokal unter daten/*
 - [x] 🟡 E-Mail-Versand (Einladungen, Reset)
 - [x] 🟡 Hintergrund-Jobs / Queue (Transkodierung, Mails, Aufräumen)
-- [ ] 🟡 Horizontale Skalierung von SFU-Nodes + Load-Balancing / Regionen — *ein Server; Redis für LiveKit vorbereitet*
+- [x] 🟡 Horizontale Skalierung von SFU-Nodes + Load-Balancing / Regionen — *Konfiguration + App fertig (`livekit-mehrknoten.yaml`, `AGORA_LIVEKIT_KNOTEN`, Ausweichen bei Ausfall, Gesundheit/Metriken je Knoten), auf einem Rechner mit zwei Wegwerf-Knoten bewiesen (`tests/skalierung/lauf.sh`, ADR 0007). Produktion: weiter ein Knoten, bis Florian einen zweiten Server bestellt (Schritte in BETRIEB.md)*
+- [ ] 🟢 Automatischer Neubeitritt über die App, wenn der Knoten wegfällt, über den ein Browser signalisiert — *heute: neu laden; ADR 0007*
 - [x] 🟡 Container-Deployment (Docker; optional Kubernetes)
 - [x] 🟡 Reverse-Proxy, TLS-Zertifikate (Let's Encrypt), HTTP/2/3
 - [x] 🟡 Firewall-/Port-Konzept für UDP-Medienports
-- [ ] 🟢 Multi-Region-Routing (nächster Medienserver) — *ein Server*
+- [x] 🟢 Multi-Region-Routing (nächster Medienserver) — *`regionaware`-Selektor + Land aus `CF-IPCountry` (`AGORA_LIVEKIT_LAENDER`) → neues Meeting im Knoten der Region, Signal-URL je Region; bewiesen mit zwei Regionen auf einem Rechner. Ein echter Messwert (Latenz Helsinki ↔ Falkenstein) fehlt, bis es den zweiten Server gibt*
 
 ---
 

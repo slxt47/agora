@@ -309,6 +309,56 @@ Zurück auf einen Worker: Override entfernen, `AGORA_REDIS_URL` aus `app.env`, `
 127.0.0.1:6391) – darin zwei echte uvicorn-Worker, die zusammen genau 30 Fehlerberichte je IP annehmen
 (ohne Redis nahmen sie in der Gegenprobe 57 von 80 an).
 
+## Mehrere LiveKit-Knoten – optional, standardmäßig aus
+
+Hintergrund und Grenzen: [ADR 0007](adr/0007-skalierung.md). Kurz: weitere Server tragen **weitere Meetings**; ein
+Meeting liegt immer ganz auf einem Knoten (open-source LiveKit hat kein Cascading). Die App legt neue Meetings in der
+Region des ersten Beitritts an (`CF-IPCountry` → Region) und weicht auf andere Knoten aus, wenn einer nicht antwortet.
+
+**Getestet (27.11.2026, `sh tests/skalierung/lauf.sh`, zwei Wegwerf-Knoten auf diesem Rechner):** 4 Meetings mit je zwei
+Chromium-Gästen → 2 auf Knoten A, 2 auf B (Redis `room_node_map`, Prometheus `livekit_room_total` je Knoten und die
+ICE-Kandidaten im Browser stimmen überein), Video läuft in allen; DE → Knoten A (eu-central), FR → Knoten B (eu-west),
+ein Gast aus DE im FR-Meeting signalisiert über A und bekommt die Medien von B; nach `docker kill` von A läuft das
+Meeting auf B weiter, neue Meetings und ein Wiederbeitritt in ein Meeting von A landen auf B, `/api/gesund?tief=1` bleibt
+grün und meldet A als ausgefallen. Nicht getestet: echter zweiter Server, Egress mit mehreren Knoten, Ausfall von Redis.
+
+**Aufbau mit einem zweiten Hetzner-Server** (Beispiel: Haupt-Server Falkenstein `eu-central`, neu Helsinki `eu-north`):
+
+1. **Privates Netz:** In der Hetzner Cloud ein Netzwerk (z. B. `10.0.0.0/24`, Zone eu-central – umfasst fsn1, nbg1, hel1)
+   anlegen und beide Server anhängen: Haupt-Server `10.0.0.2`, neuer Knoten `10.0.0.3`. Redis und LiveKit-API laufen nur
+   darüber, nie öffentlich.
+2. **Redis auf dem Haupt-Server** zusätzlich an die private IP binden (`docker-compose.override.yml`, Dienst `redis`:
+   `--bind 127.0.0.1 10.0.0.2`) und nur für den Knoten öffnen:
+   `sudo ufw allow from 10.0.0.3 to any port 6390 proto tcp comment 'Agora Redis für LiveKit-Knoten'`.
+3. **LiveKit-Konfiguration:** auf beiden Servern `livekit-mehrknoten.yaml` statt `livekit.yaml` einbinden (Override:
+   `volumes: ["./livekit-mehrknoten.yaml:/etc/livekit.yaml:ro"]`). Regionen und `node_selector` müssen überall gleich
+   sein. Auf dem neuen Knoten `bind_addresses: ["127.0.0.1", "10.0.0.3"]`, damit die App die API erreicht.
+4. **`livekit.env` je Knoten** (0600): `LIVEKIT_KEYS` überall **derselbe** Schlüssel (die App signiert die Token, jeder
+   Knoten muss sie prüfen können), `REDIS_HOST=10.0.0.2:6390` (auf dem Haupt-Server `127.0.0.1:6390`) und dasselbe
+   `REDIS_PASSWORD`, `NODE_IP=<öffentliche IPv4 dieses Servers>` (die Medien gehen direkt dorthin),
+   `LIVEKIT_REGION=eu-central` bzw. `eu-north`.
+5. **Firewall des neuen Knotens:** öffentlich `7882/udp` und `7881/tcp` (wie oben), privat
+   `sudo ufw allow from 10.0.0.2 to any port 7880 proto tcp` (API für die App) und, falls Prometheus vom Haupt-Server
+   abfragt, `6789/tcp` ebenso nur von `10.0.0.2`. Bei der Hetzner-Firewall dieselben Regeln.
+6. **Signalisierung:** auf dem neuen Knoten nur `livekit` + `cloudflared` (gehärtet wie in `docker-compose.yml`) mit
+   einem **eigenen Tunnel** und Hostnamen, z. B. `rtc-hel.agora.slxt.dev` → `http://127.0.0.1:7880`. Clients können
+   jeden Knoten ansprechen; LiveKit leitet über Redis zum Knoten des Raums.
+7. **App** (`app.env`, danach `docker compose up -d app`):
+   `AGORA_LIVEKIT_KNOTEN=eu-central wss://agora.slxt.dev http://127.0.0.1:7880, eu-north wss://rtc-hel.agora.slxt.dev http://10.0.0.3:7880`
+   und `AGORA_LIVEKIT_LAENDER=DE:eu-central,AT:eu-central,CH:eu-central,FI:eu-north,SE:eu-north,NO:eu-north,…`.
+   Der erste Knoten ist der Standard (kein oder unbekanntes Land). Die CSP (`connect-src`) enthält automatisch alle
+   Signal-URLs. `AGORA_LIVEKIT_URL`/`LIVEKIT_API_HOST` gelten dann nicht mehr.
+8. **Egress** bleibt auf dem Haupt-Server; er hängt am selben Redis und nimmt Aufträge für Räume auf jedem Knoten an
+   (verbindet sich mit seinem lokalen Knoten, LiveKit leitet weiter).
+9. **Prüfen:** `docker exec agora-livekit-1 /livekit-server --config /etc/livekit.yaml list-nodes` zeigt beide Knoten
+   mit Region; `curl -s http://127.0.0.1:8110/api/gesund?tief=1 | jq .pruefungen.livekit.knoten`; `sh scripts/waechter.sh`
+   warnt („LiveKit-Knoten nicht erreichbar: …“), wenn einer fehlt; `agora_livekit_knoten_erreichbar` in `/api/metriken`.
+
+**Verhalten bei Ausfall eines Knotens:** Meetings auf dem Knoten brechen ab; wer neu beitritt, landet auf einem anderen
+Knoten (≈ 5–8 s nach einem harten Ausfall, so lange hält LiveKit den Knoten noch für verfügbar). Die App fragt den
+ausgefallenen Knoten 15 s lang nicht mehr zuerst. Geplantes Abschalten: `docker compose stop livekit` – der Knoten meldet
+sich ab und nimmt keine neuen Räume an. Zurück auf einen Knoten: `AGORA_LIVEKIT_KNOTEN` entfernen, App neu starten.
+
 ## Aufbewahrung
 
 - Nicht bestätigte Konten: 48 h

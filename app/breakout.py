@@ -319,7 +319,7 @@ async def wechseln(code: str, req: Request):
     token = lk.token(ziel, t['identity'], t['name'], t['rolle'], t['farbe'], rechte(r))
     if offen:
         await melden(r, 'ort', nur_mods=True)
-    return {'zugang': {'token': token, 'url': lk_url(), 'raum': ziel, 'nr': nr}}
+    return {'zugang': {'token': token, 'url': lk_url(lk.raum_region(r['code'])), 'raum': ziel, 'nr': nr}}
 
 
 @router.post('/api/raeume/{code}/breakout/hilfe')

@@ -130,8 +130,7 @@ async def livekit_lage():
     if lk.FAKE:
         return True, 0.0, sum(len(v) for v in lk.FAKE_TEILNEHMER.values()), len(lk.FAKE_TEILNEHMER)
     try:
-        async with lk._client() as c:
-            r = await c.room.list_rooms(lk.api.ListRoomsRequest())
+        r = await lk.mit_knoten(lambda c, _k: c.room.list_rooms(lk.api.ListRoomsRequest()))   # erster erreichbarer Knoten
         return True, (time.perf_counter() - t0) * 1000, sum(x.num_participants for x in r.rooms), len(r.rooms)
     except Exception as e:   # noqa: BLE001
         zaehlen('agora_livekit_fehler_total', aufruf='list_rooms')
@@ -198,6 +197,10 @@ async def metriken(req: Request):
     gauge('agora_warteraum', 'Wartende Personen in Warteräumen', [(w['wartend'], {})])
     gauge('agora_livekit_erreichbar', 'LiveKit-Server-API antwortet (1/0)', [(int(erreichbar), {})])
     gauge('agora_livekit_antwort_ms', 'Antwortzeit der LiveKit-Server-API', [(round(ms, 1), {})])
+    knoten = await lk.knoten_lage()          # nur bei mehreren Knoten (AGORA_LIVEKIT_KNOTEN, ADR 0007)
+    if knoten:
+        gauge('agora_livekit_knoten_erreichbar', 'Server-API dieses LiveKit-Knotens antwortet (1/0)',
+              [(int(k['ok']), {'knoten': k['name'], 'region': k['region']}) for k in knoten])
     if verbunden is not None:
         gauge('agora_teilnehmer_verbunden', 'Bei LiveKit verbundene Teilnehmende (alle Räume)', [(verbunden, {})])
         gauge('agora_livekit_raeume', 'Räume bei LiveKit (inkl. Breakout-Räume)', [(lk_raeume, {})])
@@ -249,6 +252,9 @@ async def gesund_tief(req: Request):
         p['datenbank'] = {'ok': False, 'fehler': type(e).__name__}
     erreichbar, ms, verbunden, _r = await livekit_lage()
     p['livekit'] = {'ok': erreichbar, 'ms': round(ms, 1), 'verbunden': verbunden}
+    knoten = await lk.knoten_lage()
+    if knoten:                    # ein ausgefallener Knoten von mehreren ist kein Fehler (die anderen übernehmen), nur sichtbar
+        p['livekit']['knoten'] = knoten
     platte = shutil.disk_usage(db.DATEN)
     p['platte'] = {'ok': platte.free >= PLATTE_MIN and platte.free / platte.total >= 0.05, 'frei_bytes': platte.free,
                    'frei_prozent': round(platte.free / platte.total * 100, 1)}

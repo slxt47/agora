@@ -13,3 +13,4 @@ tests/e2e/bilder/
 web/public/vendor/
 web/src/raum/hintergruende/
 tests/egress/bilder/
+tests/skalierung/bilder/

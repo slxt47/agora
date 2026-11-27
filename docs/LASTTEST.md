@@ -78,3 +78,25 @@ NETEM="loss 10% delay 300ms rate 500kbit" sh scripts/lasttest.sh netz   # härte
 Rohdaten und Bildschirmfotos landen in `${AUSGABE:-/tmp/agora-lasttest}/`. Das Skript räumt Container und Netz am Ende
 selbst ab. Das Playwright-Abbild für die Netzsimulation läuft als root, weil `tc` root mit `NET_ADMIN` braucht – beides
 gilt nur im eigenen Netz-Namespace des Containers.
+
+## Mehrere Knoten (Skalierungsbeweis)
+
+Stand: 27.11.2026 · Skript: `sh tests/skalierung/lauf.sh` (~5 min) · Hintergrund: [ADR 0007](adr/0007-skalierung.md).
+Zwei LiveKit-Knoten v1.13.11 im Host-Netz (A: 7860–7863, B: 7870–7873, nur `lo`, `node_ip` 127.0.0.1), gemeinsames Redis
+(6392), App im Testmodus (8261, `AGORA_LIVEKIT_KNOTEN`), Chromium-Gäste mit Kamera-Attrappe. Wo ein Raum liegt, prüft der
+Test auf drei unabhängigen Wegen: Redis `room_node_map`, Prometheus `livekit_room_total` je Knoten und die
+Host-Kandidaten, die der Server dem Browser nennt (UDP 7862 = A, 7872 = B). Medien laufen, wenn die dekodierten
+Bilder fremder Videos wachsen.
+
+| Abschnitt | Aufbau | Ergebnis |
+|---|---|---|
+| 1. Verteilung | beide Knoten `eu-central`, `sort_by: rooms`, App spricht nur A an | 4 Meetings × 2 Gäste → 2 auf A, 2 auf B; Video in allen 8 Browsern; ListRooms über A zählt alle 8 Verbundenen |
+| 2. Regionen | A `eu-central`, B `eu-west`, `regionaware` | `CF-IPCountry: DE` → A, `FR` → B, ohne Land → A (erster Knoten); Gast aus DE im FR-Meeting: Signal über A, Medien von B, Video läuft |
+| 3. Ausfall | `docker kill` von A | FR-Meeting auf B läuft weiter; App gesund, meldet A als ausgefallen (`agora_livekit_knoten_erreichbar` 0/1); neues Meeting → B; Wiederbeitritt ins DE-Meeting (lag auf A) → neu auf B, Video läuft |
+
+Beobachtet: Nach einem harten Ausfall hält LiveKit den Knoten noch ≈ 5–8 s für verfügbar (Anfragen dorthin: „no response
+from servers“) – der Test wartet deshalb 8 s. Der Gast, der über A signalisiert hatte, zeigt „Verbindung unterbrochen –
+wird wiederhergestellt …“ und versucht weiter A (neu laden hilft; ADR 0007). Auf diesem Rechner wählt Chromium manchmal
+ein „prflx“-Paar, weil es von einer Docker-Brücken-Adresse an 127.0.0.1 sendet und die Antwort über das NAT der Brücke
+zurückkommt – das Ziel bleibt der Host-Kandidat des Knotens. LiveKit B am Ende: ≈ 96 MiB, 2 % CPU (Leerlauf).
+Was das nicht zeigt: Latenz/Bandbreite zwischen echten Standorten, Egress mit mehreren Knoten, Ausfall von Redis.

@@ -120,12 +120,12 @@ jeder Browser mit `info "medien"` selbst ab. Ändern (an/aus/neuer Schlüssel) n
 enthalten den Schlüssel nicht. Siehe `docs/adr/0005-e2ee.md`.
 
 ### Beitreten
-POST `/api/raeume/{code}/beitreten` Body `{name?, passcode?}` (name Pflicht für Gäste; angemeldet → Kontoname, `name` überschreibt).
+POST `/api/raeume/{code}/beitreten` Body `{name?, passcode?}` (name Pflicht für Gäste; angemeldet → Kontoname, `name` überschreibt). Mit mehreren LiveKit-Knoten (ADR 0007) optional `region` (bekannte Region, sonst Land aus `CF-IPCountry` über `AGORA_LIVEKIT_LAENDER`): neuer LiveKit-Raum in dieser Region, `zugang.url` = Signal-URL eines Knotens dort.
 - Besitzer, oder kein Warteraum: `{status:"zugelassen", zugang}`
 - Warteraum an: `{status:"wartet", anfrage, anfrage_geheim}`
 - 403 `Falscher Passcode` / `Meeting ist gesperrt` / `Meeting ist beendet`; 429 bei vielen Passcode-Versuchen.
 
-GET `/api/raeume/{code}/warten/{anfrage}?g=<anfrage_geheim>` → `{status:"wartet"}` | `{status:"zugelassen", zugang}` | `{status:"abgelehnt"}` (Frontend fragt alle 2 s). Wurde das Meeting inzwischen beendet: `{status:"abgelehnt", grund:"beendet"}`. Der Zugang wird genau einmal ausgegeben (danach 404).
+GET `/api/raeume/{code}/warten/{anfrage}?g=<anfrage_geheim>` → `{status:"wartet"}` | `{status:"zugelassen", zugang}` | `{status:"abgelehnt"}` (Frontend fragt alle 2 s). Wurde das Meeting inzwischen beendet: `{status:"abgelehnt", grund:"beendet"}`. Der Zugang wird genau einmal ausgegeben (danach 404). Optional `&region=` wie beim Beitritt.
 
 `zugang` = `{token (LiveKit-JWT), url (LiveKit-WebSocket-URL), identity, name, rolle: "host"|"cohost"|"teilnehmer"|"gast", teilnahme (Geheimnis für X-Teilnahme)}`.
 LiveKit-URL: `AGORA_LIVEKIT_URL` (Prod `wss://agora.slxt.dev`, Pfad `/rtc` geht per Tunnel an LiveKit; Test `ws://127.0.0.1:7980`).

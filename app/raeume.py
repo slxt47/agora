@@ -296,8 +296,9 @@ async def voll(r):
     return liste is not None and len(liste) >= MAX_TEILNEHMER
 
 
-async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None):
-    """Neue Teilnahme + LiveKit-Token. Der Besitzer wird Host (ein anderer Host wird dann Co-Host)."""
+async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None, region=None):
+    """Neue Teilnahme + LiveKit-Token. Der Besitzer wird Host (ein anderer Host wird dann Co-Host).
+    region: Wunsch-Region (nur mit mehreren LiveKit-Knoten, ADR 0007) für einen neuen LiveKit-Raum und die Signal-URL."""
     c = db.verbindung()
     b = c.execute('SELECT * FROM benutzer WHERE id = ?', (benutzer_id,)).fetchone() if benutzer_id else None
     if b and darf_verwalten(r, b):
@@ -318,7 +319,7 @@ async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None):
     c.execute('UPDATE raeume SET letzte_aktivitaet = ? WHERE id = ?', (jetzt(), r['id']))
     for f in NACH_ZUGANG:
         f(r, identity, name, rolle)
-    await lk.raum_anlegen(r['code'], meta(r), MAX_TEILNEHMER)
+    await lk.raum_anlegen(r['code'], meta(r), MAX_TEILNEHMER, region=region)
     for f in BEIM_BEITRITT:
         f(r)
     if BEI_ZAEHLUNG:              # Verlauf: Spitze auch beim Beitritt messen (Verbundene + wer gerade beitritt)
@@ -326,14 +327,19 @@ async def zugang_erstellen(r, name, benutzer_id, ip, wunsch=None):
         if liste is not None:
             for f in BEI_ZAEHLUNG:
                 f(r, len(liste) + 1)
-    return {'token': lk.token(r['code'], identity, name, rolle, farbe, rechte(r)), 'url': lk_url(), 'identity': identity,
-            'name': name, 'rolle': rolle, 'teilnahme': geheim,
+    return {'token': lk.token(r['code'], identity, name, rolle, farbe, rechte(r)), 'url': lk_url(region or lk.raum_region(r['code'])),
+            'identity': identity, 'name': name, 'rolle': rolle, 'teilnahme': geheim,
             'stumm_beitritt': bool(r['stumm_beitritt']) and rolle != 'host'}      # Vorlage: stumm beitreten (Client-Hinweis)
 
 
-def lk_url():
-    from .kern import LIVEKIT_URL
-    return LIVEKIT_URL
+def lk_url(region=None):
+    """Signal-URL für den Browser: ein erreichbarer LiveKit-Knoten (bevorzugt in der Region); mit einem Knoten AGORA_LIVEKIT_URL."""
+    return lk.signal_url(region)
+
+
+def wunsch_region(req, d=None):
+    """Wunsch-Region eines Beitritts: Feld `region` (bekannte Region) oder das Land aus CF-IPCountry (AGORA_LIVEKIT_LAENDER)."""
+    return lk.region_wahl((d or {}).get('region'), req.headers.get('cf-ipcountry'))
 
 
 async def leere_pruefen(t=None):
@@ -580,11 +586,12 @@ async def beitreten(code: str, req: Request):
         return {'status': 'wartet', 'anfrage': anfrage, 'anfrage_geheim': geheim}
     if besitzer:
         db.protokollieren('Meeting betreten (Host)', b['id'], code)
-    return {'status': 'zugelassen', 'zugang': await zugang_erstellen(r, name, b['id'] if b else None, ip, extra.get('rolle'))}
+    return {'status': 'zugelassen', 'zugang': await zugang_erstellen(r, name, b['id'] if b else None, ip, extra.get('rolle'),
+                                                                     region=wunsch_region(req, d))}
 
 
 @router.get('/api/raeume/{code}/warten/{anfrage}')
-async def warten(code: str, anfrage: str, req: Request, g: str = ''):
+async def warten(code: str, anfrage: str, req: Request, g: str = '', region: str = ''):
     grenze.pruefen('warten:' + client_ip(req), 240, 60)
     r = raum_laden(code)
     c = db.verbindung()
@@ -598,4 +605,5 @@ async def warten(code: str, anfrage: str, req: Request, g: str = ''):
     if a['status'] == 'wartet':
         return {'status': 'wartet'}
     c.execute('DELETE FROM anfragen WHERE id = ?', (a['id'],))     # zugelassen: Zugang genau einmal ausgeben
-    return {'status': 'zugelassen', 'zugang': await zugang_erstellen(r, a['name'], a['benutzer_id'], a['ip'])}
+    return {'status': 'zugelassen', 'zugang': await zugang_erstellen(r, a['name'], a['benutzer_id'], a['ip'],
+                                                                     region=wunsch_region(req, {'region': region}))}

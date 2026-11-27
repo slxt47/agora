@@ -1,0 +1,40 @@
+# LiveKit für MEHRERE Knoten (ADR 0007, docs/BETRIEB.md „Mehrere LiveKit-Knoten“). Nicht in Gebrauch, solange nur ein
+# Server läuft – dann gilt livekit.yaml. Auf jedem Knoten dieselbe Datei; je Knoten verschieden sind nur die Werte aus
+# livekit.env: NODE_IP (öffentliche IP dieses Servers), LIVEKIT_REGION (eine Region aus der Liste unten), dazu überall
+# gleich LIVEKIT_KEYS, REDIS_HOST, REDIS_PASSWORD (gemeinsames Redis über das private Netz).
+# Ohne Redis arbeitet LiveKit allein; mit Redis melden sich alle Knoten dort an, und jeder Raum liegt auf GENAU EINEM
+# Knoten (open-source LiveKit verteilt Räume, nicht Teilnehmende eines Raums – siehe ADR 0007).
+port: 7880
+bind_addresses: ["127.0.0.1"]   # Signalisierung über den Cloudflare-Tunnel; die App spricht die API über das private Netz an
+                                # (dann zusätzlich die private IP eintragen, z. B. ["127.0.0.1", "10.0.0.2"])
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: false
+  enable_loopback_candidate: false
+  interfaces:
+    includes: [eth0]            # nur die öffentliche Schnittstelle (nicht das private Netz, nicht die Docker-Brücken)
+node_selector:
+  # regionaware: Ein neuer Raum kommt auf einen Knoten in der Region, die der Region des Knotens am nächsten liegt, der
+  # die Anfrage (CreateRoom oder Beitritt) bekommt; innerhalb der Region nach sort_by. Die App schickt CreateRoom deshalb
+  # an einen Knoten der Wunsch-Region (AGORA_LIVEKIT_KNOTEN/AGORA_LIVEKIT_LAENDER).
+  kind: regionaware
+  sort_by: cpuload              # gültig in v1.13.11: random, sysload, cpuload, rooms, clients, tracks, bytespersec
+  algorithm: lowest
+  regions:                      # Name = LIVEKIT_REGION der Knoten; lat/lon = Standort (für „nächste Region“)
+    - name: eu-central          # Hetzner Falkenstein (fsn1)
+      lat: 50.4777
+      lon: 12.3649
+    - name: eu-north            # Hetzner Helsinki (hel1)
+      lat: 60.1699
+      lon: 24.9384
+prometheus:
+  port: 6789                    # lauscht auf bind_addresses; je Knoten livekit_room_total, livekit_participant_total, … (node_id)
+room:
+  empty_timeout: 300
+  departure_timeout: 20
+  max_participants: 100
+limit:
+  num_tracks: 400
+logging:
+  level: info

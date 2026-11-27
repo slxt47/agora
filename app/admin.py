@@ -87,6 +87,7 @@ async def uebersicht(req: Request):
                      'raeume': eins('SELECT COUNT(*) FROM raeume')},
         'aufnahmen': {'anzahl': eins('SELECT COUNT(*) FROM aufnahmen'), 'belegt': eins('SELECT COALESCE(SUM(groesse), 0) FROM aufnahmen')},
         'meldungen_offen': eins("SELECT COUNT(*) FROM meldungen WHERE status = 'offen'"),
+        'fehler_offen': eins('SELECT COUNT(*) FROM fehler_gruppen WHERE erledigt IS NULL'),
     }
 
 

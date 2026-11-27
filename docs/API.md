@@ -247,7 +247,7 @@ Admin = bestätigtes Konto, dessen E-Mail in `AGORA_ADMIN_MAILS` steht. Jede än
 
 | Methode + Pfad | Body / Parameter | Antwort |
 |---|---|---|
-| GET `/api/admin/uebersicht` | – | `{konten:{gesamt, bestaetigt, gesperrt, zwei_faktor, neu_7}, laufend:{meetings, teilnehmer, livekit}, meetings:{tage_7, tage_30, raeume}, aufnahmen:{anzahl, belegt}, meldungen_offen}` |
+| GET `/api/admin/uebersicht` | – | `{konten:{gesamt, bestaetigt, gesperrt, zwei_faktor, neu_7}, laufend:{meetings, teilnehmer, livekit}, meetings:{tage_7, tage_30, raeume}, aufnahmen:{anzahl, belegt}, meldungen_offen, fehler_offen}` |
 | GET `/api/admin/benutzer` | `?q=&seite=` (50 je Seite) | `{benutzer:[konto], gesamt, seite_groesse}` |
 | POST `/api/admin/benutzer/{id}/sperren` | `{an: bool}` | `{benutzer: konto}` – Sperren meldet überall ab und beendet eigene laufende Meetings |
 | POST `/api/admin/benutzer/{id}/2fa-zuruecksetzen` | – | `{benutzer: konto}` |
@@ -643,3 +643,23 @@ Zusammenfassung/Aufgaben). `aufnahme_json` hat zusätzlich `zusammenfassung: nul
 Hooks: `untertitel.BEIM_LOESCHEN` (f()), `untertitel.NACH_TRANSKRIPT` (neues Whisper-Transkript löscht die alte Zusammenfassung).
 Push-Ereignis `fertig` bei fertiger KI-Zusammenfassung.
 
+
+## Fehler-Monitoring (app/fehlerbericht.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| POST `/api/fehlerbericht` | alle (auch ohne Anmeldung), X-Agora | `{art: "fehler"\|"promise"\|"livekit"\|"api", nachricht, stapel?, seite?, version?}` → `{ok:true}`; 400 falsche Art/Typen, 413 über 16 KB, 429 über 30/10 min je IP (IPv6 /64) bzw. 600/10 min insgesamt |
+| GET `/api/admin/fehler` | Admin | `?status=offen\|erledigt\|alle` → `{gruppen:[gruppe], offen}` (max. 200, neueste zuerst) |
+| GET `/api/admin/fehler/{id}` | Admin | `{gruppe: gruppe + stapel}` |
+| POST `/api/admin/fehler/{id}` | Admin | `{erledigt: bool}` → `{gruppe}`; Protokoll `Admin: Fehler #id erledigt\|wieder offen` |
+| DELETE `/api/admin/fehler/{id}` | Admin | `{ok:true}` |
+
+`gruppe` = `{id, quelle: browser|server, art: fehler|promise|livekit|api|ausnahme, nachricht, ort, seite, anzahl, erstmals, zuletzt,
+version, versionen:{version: n}, browser:{familie: n}, erledigt: ISO|null}`. Der Server säubert alles noch einmal: nach `?`/`#`
+(auch `%23`) wird abgeschnitten, Herkunft (`https://host`), E-Mail-Adressen, Meeting-Codes, lange Token/IDs und IPv4 ersetzt
+(`‹e-mail›`, `‹code›`, `‹token›`, `‹id›`, `‹ip›`), Nachricht 500 Zeichen, Stack 20 Zeilen/4000 Zeichen. Browser-Familie kommt
+aus dem User-Agent (der selbst nicht gespeichert wird). Fingerabdruck = SHA-256(Quelle, Art, Nachricht mit Zahlen ≥ 4 Stellen
+als N, oberster Frame ohne Build-Hash) – neue Builds landen in derselben Gruppe. Ein neues Auftreten öffnet eine erledigte
+Gruppe wieder. Neue Browser-Gruppen über 2000 werden verworfen (Server-Ausnahmen nie).
+Server: unerwartete Ausnahmen einer Route → 500 `{fehler: "Interner Fehler"}` (mit allen Sicherheits-Kopfzeilen) und eine
+Gruppe `server/ausnahme` mit Route (`GET /api/raeume/{code}/…`) und Frames (nur Dateinamen, ohne Bibliotheken).
+`/api/metriken`: Zähler `agora_fehlerberichte_total{quelle}`.

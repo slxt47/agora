@@ -850,4 +850,14 @@ export const de = {
   'zf.kiSenden': 'Ja, schicken', 'zf.kiNicht': 'Eine KI-Zusammenfassung ist auf diesem Server nicht eingerichtet.',
   'zf.stichwortHinweis': 'Stichwort-Kapitel entstehen auf dem Server ohne KI; das Transkript verlässt ihn dafür nicht.',
   // ==== Ende Block Zusammenfassung + Kapitel ====
+  // ==== Block Fehler-Monitoring (admin.js, Reiter „Fehler“) ====
+  'fb.reiter': 'Fehler', 'fb.titel': 'Fehler aus Browsern und Server',
+  'fb.hinweis': 'Gruppiert nach Art und Stelle. Ohne Namen, E-Mail-Adressen und IPs, ohne alles nach ? oder # in Adressen; 30 Tage nach dem letzten Auftreten gelöscht. Eine erledigte Gruppe öffnet sich wieder, sobald der Fehler erneut auftritt.',
+  'fb.keine': 'Keine Fehler.', 'fb.anzahl': '{n}×', 'fb.erstmals': 'zuerst {zeit}', 'fb.zuletzt': 'zuletzt {zeit}', 'fb.erledigtSeit': 'erledigt {zeit}',
+  'fb.quelle.browser': 'Browser', 'fb.quelle.server': 'Server',
+  'fb.art.fehler': 'JS-Fehler', 'fb.art.promise': 'Promise', 'fb.art.livekit': 'LiveKit', 'fb.art.api': 'API ≥ 500', 'fb.art.ausnahme': 'Ausnahme',
+  'fb.details': 'Details', 'fb.erledigen': 'Erledigt', 'fb.stapel': 'Stack', 'fb.ort': 'Stelle', 'fb.seite': 'Seite', 'fb.versionen': 'Versionen',
+  'fb.browser': 'Browser', 'fb.kachel': 'Offene Fehler', 'fb.kachelUnter': 'Gruppen aus Browsern und Server', 'fb.loeschenTitel': 'Fehlergruppe löschen?',
+  'fb.loeschenText': 'Die Gruppe verschwindet mit allen Zählern. Tritt der Fehler wieder auf, beginnt eine neue.', 'fb.keinStapel': 'Kein Stack übermittelt.', 'fb.auftreten': 'Auftreten',
+  // ==== Ende Block Fehler-Monitoring ====
 };

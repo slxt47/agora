@@ -16,6 +16,7 @@
 .admin-dl dt { color: var(--sec); }
 .admin-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .admin-text { white-space: pre-wrap; }
+.admin-stapel { margin: 0; padding: 10px 12px; max-height: 50vh; overflow: auto; font-size: .8125rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; }
 @media (max-width: 480px) { .admin-dl { grid-template-columns: 1fr; } .admin-dl dd { margin-bottom: 6px; } }
 .admin-tabelle-rahmen { overflow-x: auto; border-radius: var(--r-tile); border: 1px solid var(--card-line); }
 .admin-tabelle { width: 100%; border-collapse: collapse; font-size: .875rem; }

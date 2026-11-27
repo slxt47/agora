@@ -43,6 +43,7 @@ HILFE = {
     'agora_livekit_fehler_total': ('counter', 'Fehlgeschlagene Aufrufe der LiveKit-Server-API je Aufruf'),
     'agora_hintergrund_fehler_total': ('counter', 'Fehler in der Hintergrund-Schleife'),
     'agora_http_anfragen_total': ('counter', 'HTTP-Anfragen je Routengruppe und Statusklasse'),
+    'agora_fehlerberichte_total': ('counter', 'Erfasste Fehler (Fehler-Monitoring) je Quelle (browser, server)'),
 }
 
 

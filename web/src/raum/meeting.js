@@ -32,6 +32,7 @@ import { Dolmetschen } from './dolmetsch.js';      // Dolmetscher-Kanäle (Spur 
 import './anmerkungen.css';
 import { linkMitSchluessel } from '../e2ee-schluessel.js';
 import { desktopKuerzel } from './desktop.js';
+import { fehlerMelden } from '../fehlerbericht.js';   // Fehler-Monitoring: unerwartete Trennungen von LiveKit
 
 const kodieren = (o) => new TextEncoder().encode(JSON.stringify(o));
 const RECHTE_STANDARD = { chat: true, bildschirm: true, selbst_unmute: true, umbenennen: true, mehrfach_freigabe: false };
@@ -957,6 +958,8 @@ export class Meeting {
       else if (grundLk === DisconnectReason.ROOM_DELETED) art = 'beendet';
       else if (grundLk === DisconnectReason.DUPLICATE_IDENTITY) art = 'doppelt';
       else art = 'verbindung';
+      // Unerwartet getrennt (nicht selbst, nicht entfernt/beendet) → Grund ans Fehler-Monitoring (nur der Name des Grunds)
+      if (art === 'verbindung' && grundLk !== DisconnectReason.CLIENT_INITIATED) fehlerMelden('livekit', `LiveKit getrennt: ${DisconnectReason[grundLk] ?? grundLk ?? 'ohne Grund'}`);
     }
     try { await this.wake?.release(); } catch { /* egal */ }
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});

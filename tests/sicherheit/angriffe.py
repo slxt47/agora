@@ -868,7 +868,9 @@ def xss(br, lk_js, adm):
             except Exception:   # noqa: BLE001
                 pass
         pruefen('Konto nach dem Meeting: kein Skript', not hp.evaluate('window.__xss') and not dialoge, dialoge)
-        # Admin-Ansicht (Meldungen, Konten, Protokoll, Meetings)
+        # Fehler-Monitoring: Nutzlast als Fehlermeldung, Stack und Seite (ohne Anmeldung gemeldet, Admin sieht sie)
+        Sitzung().post('/api/fehlerbericht', {'art': 'fehler', 'nachricht': XSS[:400], 'stapel': XSS_MD[:2000], 'seite': '/' + XSS_KURZ})
+        # Admin-Ansicht (Meldungen, Konten, Protokoll, Meetings, Fehler)
         if adm and adm.cookie:
             c_adm = br.new_context(bypass_csp=True)
             c_adm.add_cookies([{'name': COOKIE, 'value': adm.cookie, 'url': B}])
@@ -879,6 +881,16 @@ def xss(br, lk_js, adm):
             for tab in ('#tab-meldungen', '#tab-konten', '#tab-meetings', '#tab-protokoll', '#tab-uebersicht'):
                 ap.click(tab)
                 time.sleep(0.6)
+            ap.click('#tab-fehler')
+            ap.wait_for_selector('#liste-fehler li[data-fehler]', timeout=10000)
+            for knopf in ap.query_selector_all('#liste-fehler [data-aktion=details]')[:5]:
+                knopf.click()
+                time.sleep(0.5)
+                ap.keyboard.press('Escape')
+                time.sleep(0.2)
+            text = ap.inner_text('#p-fehler')
+            pruefen('Admin „Fehler“: Nutzlast aus Fehlerbericht als Text, kein Skript', 'onerror' in text and not ap.evaluate('window.__xss') and not dialoge,
+                    (text.count('onerror'), ap.evaluate('window.__xss'), dialoge))
             ap.click('#tab-meldungen')
             time.sleep(0.6)
             text = ap.inner_text('body')
@@ -1026,6 +1038,59 @@ def status_seite():
     pruefen('/api/status begrenzt (120/min je IP)', 429 in stati, stati[-5:])
 
 
+# ================================================================= Fehler-Monitoring (/api/fehlerbericht, ohne Anmeldung)
+def fehlerbericht():
+    gut = {'art': 'fehler', 'nachricht': 'Sicherheitstest', 'seite': '/konto', 'version': '1.0.0'}
+    s = Sitzung()
+    r = s.post('/api/fehlerbericht', gut)
+    pruefen('Fehlerbericht ohne Anmeldung angenommen (Gegenprobe)', r.status == 200, r)
+    r = s.post('/api/fehlerbericht', gut, agora=False)
+    pruefen('Fehlerbericht ohne X-Agora → 403 (CSRF)', r.status == 403, r)
+    for groesse in (20_000, 2_000_000):
+        r = Sitzung().post('/api/fehlerbericht', {**gut, 'stapel': 'x' * groesse})
+        pruefen(f'Fehlerbericht {groesse // 1000} KB → 413', r.status == 413, r)
+    sock = socket.create_connection((HOST, PORT), timeout=5)
+    try:
+        sock.sendall(f'POST /api/fehlerbericht HTTP/1.1\r\nHost: x\r\nX-Agora: 1\r\nContent-Type: application/json\r\n'
+                     f'CF-Connecting-IP: {zufalls_ip()}\r\nContent-Length: 100000000\r\n\r\n{{"art":'.encode())
+        try:
+            antwort = sock.recv(200)
+        except socket.timeout:
+            antwort = b'(keine Antwort nach 5 s)'
+    finally:
+        sock.close()
+    pruefen('Fehlerbericht: Content-Length 100 MB sofort abgelehnt', antwort[:12] == b'HTTP/1.1 413', antwort[:60])
+    for body in ({'art': 'boese'}, {'art': 'fehler', 'nachricht': {'$gt': ''}}, {'art': ['fehler']}, {'art': 'fehler', 'stapel': 7}):
+        r = Sitzung().post('/api/fehlerbericht', body)
+        pruefen(f'Fehlerbericht mit falschen Typen {str(body)[:40]} → 400', r.status == 400, r)
+    r = Sitzung()('POST', '/api/fehlerbericht', body=b'[' * 100000, kopf={'Content-Type': 'application/json'})
+    pruefen('Fehlerbericht: tief verschachteltes JSON → 4xx', 400 <= r.status < 500, r)
+    # Flut von einer IP (und einer IPv6-/64 mit wechselnden Adressen): spätestens nach 30 Berichten 429
+    f = Sitzung()
+    stati = [f.post('/api/fehlerbericht', {**gut, 'nachricht': f'Flut {i}'}).status for i in range(40)]
+    pruefen('Fehlerbericht-Flut einer IP begrenzt (≤ 30 angenommen)', stati.count(200) <= 30 and 429 in stati, stati[-5:])
+    netz = f'2001:db8:{secrets.randbelow(65535):x}:{secrets.randbelow(65535):x}'
+    stati = [Sitzung(ip=f'{netz}::{i + 1:x}').post('/api/fehlerbericht', {**gut, 'nachricht': f'v6 {i}'}).status for i in range(40)]
+    pruefen('Fehlerbericht-Flut aus einer IPv6-/64 begrenzt', stati.count(200) <= 30 and 429 in stati, stati[-5:])
+    # Fehlerberichte sind für Nicht-Admins nicht lesbar
+    k = konto_anlegen('Kein Admin Fehler')
+    for m, p, j in (('GET', '/api/admin/fehler', None), ('GET', '/api/admin/fehler/1', None), ('POST', '/api/admin/fehler/1', {'erledigt': True}),
+                    ('DELETE', '/api/admin/fehler/1', None)):
+        pruefen(f'Nicht-Admin → {m} {p} → 404', k(m, p, j).status == 404, k(m, p, j))
+        pruefen(f'Abgemeldet → {m} {p} → 404', Sitzung()(m, p, j).status == 404, Sitzung()(m, p, j))
+    # E2EE-Schlüssel aus dem Fragment und Personendaten landen nicht in der Gruppe (Admin liest nach)
+    geheim = 'SICHERHEIT' + secrets.token_hex(8)
+    Sitzung().post('/api/fehlerbericht', {'art': 'promise', 'nachricht': f'x https://h/r/abc-defg-hij#k={geheim} ada@example.org',
+                                          'stapel': f'at a (/assets/a.js#k={geheim}:1:1)', 'seite': f'/r/abc-defg-hij#k={geheim}'})
+    adm = Sitzung()
+    adm.post('/api/konto/anmelden', {'email': 'host@example.com', 'passwort': 'Admin-Passwort-1'})
+    if adm.cookie:
+        alle = adm.get('/api/admin/fehler?status=alle').json() or {}
+        roh_text = json.dumps([adm.get(f'/api/admin/fehler/{g["id"]}').json() for g in alle.get('gruppen', [])[:50]])
+        pruefen('Fehlerbericht: #k=-Schlüssel, Meeting-Code und E-Mail nicht gespeichert',
+                geheim not in roh_text and 'abc-defg-hij' not in roh_text and 'ada@example.org' not in roh_text and alle.get('gruppen'), roh_text[:200])
+
+
 # ================================================================= Ablauf
 def main():
     print(f'Sicherheitstest gegen {B} (LiveKit {LK_URL})', flush=True)
@@ -1035,11 +1100,11 @@ def main():
     ctx = adm = None
     schritte = [('kopfzeilen', kopfzeilen), ('csrf', csrf), ('anmeldung', anmeldung), ('idor', idor), ('rollen', rollen),
                 ('token', None), ('ssrf', ssrf), ('pfade', None), ('groessen', groessen), ('brute', brute), ('sqli', sqli),
-                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('browser', None)]
+                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('fehlerbericht', None), ('browser', None)]
     abbrueche = []
     noetig = set(NUR)
     for n in list(NUR):
-        noetig |= {'token': {'rollen'}, 'browser': {'rollen', 'sqli'}}.get(n, set())
+        noetig |= {'token': {'rollen'}, 'browser': {'rollen', 'sqli'}, 'fehlerbericht': {'sqli'}}.get(n, set())
     for name, f in schritte:
         if NUR and name not in noetig:
             continue
@@ -1054,6 +1119,8 @@ def main():
                 pfade(konto_anlegen('Pfade'))
             elif name == 'sqli':
                 adm = sqli()
+            elif name == 'fehlerbericht':
+                fehlerbericht()
             elif name == 'browser':
                 browser(ctx, adm)
             else:

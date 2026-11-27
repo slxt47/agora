@@ -318,6 +318,12 @@ FEHLER_EN = {
     'Wiederholung: keine, taeglich oder woechentlich.': 'Repeat: keine, taeglich or woechentlich.',
     'Während das Meeting läuft, lässt sich der Webinar-Modus nicht umschalten.': 'Webinar mode can’t be switched while the meeting is running.',
     'Zu viele Versuche – bitte kurz warten.': 'Too many attempts – please wait a moment.',
+    # ==== Block Fehler-Monitoring ====
+    'Interner Fehler': 'Internal error',
+    'Fehler nicht gefunden': 'Error not found',
+    'Bitte „erledigt“ (true/false) angeben.': 'Please specify “erledigt” (true/false).',
+    'Art: fehler, promise, livekit oder api.': 'Type: fehler, promise, livekit or api.',
+    # ==== Ende Block Fehler-Monitoring ====
     'Zu viele falsche Codes – bitte noch einmal mit Passwort anmelden.': 'Too many wrong codes – please sign in again with your password.',
     'Zuschauer schreiben in diesem Webinar nur privat an Host und Panel.': 'In this webinar, attendees only write privately to host and panel.',
     'Zuschauer senden keinen Ton – also auch keine Untertitel.': 'Attendees don’t send audio – so no captions either.',

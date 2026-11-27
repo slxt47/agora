@@ -1,5 +1,6 @@
 // Admin-Bereich (/admin, nur für Admins – der Server liefert sonst 404): Übersicht, Konten (suchen, sperren,
-// 2FA zurücksetzen, löschen), Meldungen (bearbeiten mit Notiz), laufende Meetings (beenden), Protokoll (Filter).
+// 2FA zurücksetzen, löschen), Meldungen (bearbeiten mit Notiz), laufende Meetings (beenden), Fehler (Fehler-Monitoring),
+// Protokoll (Filter). Alle Texte vom Server (auch Fehlermeldungen aus Browsern) nur als Textknoten (h()), nie als HTML.
 import './admin.css';
 import { $, $$, h, api, toast, blatt, bestaetigen, beschaeftigt, status, knopf } from './common.js';
 import { t, gebiet } from './i18n.js';
@@ -11,8 +12,8 @@ const ZONE = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZ
 const zeit = (iso) => (iso ? zeitText(iso, ZONE) : '–');
 
 // ---------------------------------------------------------------- Reiter
-const REITER = ['uebersicht', 'konten', 'meldungen', 'meetings', 'orgs', 'status', 'protokoll'];
-const LADEN = { uebersicht: uebersichtLaden, konten: () => kontenLaden(), meldungen: meldungenLaden, meetings: meetingsLaden, orgs: () => orgsLaden(),
+const REITER = ['uebersicht', 'konten', 'meldungen', 'meetings', 'orgs', 'fehler', 'status', 'protokoll'];
+const LADEN = { uebersicht: uebersichtLaden, konten: () => kontenLaden(), meldungen: meldungenLaden, meetings: meetingsLaden, orgs: () => orgsLaden(), fehler: fehlerLaden,
   status: () => statusLaden(), protokoll: () => protokollLaden() };
 function reiter(name, fokus = false) {
   if (!REITER.includes(name)) name = 'uebersicht';
@@ -46,6 +47,7 @@ async function uebersichtLaden() {
     const u = await api('/api/admin/uebersicht');
     $('#stand').textContent = t('admin.stand', { zeit: new Intl.DateTimeFormat(gebiet(), { timeStyle: 'short' }).format(new Date()) });
     meldungenZahl(u.meldungen_offen);
+    fehlerZahl(u.fehler_offen);
     box.replaceChildren(
       kachel(t('admin.laufend'), adminZahl(u.laufend.meetings), u.laufend.livekit ? t('admin.teilnehmerLive', { n: adminZahl(u.laufend.teilnehmer) }) : t('admin.livekitAus'), u.laufend.livekit ? '' : 'warn'),
       kachel(t('admin.meetings7'), adminZahl(u.meetings.tage_7), t('admin.meetings30', { n: adminZahl(u.meetings.tage_30) })),
@@ -53,6 +55,7 @@ async function uebersichtLaden() {
       kachel(t('admin.sicherheit'), adminZahl(u.konten.zwei_faktor), t('admin.sicherheitUnter', { gesperrt: adminZahl(u.konten.gesperrt) })),
       kachel(t('admin.aufnahmen'), groesseText(u.aufnahmen.belegt), t('admin.aufnahmenUnter', { n: adminZahl(u.aufnahmen.anzahl) })),
       kachel(t('admin.meldungenOffen'), adminZahl(u.meldungen_offen), t('admin.meldungenUnter'), u.meldungen_offen ? 'warn' : ''),
+      kachel(t('fb.kachel'), adminZahl(u.fehler_offen), t('fb.kachelUnter'), u.fehler_offen ? 'warn' : ''),
     );
   } catch (e) { box.replaceChildren(h('p', { class: 'leer' }, e.message)); }
 }
@@ -228,6 +231,77 @@ async function meetingsLaden() {
 async function meetingBeenden(r) {
   if (!await bestaetigen(t('admin.meetingBeenden'), t('admin.meetingBeendenText', { titel: r.titel }), { ja: t('admin.meetingBeenden'), gefahr: true })) return;
   await beschaeftigt(null, async () => { await api(`/api/admin/meetings/${r.code}/beenden`, { methode: 'POST' }); toast(t('admin.erledigt'), 'ok'); meetingsLaden(); });
+}
+
+// ---------------------------------------------------------------- Fehler (Fehler-Monitoring)
+for (const r of $$('input[name="f-status"]')) r.addEventListener('change', fehlerLaden);
+
+function fehlerZahl(n) {
+  const z = $('#fehler-zahl');
+  z.hidden = !n;
+  z.textContent = String(n || '');
+}
+
+/** {schluessel: anzahl} → „Chrome 3 · Safari 1“ (absteigend). */
+const zaehlerText = (d) => Object.entries(d || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(' · ');
+
+async function fehlerLaden() {
+  const ul = $('#liste-fehler');
+  const st = $('input[name="f-status"]:checked').value;
+  try {
+    const r = await api(`/api/admin/fehler?status=${st}`);
+    fehlerZahl(r.offen);
+    ul.replaceChildren(...(r.gruppen.length ? r.gruppen.map(fehlerEintrag) : [h('li', { class: 'leer' }, t('fb.keine'))]));
+  } catch (e) { fehlerZeile(ul, e); }
+}
+
+function fehlerEintrag(g) {
+  return h('li', { class: 'admin-fehler', dataset: { fehler: g.id } },
+    h('div', { class: 'kopf' }, h('div', { class: 'text' },
+      h('span', { class: 'name admin-text' }, g.nachricht),
+      h('span', { class: 'info' }, [t('fb.anzahl', { n: adminZahl(g.anzahl) }), t('fb.zuletzt', { zeit: zeit(g.zuletzt) }), t('fb.erstmals', { zeit: zeit(g.erstmals) })].join(' · ')),
+      g.ort ? h('span', { class: 'info mono admin-text' }, g.ort) : null)),
+    h('div', { class: 'zeile' },
+      h('span', { class: 'marker' }, t(`fb.quelle.${g.quelle}`)), h('span', { class: 'marker' }, t(`fb.art.${g.art}`)),
+      g.version ? h('span', { class: 'marker mono' }, g.version) : null,
+      Object.keys(g.browser).length ? h('span', { class: 'marker' }, zaehlerText(g.browser)) : null,
+      g.erledigt ? h('span', { class: 'marker ok' }, t('fb.erledigtSeit', { zeit: zeit(g.erledigt) })) : null),
+    h('div', { class: 'aktionen' },
+      knopf(t('fb.details'), { klasse: 'btn klein', dataset: { aktion: 'details' }, onclick: () => fehlerDetails(g) }),
+      g.erledigt
+        ? knopf(t('admin.wiederOeffnen'), { klasse: 'btn klein', onclick: () => fehlerSetzen(g, false) })
+        : knopf(t('fb.erledigen'), { klasse: 'btn primary klein', symbol: 'haken', dataset: { aktion: 'erledigen' }, onclick: () => fehlerSetzen(g, true) }),
+      knopf(t('admin.loeschen'), { klasse: 'btn klein gefahr', symbol: 'muell', onclick: () => fehlerLoeschen(g) })));
+}
+
+async function fehlerDetails(g) {
+  await beschaeftigt(null, async () => {
+    const { gruppe: x } = await api(`/api/admin/fehler/${g.id}`);
+    const { inhalt } = blatt(`#${x.id} · ${t(`fb.art.${x.art}`)}`, { breit: true });
+    inhalt.append(
+      h('p', { class: 'admin-text' }, x.nachricht),
+      h('dl', { class: 'admin-dl' },
+        h('dt', {}, t('fb.ort')), h('dd', { class: 'mono admin-text' }, x.ort || '–'),
+        h('dt', {}, t('fb.seite')), h('dd', { class: 'mono admin-text' }, x.seite || '–'),
+        h('dt', {}, t('fb.versionen')), h('dd', {}, zaehlerText(x.versionen) || '–'),
+        h('dt', {}, t('fb.browser')), h('dd', {}, zaehlerText(x.browser) || '–'),
+        h('dt', {}, t('fb.auftreten')), h('dd', {}, [t('fb.anzahl', { n: adminZahl(x.anzahl) }), t('fb.erstmals', { zeit: zeit(x.erstmals) }), t('fb.zuletzt', { zeit: zeit(x.zuletzt) })].join(' · '))),
+      h('h4', {}, t('fb.stapel')),
+      x.stapel ? h('pre', { class: 'admin-stapel mono' }, x.stapel) : h('p', { class: 'sec' }, t('fb.keinStapel')));
+  });
+}
+
+async function fehlerSetzen(g, erledigt) {
+  await beschaeftigt(null, async () => {
+    await api(`/api/admin/fehler/${g.id}`, { methode: 'POST', json: { erledigt } });
+    toast(t('admin.erledigt'), 'ok');
+    fehlerLaden();
+  });
+}
+
+async function fehlerLoeschen(g) {
+  if (!await bestaetigen(t('fb.loeschenTitel'), t('fb.loeschenText'), { ja: t('admin.loeschen'), gefahr: true })) return;
+  await beschaeftigt(null, async () => { await api(`/api/admin/fehler/${g.id}`, { methode: 'DELETE' }); fehlerLaden(); });
 }
 
 // ---------------------------------------------------------------- Organisationen (nur ansehen)

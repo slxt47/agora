@@ -4,11 +4,13 @@
 //    bei „Bewegung reduzieren“ wechselt modus.js sofort.
 //  • Himmel wie auf slxt.org: Sterne (dunkel) + seltene Sternschnuppen. Im Meeting ruht der Himmel (ruhe(true)).
 //  • Sprache: Schalter DE/EN neben Hell/Dunkel, Konto-Sprache für Angemeldete (ADR 0006)
+//  • Fehler-Monitoring: JS-Fehler und API-Antworten ≥ 500 gehen (gesäubert) an /api/fehlerbericht (fehlerbericht.js).
 //  • API-Helfer (X-Agora gegen CSRF, Accept-Language = aktive Sprache → Fehlermeldungen in dieser Sprache), Upload mit Fortschritt, Toasts, Dialoge, DOM-Helfer.
 import './app.css';
 import { t, seiteUebersetzen, aktuelleSprache, spracheWechseln, SPRACHEN } from './i18n.js';
 import { icon } from './icons.js';
 import { pwaStarten } from './pwa.js';
+import { fehlerMonitoringStarten, apiFehlerMelden } from './fehlerbericht.js';
 
 const d = document.documentElement;
 const ruhig = matchMedia('(prefers-reduced-motion: reduce)');
@@ -124,6 +126,7 @@ export async function api(pfad, { methode = 'GET', json, body, header = {}, sign
     if (e?.name === 'AbortError') throw e;
     throw new ApiFehler(t('fehler.verbindung'), 0);
   }
+  if (r.status >= 500) apiFehlerMelden(methode, pfad, r.status);
   const daten = await r.json().catch(() => ({}));
   if (!r.ok) throw new ApiFehler(daten.fehler || (r.status === 429 ? t('fehler.zuViele') : t('fehler.status', { status: r.status })), r.status, daten);
   return daten;
@@ -140,6 +143,7 @@ export function hochladen(pfad, daten, header = {}, fortschritt) {
     for (const [k, v] of Object.entries(header)) x.setRequestHeader(k, v);
     x.upload.onprogress = (e) => e.lengthComputable && fortschritt?.(e.loaded / e.total, e.loaded, e.total);
     x.onload = () => {
+      if (x.status >= 500) apiFehlerMelden('POST', pfad, x.status);
       let d = {};
       try { d = JSON.parse(x.responseText); } catch { /* leer */ }
       if (x.status >= 200 && x.status < 300) ok(d); else nein(new ApiFehler(d.fehler || t('fehler.status', { status: x.status }), x.status, d));
@@ -313,6 +317,7 @@ export async function wachBleiben() {
   try { return (await navigator.wakeLock?.request('screen')) || null; } catch { return null; }
 }
 
+fehlerMonitoringStarten();
 seiteUebersetzen();
 sprachSchalter();
 pwaStarten();      // Service Worker, „Neue Version“, Installieren (siehe pwa.js)

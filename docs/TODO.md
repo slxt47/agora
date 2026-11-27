@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 152 Punkte erledigt und live auf https://agora.slxt.dev, 15 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
+> Stand 27.11.2026: 153 Punkte erledigt (152 live auf https://agora.slxt.dev), 14 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
 
 ---
 
@@ -242,7 +242,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Netzwerk-Simulation (Paketverlust, Latenz, niedrige Bandbreite)
 - [x] 🟡 Logging, Metriken (Prometheus/Grafana), Tracing
 - [x] 🟡 WebRTC-Statistiken sammeln (Bitrate, Jitter, Paketverlust, RTT)
-- [ ] 🟡 Fehler-Monitoring (z. B. Sentry) — *stattdessen Metriken + cc-waechter (ntfy)*
+- [x] 🟡 Fehler-Monitoring (z. B. Sentry) — *selbst gehostet: Browser + Server, gruppiert, Admin-Reiter „Fehler“, Mail/ntfy bei neuer Gruppe*
 - [x] 🟡 Backups & Wiederherstellungstest
 - [x] 🟢 Status-Seite, Alerting — *öffentliche Status-Seite /status (+ /api/status), Alerting über cc-waechter/ntfy*
 - [x] 🟢 Nutzer-Feedback nach Meeting („Wie war die Qualität?“)

@@ -50,6 +50,20 @@ Beide Endpunkte antworten nur auf 127.0.0.1 ohne `CF-Connecting-IP` (der Tunnel 
 `https://HOST` gibt es 404. Für einen Abruf von woanders `AGORA_METRIKEN_TOKEN` in `app.env` setzen und
 `Authorization: Bearer …` schicken. Prometheus kann `http://127.0.0.1:8110/api/metriken` direkt abfragen.
 
+## Fehler-Monitoring (selbst gehostet)
+
+Nichts einzurichten: Browser melden Fehler an `POST /api/fehlerbericht`, Ausnahmen des Servers fängt eine Middleware ab;
+beides steht gruppiert im Admin-Bereich unter `/admin#fehler`. Eine neue (oder wieder aufgetretene) Gruppe schickt eine Mail
+an alle Admins aus `AGORA_ADMIN_MAILS` (höchstens 1 je Gruppe und Tag, 20/h je Admin, 60 Alarme/h insgesamt). Optional
+zusätzlich ein ntfy-Thema: `AGORA_FEHLER_NTFY=https://ntfy.example/agora-fehler` in `app.env` (POST mit Titel, ohne
+Anmeldung – ein geschütztes Thema über die URL selbst, z. B. ein langes zufälliges Thema; der Text ist die gesäuberte
+Fehlermeldung). Im Log steht je Ausnahme nur `ausnahme <Methode> <Route>: <Typ>`.
+
+Missbrauch: Der Endpunkt ist ohne Anmeldung offen (auch Gäste melden). Grenzen 30 Berichte/10 min je IP (IPv6 /64),
+600/10 min insgesamt, 16 KB je Bericht, höchstens 2000 Gruppen aus Browsern. Eine Flut kann also echte Browser-Berichte
+für 10 min verdrängen und Admins bis zu 20 Mails/h schicken – die Texte sind gesäubert und werden im Admin-Bereich nur
+als Text gezeigt.
+
 ## Öffentliche Status-Seite
 
 `/status` und `/api/status` sind öffentlich (über den Tunnel, 120 Abrufe/min je IP, Antwort 30 s zwischengespeichert).
@@ -237,6 +251,9 @@ Variablen gibt es nur „Stichwort-Kapitel“ (läuft auf dem Server, ohne KI).
 - Status-Seite: Prüfergebnisse je Dienst (app, medien, mail) nur als Zähler je 5-Minuten-Fenster (Proben, davon ok,
   Summe/Maximum der Antwortzeit – keine IPs, keine Fehlertexte): 90 Tage. Meldungen der Admins (Titel, Text, Zeiten, wer
   sie angelegt hat): öffentlich, solange sie laufen/geplant sind und 14 Tage danach; gelöscht 365 Tage nach dem Ende.
+- Fehler-Monitoring (Nachricht, Stack, Seite – gesäubert: ohne Query/Fragment, also nie der E2EE-Schlüssel, ohne
+  E-Mail-Adressen, Meeting-Codes, Token, IPs –, Anzahl, Zeiten, Versionen, Browser-Familie): 30 Tage nach dem letzten
+  Auftreten; Admins können Gruppen vorher löschen. User-Agent, IP und Konto der meldenden Person werden nicht gespeichert.
 - Ein Meeting endet 10 min, nachdem die letzte Person gegangen ist.
 - Anmerkungen auf geteilten Bildschirmen: nicht gespeichert (nur im Browser, weg mit dem Ende der Freigabe); der Server
   kennt nur das Recht „erlaubt“ für das laufende Meeting.

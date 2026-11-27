@@ -55,7 +55,8 @@ const serviceWorker = {
 export default defineConfig({
   base: '/',
   plugins: [ohneCdn, serviceWorker],
-  define: { __MP_BASIS__: JSON.stringify(MP_BASIS), __MP_MODELL__: JSON.stringify(MP_MODELL), __RNNOISE_BASIS__: JSON.stringify(RNNOISE_BASIS) },
+  // __AGORA_VERSION__: Release für das Fehler-Monitoring (fehlerbericht.js) = Version aus package.json
+  define: { __AGORA_VERSION__: JSON.stringify(JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version), __MP_BASIS__: JSON.stringify(MP_BASIS), __MP_MODELL__: JSON.stringify(MP_MODELL), __RNNOISE_BASIS__: JSON.stringify(RNNOISE_BASIS) },
   build: {
     outDir: 'dist', emptyOutDir: true, sourcemap: false, assetsInlineLimit: 0, modulePreload: { polyfill: false },
     target: 'es2022',

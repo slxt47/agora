@@ -692,6 +692,31 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Zusammenfassung + Kapitel“ ========
+    # ======== Block „Fehler-Monitoring“ (app/fehlerbericht.py) – Version 31 ========
+    # Gruppen gleicher Fehler (Browser + Server). Keine Namen, E-Mail-Adressen, IPs, User-Agents; Query/Fragment entfernt.
+    # 30 Tage nach dem letzten Auftreten gelöscht (aufraeumen).
+    """
+    CREATE TABLE fehler_gruppen (
+      id INTEGER PRIMARY KEY,
+      fingerabdruck TEXT NOT NULL UNIQUE,  -- sha256(Quelle, Art, Nachricht, oberster Frame)
+      quelle TEXT NOT NULL,            -- browser | server
+      art TEXT NOT NULL,               -- fehler | promise | livekit | api | ausnahme
+      nachricht TEXT NOT NULL,         -- gesäubert, höchstens 500 Zeichen
+      ort TEXT NOT NULL DEFAULT '',    -- oberster Frame
+      stapel TEXT NOT NULL DEFAULT '', -- letzter Stack (gesäubert, 20 Zeilen / 4000 Zeichen)
+      seite TEXT NOT NULL DEFAULT '',  -- Pfad (Codes ersetzt) bzw. Route des Servers
+      anzahl INTEGER NOT NULL,
+      erstmals INTEGER NOT NULL,
+      zuletzt INTEGER NOT NULL,
+      version TEXT NOT NULL DEFAULT '',-- Version beim letzten Auftreten
+      versionen TEXT NOT NULL DEFAULT '{}',   -- JSON {version: anzahl}
+      browser TEXT NOT NULL DEFAULT '{}',     -- JSON {familie: anzahl}
+      erledigt INTEGER,                -- Zeit, NULL = offen (neues Auftreten öffnet wieder)
+      gemeldet INTEGER                 -- letzter Alarm (Mail/ntfy), höchstens 1 je Tag
+    );
+    CREATE INDEX fehler_gruppen_zuletzt ON fehler_gruppen(zuletzt);
+    """,
+    # ======== Ende Block „Fehler-Monitoring“ ========
 ]
 
 

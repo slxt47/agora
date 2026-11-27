@@ -846,4 +846,14 @@ export const en = {
   'zf.kiSenden': 'Yes, send it', 'zf.kiNicht': 'An AI summary isn’t set up on this server.',
   'zf.stichwortHinweis': 'Keyword chapters are created on the server without AI; the transcript doesn’t leave it for that.',
   // ==== Ende Block Zusammenfassung + Kapitel ====
+  // ==== Block Fehler-Monitoring (admin.js, Reiter „Fehler“) ====
+  'fb.reiter': 'Errors', 'fb.titel': 'Errors from browsers and server',
+  'fb.hinweis': 'Grouped by type and location. Without names, email addresses and IPs, without anything after ? or # in addresses; deleted 30 days after the last occurrence. A resolved group reopens as soon as the error happens again.',
+  'fb.keine': 'No errors.', 'fb.anzahl': '{n}×', 'fb.erstmals': 'first {zeit}', 'fb.zuletzt': 'last {zeit}', 'fb.erledigtSeit': 'resolved {zeit}',
+  'fb.quelle.browser': 'Browser', 'fb.quelle.server': 'Server',
+  'fb.art.fehler': 'JS error', 'fb.art.promise': 'Promise', 'fb.art.livekit': 'LiveKit', 'fb.art.api': 'API ≥ 500', 'fb.art.ausnahme': 'Exception',
+  'fb.details': 'Details', 'fb.erledigen': 'Resolve', 'fb.stapel': 'Stack', 'fb.ort': 'Location', 'fb.seite': 'Page', 'fb.versionen': 'Versions',
+  'fb.browser': 'Browsers', 'fb.kachel': 'Open errors', 'fb.kachelUnter': 'groups from browsers and server', 'fb.loeschenTitel': 'Delete error group?',
+  'fb.loeschenText': 'The group disappears with all its counts. If the error happens again, a new one starts.', 'fb.keinStapel': 'No stack sent.', 'fb.auftreten': 'Occurrences',
+  // ==== Ende Block Fehler-Monitoring ====
 };

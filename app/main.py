@@ -48,6 +48,7 @@ from . import android         # Android-TWA: /.well-known/assetlinks.json (nur m
 from . import push            # Push-Benachrichtigungen (Web Push, opt-in je Gerät)
 from . import dolmetsch       # Dolmetscher-Kanäle (Spur dolmetsch:<sprache>, Rechte vom Server)
 from . import zusammenfassung  # KI-Zusammenfassung + Kapitel (AGORA_KI_URL), Stichwort-Kapitel ohne KI
+from . import fehlerbericht    # Fehler-Monitoring (Browser + Server, gruppiert, Admin-Reiter „Fehler“)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
 from .kern import LIVEKIT_URL, MAX_TEILNEHMER, SEITE, TEST, VERSION, WEB, jetzt, livekit_herkunft
@@ -101,6 +102,19 @@ if SEITE.startswith('https://'):
     # HSTS auch von der App selbst (nicht nur, falls in Cloudflare eingeschaltet): nach dem ersten Besuch nie mehr http://.
     # Ohne includeSubDomains/preload – andere Subdomains von slxt.dev entscheiden selbst.
     SICHERHEIT['Strict-Transport-Security'] = 'max-age=31536000'
+
+
+@app.middleware('http')
+async def ausnahmen(req: Request, call_next):
+    """Innerste Middleware: unerwartete Ausnahmen einer Route → Fehler-Monitoring + 500 (Kopfzeilen setzt `schutz`)."""
+    try:
+        return await call_next(req)
+    except Exception as e:   # noqa: BLE001
+        route = req.scope.get('route')
+        fehlerbericht.server_ausnahme(e, getattr(route, 'path', '') or req.url.path, req.method)
+        print(f'ausnahme {req.method} {getattr(route, "path", "?")}: {type(e).__name__}', flush=True)
+        return JSONResponse({'fehler': texte.fehler_text('Interner Fehler', texte.aus_header(req.headers.get('accept-language')))},
+                            status_code=500)
 
 
 @app.middleware('http')
@@ -159,6 +173,7 @@ app.include_router(android.router)
 app.include_router(push.router)
 app.include_router(dolmetsch.router)
 app.include_router(zusammenfassung.router)
+app.include_router(fehlerbericht.router)
 metriken.einrichten(app)      # Antwortzeiten + Anmelde-/Registrierungszähler für /api/metriken
 
 
@@ -207,6 +222,7 @@ def aufraeumen():
     webhooks.aufraeumen(t)         # Zustell-Protokoll 14 Tage, verwaiste Warteschlange/Anwesenheit
     orgs.aufraeumen(t)             # abgelaufene Einladungen in Organisationen (7 Tage)
     status.aufraeumen(t)           # Status-Fenster 90 Tage, Meldungen 365 Tage nach dem Ende
+    fehlerbericht.aufraeumen(t)    # Fehlergruppen 30 Tage nach dem letzten Auftreten
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)
@@ -232,6 +248,7 @@ def hintergrund():
             metriken.hintergrund_gelaufen()
         except Exception as e:   # noqa: BLE001
             metriken.zaehlen('agora_hintergrund_fehler_total')
+            fehlerbericht.server_ausnahme(e, 'hintergrund')
             print(f'hintergrund-fehler {type(e).__name__}: {e}', flush=True)
         time.sleep(60)
 

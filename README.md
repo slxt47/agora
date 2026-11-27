@@ -135,6 +135,12 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
 - **Admin-Bereich** `/admin` (nur Konten aus `AGORA_ADMIN_MAILS`, für alle anderen 404): Übersicht (Konten, laufende Meetings
   und Teilnehmende live aus LiveKit, Meetings der letzten 7/30 Tage, Speicher der Aufnahmen), Konten suchen, sperren,
   2FA zurücksetzen, löschen, Meldungen bearbeiten, Protokoll mit Filter, laufende Meetings beenden. Jede Aktion wird protokolliert.
+- **Fehler-Monitoring (selbst gehostet, statt Sentry):** JS-Fehler, unbehandelte Promises, unerwartete LiveKit-Trennungen
+  und API-Antworten ≥ 500 aus dem Browser (`POST /api/fehlerbericht`) sowie Ausnahmen des Servers, gruppiert nach
+  Fingerabdruck mit Anzahl, erstem/letztem Auftreten, Version und Browser-Familie. Admin-Reiter „Fehler“ (Details, erledigt;
+  erledigte Gruppen öffnen sich bei neuem Auftreten wieder), Mail an die Admins bei neuer Gruppe (höchstens 1 je Gruppe und
+  Tag, optional ntfy). Ohne Namen, E-Mail-Adressen, IPs; Query und Fragment (also auch der E2EE-Schlüssel `#k=`) werden nie
+  gespeichert; 30 Tage.
 - **Öffentliche API** (`/api/v1`): persönliche API-Schlüssel im Konto (Reiter „Entwickler“) mit Rechten
   `meetings:lesen`, `meetings:schreiben`, `aufnahmen:lesen`, `webhooks`, optionalem Ablauf und „zuletzt benutzt“; nur
   einmal sichtbar, gespeichert als Hash, jederzeit widerrufbar. Meetings (auch geplant/wiederkehrend) auflisten, anlegen,

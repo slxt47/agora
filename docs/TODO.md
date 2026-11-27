@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 161 Punkte erledigt und live auf https://agora.slxt.dev, 7 offen – jeweils mit Grund.
+> Stand 27.11.2026: alles gebaut, was ohne Florian geht – 163 Punkte erledigt und live auf https://agora.slxt.dev; offen sind nur Schritte, die Florian oder Dritte brauchen (Zugangsdaten eintragen, Stores, Verträge, Abrechnung, SIP-Anbieter) und Cascading (nur LiveKit Cloud).
 
 ---
 

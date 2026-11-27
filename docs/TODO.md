@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 158 Punkte erledigt und live auf https://agora.slxt.dev (HLS und Server-Aufnahme brauchen Egress, das in Produktion aus ist), 9 offen – jeweils mit Grund.
+> Stand 27.11.2026: 158 Punkte erledigt und live auf https://agora.slxt.dev, 9 offen – jeweils mit Grund.
 
 ---
 

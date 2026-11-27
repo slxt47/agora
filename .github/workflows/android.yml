@@ -19,6 +19,7 @@ jobs:
       - uses: android-actions/setup-android@v3
         with: { packages: 'platforms;android-36 build-tools;36.0.0' }
       - name: Version aus dem Tag prüfen
+        if: startsWith(github.ref, 'refs/tags/')   # bei manueller Build-Probe ohne Tag überspringen
         run: |
           tag="${GITHUB_REF_NAME#android-v}"
           ver="$(sed -n 's/.*versionName "\(.*\)".*/\1/p' app/build.gradle)"

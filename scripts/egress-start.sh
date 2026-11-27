@@ -6,7 +6,7 @@ set -euo pipefail
 schluessel="${LIVEKIT_KEYS%%:*}"
 geheim="${LIVEKIT_KEYS#*:}"
 geheim="${geheim# }"
-export EGRESS_CONFIG_BODY="api_key: \"${schluessel}\"
+EGRESS_CONFIG_BODY="api_key: \"${schluessel}\"
 api_secret: \"${geheim}\"
 ws_url: \"${EGRESS_WS_URL:-ws://127.0.0.1:7880}\"
 redis:
@@ -14,6 +14,14 @@ redis:
   password: \"${REDIS_PASSWORD}\"
 template_port: ${EGRESS_TEMPLATE_PORT:-7884}
 log_level: info"
+# Optional: CPU-Schätzung je RoomComposite (Egress-Vorgabe 3 Kerne). Mit cpus: 4 passt sonst nur EIN Auftrag gleichzeitig
+# (z. B. HLS 720p + 360p = zwei Aufträge). Gemessen: ≈ 1 Kern je 720p-Auftrag mit wenigen Kacheln (docs/BETRIEB.md).
+if [ -n "${EGRESS_CPU_RAUM:-}" ]; then
+  EGRESS_CONFIG_BODY="${EGRESS_CONFIG_BODY}
+cpu_cost:
+  room_composite_cpu_cost: ${EGRESS_CPU_RAUM}"
+fi
+export EGRESS_CONFIG_BODY
 unset LIVEKIT_KEYS REDIS_PASSWORD
 find /home/egress/tmp -mindepth 1 -delete 2>/dev/null || true
 mkdir -p -m 0700 "${XDG_RUNTIME_DIR:-/home/egress/.cache/xdgr}"

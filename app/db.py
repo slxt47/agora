@@ -718,6 +718,31 @@ SCHEMA = [
     CREATE INDEX fehler_gruppen_zuletzt ON fehler_gruppen(zuletzt);
     """,
     # ======== Ende Block „Fehler-Monitoring“ ========
+    # ======== Block „Öffentliche Übertragung (HLS)“ (app/hls.py) – Version 32 ========
+    # Eine Zeile je Übertragung; Dateien unter hls/<raum_code>/<kennung>/ bis loeschen_ab (Ende + 1 h), Zeile 7 Tage.
+    """
+    CREATE TABLE hls_laeufe (
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER REFERENCES raeume(id) ON DELETE SET NULL,
+      sitzung INTEGER NOT NULL,
+      raum_code TEXT NOT NULL,
+      kennung TEXT NOT NULL UNIQUE,    -- zufällig (128 bit), Teil der Adresse /hls/<code>/<kennung>/
+      egress TEXT NOT NULL,            -- JSON {stufe: egress_id}
+      stufen TEXT NOT NULL,            -- JSON ["720p", "360p"]
+      zugang TEXT NOT NULL,            -- oeffentlich | anmeldung
+      layout TEXT NOT NULL,
+      von_name TEXT NOT NULL,
+      status TEXT NOT NULL,            -- startet | laeuft | beendet | fehler
+      fehler TEXT,
+      gestartet INTEGER NOT NULL,
+      beendet INTEGER,
+      loeschen_ab INTEGER,             -- Dateien ab dann löschen (Nachlauf 1 h)
+      geloescht INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX hls_laeufe_raum ON hls_laeufe(raum_id, status);
+    CREATE INDEX hls_laeufe_code ON hls_laeufe(raum_code);
+    """,
+    # ======== Ende Block „Öffentliche Übertragung (HLS)“ ========
 ]
 
 

@@ -5,7 +5,7 @@ Videokonferenz-Plattform im Stil von Zoom. Diese Liste deckt alle Kernfunktionen
 Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 nice-to-have
 
 
-> Stand 27.11.2026: 155 Punkte erledigt (152 live auf https://agora.slxt.dev), 12 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
+> Stand 27.11.2026: 156 Punkte erledigt (152 live auf https://agora.slxt.dev, HLS-Broadcast gebaut, noch nicht ausgerollt), 11 offen – jeweils mit Grund (brauchen Florian, Fremdanbieter oder erst mehrere Server).
 
 ---
 
@@ -183,7 +183,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟢 Webinar-Modus (Panelisten vs. Zuschauer)
 - [x] 🟢 Registrierungsseite für Teilnehmer
 - [x] 🟢 Livestream per RTMP (YouTube, Twitch)
-- [ ] 🟢 HLS-Broadcast für sehr viele Zuschauer — *bewusst nicht gebaut (ADR 0003)*
+- [x] 🟢 HLS-Broadcast für sehr viele Zuschauer — *optional (`AGORA_EGRESS=1` + `AGORA_HLS=1`), Webinar → `/h/<code>`, 720p (+360p), ADR 0003; Cloudflare-Cache-Regel setzt Florian*
 - [ ] 🟢 Cascading SFUs für horizontale Skalierung — *erst bei mehreren Servern sinnvoll*
 
 ---

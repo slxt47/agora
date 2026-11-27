@@ -444,6 +444,20 @@ export const de = {
   'egress.streamStartet': 'Livestream startet …', 'egress.streamLaeuft': 'Der Livestream läuft.', 'egress.streamGestoppt': 'Livestream beendet.',
   'egress.liveVon': '{name} überträgt das Meeting live', 'egress.liveHinweis': 'Dieses Meeting wird jetzt live übertragen ({name}).',
   // ==== Ende Block Server-Aufnahme ====
+  // ==== Block Öffentliche Übertragung (HLS) (web/src/raum/egress.js, hls.js) ====
+  'egress.hlsStartKnopf': 'Übertragung starten', 'egress.hlsStarten': 'Öffentliche Übertragung (HLS) starten', 'egress.hlsStoppen': 'Öffentliche Übertragung beenden',
+  'egress.hlsLink': 'Link zur Übertragung kopieren (≈ {n} Zuschauer)', 'egress.hlsTitel': 'Öffentliche Übertragung (HLS)',
+  'egress.hlsText': 'Für sehr viele Zuschauer: Der Server überträgt das Webinar als Video-Stream auf eine eigene Seite – ohne Videokonferenz, mit etwa 10–20 Sekunden Verzögerung. Zuschauer dort können keine Fragen stellen und nicht chatten.',
+  'egress.hlsZugang': 'Wer darf zusehen?', 'egress.hlsOeffentlich': 'Alle mit dem Link', 'egress.hlsNurAngemeldete': 'Nur Angemeldete (persönlicher Link aus der Anmeldung)',
+  'egress.hlsOhneAnmeldung': '„Nur Angemeldete“ geht, wenn die Anmeldung zum Webinar eingeschaltet ist (Konto → Webinar).',
+  'egress.hls360': 'Zusätzlich 360p für langsame Verbindungen', 'egress.hls360Hinweis': 'Braucht auf dem Server einen zweiten Encoder (etwa doppelte Last).',
+  'egress.hlsStartet': 'Die Übertragung startet – in etwa 20 Sekunden ist sie zu sehen.', 'egress.hlsLaeuft': 'Die öffentliche Übertragung läuft.',
+  'egress.hlsGestoppt': 'Öffentliche Übertragung beendet.', 'egress.hlsFehler': 'Öffentliche Übertragung: {text}', 'egress.hlsVon': '{name} überträgt das Webinar öffentlich',
+  'hls.titel': 'Übertragung', 'hls.nichtGefunden': 'Diese Übertragung gibt es nicht.', 'hls.nochNicht': 'Die Übertragung hat noch nicht begonnen. Die Seite prüft das von selbst.',
+  'hls.beendet': 'Die Übertragung ist beendet.', 'hls.oeffentlich': 'Live-Übertragung', 'hls.nurAngemeldete': 'Live-Übertragung für Angemeldete',
+  'hls.anmeldungNoetig': 'Zum Zusehen brauchst du deinen persönlichen Link aus der Bestätigungsmail der Anmeldung.',
+  'hls.linkFalsch': 'Bitte den Link aus der Bestätigungsmail einfügen.', 'hls.nichtUnterstuetzt': 'Dein Browser kann diese Übertragung leider nicht abspielen.',
+  // ==== Ende Block Öffentliche Übertragung ====
   // ==== Block Live-Untertitel + Transkript (web/src/raum/untertitel.js, transkript-konto.js) ====
   'ut.anzeigen': 'Untertitel anzeigen', 'ut.ausblenden': 'Untertitel ausblenden', 'ut.anzeigeAn': 'Untertitel werden angezeigt.', 'ut.anzeigeAus': 'Untertitel ausgeblendet.',
   'ut.eigeneStarten': 'Meine Sprache transkribieren …', 'ut.eigeneStoppen': 'Meine Sprache nicht mehr transkribieren',
@@ -663,6 +677,12 @@ export const de = {
   'html.filtern': 'Filtern',
   'html.zeit': 'Zeit',
   'html.ereignis': 'Ereignis',
+  'html.uebertragungAgora': 'Übertragung – Agora',
+  'html.oeffentlicheUebertragung': 'Öffentliche Übertragung',
+  'html.tonEinschalten': 'Ton einschalten',
+  'html.dieUebertragungLaeuftMit': 'Die Übertragung läuft mit etwa 10–20 Sekunden Verzögerung. Fragen und Chat gibt es nur im Webinar selbst.',
+  'html.persoenlicherLink': 'Persönlicher Link aus der Bestätigungsmail',
+  'html.zusehen': 'Zusehen',
   'html.webinarAgora': 'Webinar – Agora',
   'html.webinar': 'Webinar',
   'html.eMailAdresse': 'E-Mail-Adresse',

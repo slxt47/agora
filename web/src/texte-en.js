@@ -444,6 +444,20 @@ export const en = {
   'egress.streamStartet': 'Live stream is starting …', 'egress.streamLaeuft': 'The live stream is running.', 'egress.streamGestoppt': 'Live stream stopped.',
   'egress.liveVon': '{name} is streaming the meeting live', 'egress.liveHinweis': 'This meeting is now being streamed live ({name}).',
   // ==== End of server recording ====
+  // ==== Public broadcast (HLS) (web/src/raum/egress.js, hls.js) ====
+  'egress.hlsStartKnopf': 'Start broadcast', 'egress.hlsStarten': 'Start public broadcast (HLS)', 'egress.hlsStoppen': 'End public broadcast',
+  'egress.hlsLink': 'Copy broadcast link (≈ {n} viewers)', 'egress.hlsTitel': 'Public broadcast (HLS)',
+  'egress.hlsText': 'For very large audiences: the server broadcasts the webinar as a video stream on its own page – no video conference, about 10–20 seconds behind. Viewers there can’t ask questions or chat.',
+  'egress.hlsZugang': 'Who can watch?', 'egress.hlsOeffentlich': 'Anyone with the link', 'egress.hlsNurAngemeldete': 'Registered only (personal link from registration)',
+  'egress.hlsOhneAnmeldung': '“Registered only” works once webinar registration is turned on (Account → Webinar).',
+  'egress.hls360': 'Also 360p for slow connections', 'egress.hls360Hinweis': 'Needs a second encoder on the server (about twice the load).',
+  'egress.hlsStartet': 'The broadcast is starting – it’ll be visible in about 20 seconds.', 'egress.hlsLaeuft': 'The public broadcast is running.',
+  'egress.hlsGestoppt': 'Public broadcast ended.', 'egress.hlsFehler': 'Public broadcast: {text}', 'egress.hlsVon': '{name} is broadcasting the webinar publicly',
+  'hls.titel': 'Broadcast', 'hls.nichtGefunden': 'This broadcast doesn’t exist.', 'hls.nochNicht': 'The broadcast hasn’t started yet. This page checks by itself.',
+  'hls.beendet': 'The broadcast has ended.', 'hls.oeffentlich': 'Live broadcast', 'hls.nurAngemeldete': 'Live broadcast for registered viewers',
+  'hls.anmeldungNoetig': 'To watch, you need your personal link from the registration confirmation email.',
+  'hls.linkFalsch': 'Please paste the link from your confirmation email.', 'hls.nichtUnterstuetzt': 'Your browser can’t play this broadcast, sorry.',
+  // ==== End of public broadcast ====
   // ==== Live captions + transcript (web/src/raum/untertitel.js, transkript-konto.js) ====
   'ut.anzeigen': 'Show captions', 'ut.ausblenden': 'Hide captions', 'ut.anzeigeAn': 'Captions are shown.', 'ut.anzeigeAus': 'Captions hidden.',
   'ut.eigeneStarten': 'Transcribe my speech …', 'ut.eigeneStoppen': 'Stop transcribing my speech',
@@ -663,6 +677,12 @@ export const en = {
   'html.filtern': 'Filter',
   'html.zeit': 'Time',
   'html.ereignis': 'Event',
+  'html.uebertragungAgora': 'Broadcast – Agora',
+  'html.oeffentlicheUebertragung': 'Public broadcast',
+  'html.tonEinschalten': 'Turn on sound',
+  'html.dieUebertragungLaeuftMit': 'The broadcast runs about 10–20 seconds behind. Questions and chat are only available in the webinar itself.',
+  'html.persoenlicherLink': 'Personal link from the confirmation email',
+  'html.zusehen': 'Watch',
   'html.webinarAgora': 'Webinar – Agora',
   'html.webinar': 'Webinar',
   'html.eMailAdresse': 'Email address',

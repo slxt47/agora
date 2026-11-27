@@ -30,6 +30,7 @@ from .zwei_faktor import entschluesseln, verschluesseln
 
 router = APIRouter()
 NACH_SERVER_AUFNAHME = []      # f(aufnahme_zeile) – Server-Aufnahme liegt in der Bibliothek (Push)
+ZUSTAND_EXTRA = []             # async f(raum, teilnahme) → dict: weitere Angaben im Zustand (öffentliche Übertragung, app/hls.py)
 AN = os.environ.get('AGORA_EGRESS') == '1'
 AUSGABE = os.environ.get('AGORA_EGRESS_AUSGABE') or os.path.join(db.DATEN, 'egress')
 ZIEL = (os.environ.get('AGORA_EGRESS_ZIEL') or '/out').rstrip('/')
@@ -194,6 +195,8 @@ async def zustand(code: str, req: Request):
             e = db.verbindung().execute('SELECT * FROM egress_laeufe WHERE raum_id = ? AND sitzung = ? AND art = ? ORDER BY gestartet DESC LIMIT 1',
                                         (r['id'], r['sitzung'], art)).fetchone()
         out[art] = lauf_json(e)
+    for f in ZUSTAND_EXTRA:
+        out.update(await f(r, t))
     return out
 
 

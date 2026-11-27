@@ -67,6 +67,7 @@ services:
     volumes:
       - ./scripts/egress-start.sh:/agora/egress-start.sh:ro
       - ./daten/egress:/out                # MP4 → die App verschiebt sie in die Bibliothek (Ordner 2770, Gruppe 1000)
+      - ./daten/hls:/hls                   # öffentliche Übertragung (HLS, nur mit AGORA_HLS=1): die App liefert aus und räumt auf
     user: "1001:1000"
     read_only: true
     tmpfs:

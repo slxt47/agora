@@ -1,0 +1,6 @@
+/* Agora – Zuschauerseite der öffentlichen Übertragung (/h/<code>). */
+.hls-karte { max-width: 1040px; }
+.hls-buehne { position: relative; margin-top: 14px; border-radius: 18px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; }
+.hls-buehne video { display: block; width: 100%; height: 100%; background: #000; }
+.hls-live { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: 999px; background: #c4183a; color: #fff;
+  font-weight: 700; font-size: .78rem; letter-spacing: .06em; pointer-events: none; }

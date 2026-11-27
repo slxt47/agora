@@ -1,6 +1,6 @@
 // Service Worker (Vorlage; vite.config.js setzt Version und Vorab-Liste ein und legt ihn als /sw.js ab, Bereich „/“).
 // Cacht NUR die App-Hülle und statische Dateien: die Offline-Seite samt ihren Dateien (vorab) und gehashte /assets/
-// bzw. /icons/ (beim ersten Abruf). Nie: /api, /rtc, /vendor (MediaPipe, 9 MB – das macht der HTTP-Cache), Aufnahmen,
+// bzw. /icons/ (beim ersten Abruf). Nie: /api, /rtc, /hls (Live-Übertragung), /vendor (MediaPipe, 9 MB – das macht der HTTP-Cache), Aufnahmen,
 // Range-Anfragen, fremde Herkünfte. Seitenaufrufe gehen immer ins Netz; ohne Netz kommt die Seite „Keine Verbindung“.
 // Ein neuer Service Worker wartet, bis die Seite ihn bittet ({typ:'aktivieren'} nach „Neu laden“) – kein Wechsel mitten
 // im Meeting. Alte Caches („agora-…“) räumt die Aktivierung weg.
@@ -9,7 +9,7 @@
 const CACHE = 'agora-__VERSION__';
 const VORAB = __VORAB__;
 const OFFLINE = '/offline.html';
-const NIE = /^\/(api|rtc|vendor)(\/|$)/;
+const NIE = /^\/(api|rtc|vendor|hls)(\/|$)/;
 const STATISCH = /^\/(assets|icons)\//;
 
 self.addEventListener('install', (e) => {

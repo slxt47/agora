@@ -9,6 +9,7 @@
   "dependencies": {
     "@livekit/track-processors": "0.8.3",
     "@sapphi-red/web-noise-suppressor": "0.4.1",
+    "hls.js": "1.7.4",
     "livekit-client": "2.25.0",
     "qrcode-generator": "1.4.4"
   },

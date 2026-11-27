@@ -22,7 +22,8 @@ test('Maskierbares Icon liegt in der Safe Zone (40 % Radius)', async () => {
 
 test('Service Worker: nie /api, /rtc, /vendor, Range, fremde Herkunft; Update nur auf Wunsch', () => {
   const nie = new RegExp(/const NIE = \/(.+)\/;/.exec(sw)[1].replace(/\\\//g, '/'));
-  for (const p of ['/api/konto/ich', '/api/aufnahmen/1/datei', '/rtc', '/rtc/validate', '/vendor/mediapipe-0.10.14/wasm/x.wasm']) assert.ok(nie.test(p), p);
+  for (const p of ['/api/konto/ich', '/api/aufnahmen/1/datei', '/rtc', '/rtc/validate', '/vendor/mediapipe-0.10.14/wasm/x.wasm',
+    '/hls/abc-defg-hij/AAAAAAAAAAAAAAAAAAAAAA/720p-live.m3u8']) assert.ok(nie.test(p), p);
   for (const p of ['/assets/a.js', '/apidoku', '/r/abc-defg-hij']) assert.ok(!nie.test(p), p);
   assert.match(sw, /headers\.has\('range'\)/);
   assert.match(sw, /u\.origin !== self\.location\.origin/);

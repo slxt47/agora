@@ -146,7 +146,46 @@ Ports: Redis 127.0.0.1:6390, Egress-Vorlagen-Server 7884 (Host-Netz – nicht in
 Datenschutz: Server-Aufnahmen landen wie Browser-Aufnahmen in der Bibliothek des Raum-Besitzers (90 Tage, 5-GB-Kontingent;
 die 500-MB-Grenze je Datei gilt nur für Uploads). Stream-URL und -Schlüssel werden nie protokolliert (Fehlertexte geschwärzt),
 nur verschlüsselt und nur bis zum Ende des Streams gespeichert. Ziele im eigenen Netz sind gesperrt (Schutz vor SSRF über den
-Egress-Container). Egress-Aufträge (ohne Ziel) bleiben 7 Tage für die Statusanzeige. HLS ist nicht umgesetzt (siehe ADR 0003).
+Egress-Container). Egress-Aufträge (ohne Ziel) bleiben 7 Tage für die Statusanzeige.
+
+## Öffentliche Übertragung (HLS) – optional, standardmäßig aus
+
+Für Webinare mit sehr vielen Zuschauern (ADR 0003): Host/Co-Host startet „Mehr → Öffentliche Übertragung (HLS)“, je
+Stufe läuft ein RoomComposite-Egress mit HLS-Ausgabe (MPEG-TS, 4-s-Segmente) nach `daten/hls/<code>/<kennung>/`, die App
+liefert unter `/hls/…` aus, Zuschauer sehen auf `/h/<code>` zu (ohne WebRTC, ≈ 10–20 s Verzögerung). Braucht Egress
+(Abschnitt oben) **und** `AGORA_HLS=1`.
+
+**Getestet (27.11.2026, `sh tests/egress/hls-lauf.sh`, eigener Wegwerf-Stapel, Ports 7850–7854/8251):** Webinar mit
+einer Person, 720p + 360p: Start bis „läuft“ ≈ 16 s, erste Segmente nach ≈ 16 s (720p ≈ 650 KB, 360p ≈ 330 KB je 4 s),
+Zuschauerseite spielt nach ≈ 10 s (Chromium nativ) bzw. ≈ 7 s (hls.js), `currentTime` läuft weiter, Ende wird angezeigt.
+Egress mit zwei Aufträgen: Spitze ≈ 1,6–2,1 Kerne, ≈ 1 GB RAM. Nur 720p ≈ wie eine Server-Aufnahme (≈ 1 Kern).
+
+**Kapazität:** Egress schätzt je RoomComposite 3 Kerne und nimmt bei `cpus: 4` nur **einen** Auftrag an – 720p + 360p
+(oder HLS + Aufnahme) brauchen zwei. Wer das will: `EGRESS_CPU_RAUM=1.5` in `livekit.env` (setzt
+`cpu_cost.room_composite_cpu_cost`, `scripts/egress-start.sh`) – dann passen zwei Aufträge, die zusammen ≈ 2 Kerne
+brauchen. Der Server ist geteilt: 360p nur bei Bedarf. Die Last für die Zuschauer trägt nicht LiveKit, sondern die
+Auslieferung: Segmente sind statisch, eine Stufe 720p ≈ 3,3 Mbit/s je Zuschauer – ohne Zwischenspeicher bei Cloudflare
+geht jede Anfrage durch den Tunnel zur App.
+
+**Cloudflare-Zwischenspeicher (empfohlen, von Hand):** Die App schickt passende Kopfzeilen (Segmente `public,
+max-age=86400, immutable`, Stufen-Playlist `max-age=2`, Master `max-age=5`, 404 `no-store`). Cloudflare speichert
+`.m3u8`/`.ts` aber nur mit einer Cache-Regel: *Hostname = agora…, Pfad beginnt mit `/hls/` → Eligible for cache,
+Edge TTL: Cache-Control des Ursprungs beachten*. Die Kennung im Pfad ist zufällig je Übertragung – auch „nur
+Angemeldete“ dürfen so zwischengespeichert werden (wer die Adresse kennt, sieht zu; die Adresse gibt es nur gegen den
+persönlichen Anmelde-Token).
+
+**Einschalten (bewusst, nicht automatisch):**
+1. Egress wie oben einrichten; optional `EGRESS_CPU_RAUM=1.5` in `livekit.env`.
+2. `mkdir -p daten/hls && chmod 2770 daten/hls` (Besitzer 1000:1000 – sonst legt Docker den Ordner als root an).
+3. `app.env`: `AGORA_HLS=1` (optional `AGORA_HLS_AUSGABE`, Standard `/daten/hls`; `AGORA_HLS_ZIEL`, Standard `/hls`).
+4. `docker compose --profile egress up -d --force-recreate egress && docker compose up -d app`, dann im Webinar
+   „Mehr → Öffentliche Übertragung (HLS) starten“, Link `https://HOST/h/<code>` weitergeben.
+
+Aufräumen: Beim Stoppen oder Meeting-Ende bleiben die Dateien 1 h (Nachzügler), dann löscht der Hintergrund den Ordner;
+Ordner ohne Eintrag nach 1 Tag. Die App legt jeden Ordner vorab mit 2770 an, damit sie Dateien des Egress (1001:1000)
+löschen kann. Datenschutz: kein Konto, keine IPs; zum Zählen meldet sich jede offene Zuschauerseite alle 30 s mit einer
+zufälligen Kennung (Präsenz wie in app/geteilt.py: im Arbeitsspeicher bzw. mit Redis über alle Worker, nur als Hash, 75 s gültig). Bei „nur Angemeldete“ wird wie beim Beitritt „beigetreten“
+in der Anmeldung vermerkt.
 
 ## Transkript aus Aufnahme (Whisper) – optional
 

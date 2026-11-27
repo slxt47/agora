@@ -37,6 +37,7 @@ from . import fragen         # Zusammenarbeit: Q&A
 from . import dateien        # Zusammenarbeit: Dateien teilen
 from . import webinar       # Webinar-Modus + Registrierung (/w/<code>)
 from . import egress        # Server-Aufnahme + Livestream (LiveKit Egress, nur mit AGORA_EGRESS=1)
+from . import hls           # Öffentliche Übertragung (HLS) eines Webinars, /h/<code> (nur mit AGORA_EGRESS=1 + AGORA_HLS=1)
 from . import untertitel    # Live-Untertitel, Transkript, Transkript aus Aufnahme (Whisper)
 from . import anmerkungen     # Anmerkungen auf geteilten Bildschirmen (Recht)
 from . import api_schluessel  # Öffentliche API: persönliche API-Schlüssel
@@ -138,6 +139,8 @@ async def schutz(req: Request, call_next):
     p = req.url.path
     if p.startswith('/assets/') or (p.startswith('/vendor/') and r.status_code == 200):   # Hash bzw. Version im Pfad
         r.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif p.startswith('/hls/') and r.status_code == 200:
+        pass                             # Playlists/Segmente: eigene Cache-Regeln für Cloudflare (app/hls.py)
     elif not p.startswith('/icons/'):
         r.headers['Cache-Control'] = 'no-store'
     einbetten.kopf_anpassen(req, r)      # /e/<code>: frame-ancestors = erlaubte Herkünfte; /embed.js: CORP cross-origin
@@ -167,6 +170,7 @@ app.include_router(fragen.router)
 app.include_router(dateien.router)
 app.include_router(webinar.router)
 app.include_router(egress.router)
+app.include_router(hls.router)
 app.include_router(untertitel.router)
 app.include_router(anmerkungen.router)
 app.include_router(api_schluessel.router)
@@ -229,6 +233,7 @@ def aufraeumen():
     orgs.aufraeumen(t)             # abgelaufene Einladungen in Organisationen (7 Tage)
     status.aufraeumen(t)           # Status-Fenster 90 Tage, Meldungen 365 Tage nach dem Ende
     fehlerbericht.aufraeumen(t)    # Fehlergruppen 30 Tage nach dem letzten Auftreten
+    hls.aufraeumen(t)              # öffentliche Übertragungen: Dateien 1 h nach dem Ende löschen
     tmp = os.path.join(db.DATEN, 'tmp')
     for n in os.listdir(tmp):                # abgebrochene Uploads
         p = os.path.join(tmp, n)
@@ -245,6 +250,7 @@ def hintergrund():
             erinnerungen.pruefen()                        # Erinnerungs-Mails (idempotent je Termin)
             push.erinnerungen_pruefen()                   # Erinnerungen als Push (nur Konten mit Geräten)
             asyncio.run(egress.alle_abgleichen())         # Server-Aufnahmen in die Bibliothek, Livestream-Fehler
+            asyncio.run(hls.alle_abgleichen())            # öffentliche Übertragung: Fehler/Ende einer Stufe
             if time.time() - letztes_aufraeumen > 300:
                 aufraeumen()
                 letztes_aufraeumen = time.time()
@@ -271,6 +277,7 @@ if os.path.isdir(WEB):
     for pfad, datei in SEITEN.items():
         app.add_api_route(pfad, seite(datei), methods=['GET', 'HEAD'])
     app.add_api_route('/r/{code}', (lambda code: FileResponse(os.path.join(WEB, 'raum.html'), media_type='text/html')), methods=['GET', 'HEAD'])
+    app.add_api_route('/h/{code}', (lambda code: FileResponse(os.path.join(WEB, 'hls.html'), media_type='text/html')), methods=['GET', 'HEAD'])
     app.add_api_route('/w/{code}', (lambda code: FileResponse(os.path.join(WEB, 'webinar.html'), media_type='text/html')), methods=['GET', 'HEAD'])
     app.add_api_route('/a/{token}', (lambda token: FileResponse(os.path.join(WEB, 'a.html'), media_type='text/html')), methods=['GET', 'HEAD'])
     app.mount('/', StaticFiles(directory=WEB, html=False), name='web')

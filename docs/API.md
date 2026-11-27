@@ -483,6 +483,22 @@ Streams. Ereignis (Topic `agora`, nur an Host/Co-Hosts): `{typ:"egress", art, st
 `{typ:"aufnahme", aktiv:true, von_name, server:true}` an alle. Fertige Aufnahmen erscheinen in `GET /api/aufnahmen`
 (`typ: video/mp4`). Fehlertexte sind von Stream-URL und Schlüssel bereinigt (`***`).
 
+## Öffentliche Übertragung (HLS) eines Webinars (app/hls.py – nur mit `AGORA_EGRESS=1` und `AGORA_HLS=1`)
+Ohne beide Schalter: alle Pfade 404, im Zustand fehlen die `hls`-Felder.
+
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/egress` | Host/Co-Host (X-Teilnahme) | zusätzlich `hls_verfuegbar` (Webinar, nicht E2EE), `hls_anmeldung` (Anmeldung an), `hls`: `null` oder `{id, status: startet\|laeuft\|beendet\|fehler, fehler, von_name, zugang, stufen, layout, gestartet, link, zuschauer}` |
+| POST `/api/raeume/{code}/egress/hls` | Host/Co-Host | `{aktion:"start", zugang?: "oeffentlich"\|"anmeldung", stufen?: ["720p"] \| ["720p","360p"], layout?}` → `{ok, link}`; `{aktion:"stopp"}`. 400 kein Webinar / „anmeldung“ ohne eingeschaltete Anmeldung / ungültige Stufen, 409 läuft schon / E2EE, 502 Egress-Fehler |
+| GET `/api/hls/{code}` | öffentlich (120/min je IP) | `{code, titel, laeuft, beendet, verzoegerung_s:[10,20], segment_s}`; läuft: `zugang, stufen, seit` und bei „oeffentlich“ `quelle` (`/hls/<code>/<kennung>/index.m3u8`), bei „anmeldung“ `anmelde_link`. 404 kein Webinar |
+| POST `/api/hls/{code}/zugang` | öffentlich (X-Agora, 20/10 min je IP) | `{anmeldung: <persönlicher Token>}` → `{quelle}`; 403 ohne/mit falschem Token, 404 nichts läuft. Bei „oeffentlich“ ohne Token |
+| POST `/api/hls/{code}/da` | öffentlich (X-Agora, 20/min je IP) | `{id: <16–40 Zeichen [A-Za-z0-9_-]>}` – Zuschauerseite meldet sich alle 30 s (Zählung über die Präsenz in app/geteilt.py, mit Redis über alle Worker, 75 s gültig) |
+| GET/HEAD `/hls/{code}/{kennung}/{datei}` | wer die Kennung kennt | `index.m3u8` (Master, von der App), `<stufe>-live.m3u8`, `<stufe>_<nr>.ts`; nur diese Namen (feste Muster), nur Kennungen einer Übertragung dieses Raums, deren Dateien noch da sind. `application/vnd.apple.mpegurl` bzw. `video/mp2t`, `nosniff`; Cache: Master `public, max-age=5`, Stufen-Playlist `public, max-age=2`, Segmente `public, max-age=86400, immutable`; 404 immer `no-store` |
+
+Seite `/h/<code>`: Zuschauerseite (Safari nativ, sonst hls.js light aus `/assets/`). Raum-Metadaten während der
+Übertragung: `hls: {von_name}` (alle sehen LIVE). Ereignis an Host/Co-Hosts: `{typ:"egress", art:"hls", status, fehler}`.
+Nach dem Ende bleiben die Dateien 1 h (Nachlauf), dann löscht der Hintergrund den Ordner.
+
 ## Live-Untertitel + Transkript (app/untertitel.py)
 | Methode + Pfad | Wer | Body / Antwort |
 |---|---|---|

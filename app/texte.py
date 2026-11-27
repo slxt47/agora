@@ -56,6 +56,19 @@ def mit_sprache(s):
 
 # ---------------------------------------------------------------- Fehlermeldungen
 FEHLER_EN = {
+    # ==== Block Öffentliche Übertragung (HLS) ====
+    'Die öffentliche Übertragung (HLS) ist nicht eingerichtet.': 'The public broadcast (HLS) isn’t set up.',
+    'Es läuft keine öffentliche Übertragung.': 'There’s no public broadcast running.',
+    'Die öffentliche Übertragung gibt es nur für Webinare.': 'The public broadcast is only available for webinars.',
+    'Zugang: oeffentlich oder anmeldung.': 'Access: oeffentlich or anmeldung.',
+    'Für „nur Angemeldete“ muss die Anmeldung zum Webinar eingeschaltet sein.':
+        'For “registered only”, webinar registration has to be turned on.',
+    'Stufen: 720p, optional zusätzlich 360p.': 'Renditions: 720p, optionally also 360p.',
+    'Die öffentliche Übertragung läuft schon.': 'The public broadcast is already running.',
+    'Gerade läuft keine Übertragung.': 'No broadcast is running right now.',
+    'Für diese Übertragung ist eine Anmeldung nötig. Nutze den Link aus deiner Bestätigungsmail.':
+        'This broadcast requires registration. Use the link from your confirmation email.',
+    # ==== Ende Block ====
     # ==== Block Push-Benachrichtigungen ====
     'Ungültige Push-Adresse.': 'Invalid push address.',
     'Dieser Push-Dienst ist nicht freigegeben.': 'This push service isn’t allowed.',
@@ -354,6 +367,8 @@ MUSTER_EN = [
     (r'Der Livestream ließ sich nicht starten: (.*)', 'The live stream couldn’t start: {0}'),
     (r'Die Aufnahme ließ sich nicht stoppen: (.*)', 'The recording couldn’t be stopped: {0}'),
     (r'Der Livestream ließ sich nicht stoppen: (.*)', 'The live stream couldn’t be stopped: {0}'),
+    (r'Die Übertragung ließ sich nicht starten: (.*)', 'The broadcast couldn’t start: {0}'),
+    (r'Die Übertragung ließ sich nicht stoppen: (.*)', 'The broadcast couldn’t be stopped: {0}'),
     (r'Höchstens (\d+) Fragen je Meeting\.', 'At most {0} questions per meeting.'),
     (r'Höchstens (\d+) Umfragen je Meeting\.', 'At most {0} polls per meeting.'),
     (r'Höchstens (\d+) Vorlagen\.', 'At most {0} templates.'),

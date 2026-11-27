@@ -1,0 +1,71 @@
+# Wegwerf-Teststapel für die öffentliche Übertragung (HLS): LiveKit + Redis + Egress + App (Testmodus), nur 127.0.0.1.
+# Ports: LiveKit 7850 (+7851 TCP, +7852 UDP), Redis 7853, Egress-Vorlagen 7854, App 8251. Start über tests/egress/hls-lauf.sh.
+name: agora-hls-test
+x-haertung: &haertung
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+services:
+  redis-test:
+    image: redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    network_mode: host
+    environment: { REDIS_PASSWORD: hls-test-passwort }
+    command: ["sh", "-c", "exec redis-server --bind 127.0.0.1 --port 7853 --requirepass \"$$REDIS_PASSWORD\" --save '' --appendonly no --maxmemory 64mb --maxmemory-policy noeviction"]
+    user: "1000:1000"
+    <<: *haertung
+    mem_limit: 128m
+  livekit-test:
+    image: livekit/livekit-server:v1.13.11@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    environment: { REDIS_HOST: "127.0.0.1:7853", REDIS_PASSWORD: hls-test-passwort }
+    volumes: ["./livekit-hls-test.yaml:/etc/livekit.yaml:ro"]
+    user: "1000:1000"
+    <<: *haertung
+    depends_on: [redis-test]
+  egress-test:
+    image: livekit/egress:v1.15.0@sha256:ac244a40268ce1dd1510fbff6eb529609ec68aceff1602343f79be8ca08c355b
+    network_mode: host
+    environment:             # wie livekit.env in Produktion; die Konfiguration baut scripts/egress-start.sh
+      LIVEKIT_KEYS: "testschluessel: testgeheimnis-testgeheimnis-testgeheimnis-123"
+      REDIS_HOST: "127.0.0.1:7853"
+      REDIS_PASSWORD: hls-test-passwort
+      EGRESS_WS_URL: ws://127.0.0.1:7850
+      EGRESS_TEMPLATE_PORT: "7854"
+      EGRESS_CPU_RAUM: "1.5"   # zwei Aufträge (720p + 360p) bei cpus: 4
+    entrypoint: ["/tini", "--", "/agora/egress-start.sh"]
+    volumes: ["../../scripts/egress-start.sh:/agora/egress-start.sh:ro", "${HLS_AUSGABE:?}:/hls"]
+    user: "1001:1000"
+    <<: *haertung
+    tmpfs:
+      - /home/egress/tmp:uid=1001,gid=1000,mode=0700
+      - /home/egress/.cache:uid=1001,gid=1000,mode=0700
+      - /home/egress/.config:uid=1001,gid=1000,mode=0700
+      - /home/egress/.pki:uid=1001,gid=1000,mode=0700
+      - /tmp:mode=1777
+    shm_size: 512m
+    mem_limit: 3g
+    cpus: 4                  # wie in Produktion: der Server ist geteilt
+    depends_on: [redis-test, livekit-test]
+  app-test:
+    build: { context: ../.., target: laufzeit }
+    image: agora:test-hls
+    network_mode: host
+    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8251", "--workers", "1", "--no-access-log"]
+    environment:
+      AGORA_TEST: "1"
+      AGORA_GRENZEN_AUS: "1"
+      AGORA_EGRESS: "1"
+      AGORA_HLS: "1"
+      AGORA_COOKIE: agora
+      AGORA_COOKIE_SECURE: "0"
+      AGORA_SEITE: http://127.0.0.1:8251
+      AGORA_LIVEKIT_URL: ws://127.0.0.1:7850
+      LIVEKIT_API_HOST: http://127.0.0.1:7850
+      LIVEKIT_API_KEY: testschluessel
+      LIVEKIT_API_SECRET: testgeheimnis-testgeheimnis-testgeheimnis-123
+    volumes: ["${HLS_AUSGABE:?}:/daten/hls"]
+    tmpfs: ["/daten:uid=1000,gid=1000", "/tmp"]
+    user: "1000:1000"
+    <<: *haertung
+    depends_on: [livekit-test]

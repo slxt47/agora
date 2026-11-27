@@ -1,0 +1,17 @@
+# Test-LiveKit für den HLS-Test (hls-lauf.sh) (nur 127.0.0.1). Redis kommt aus REDIS_HOST/REDIS_PASSWORD (Umgebung).
+port: 7850
+bind_addresses: ["127.0.0.1"]
+rtc:
+  tcp_port: 7851
+  udp_port: 7852
+  node_ip: 127.0.0.1
+  use_external_ip: false
+  enable_loopback_candidate: true
+  interfaces:
+    includes: [lo]
+keys:
+  testschluessel: testgeheimnis-testgeheimnis-testgeheimnis-123
+room:
+  empty_timeout: 60
+logging:
+  level: warn

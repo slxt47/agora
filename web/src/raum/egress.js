@@ -2,17 +2,21 @@
 // Host/Co-Host: „Auf dem Server aufzeichnen“ (Galerie/Sprecher → MP4 in der Bibliothek des Besitzers) und „Livestream“
 // (RTMP(S)-Adresse + Stream-Schlüssel). Alle sehen REC (Metadaten „aufnahme“) bzw. LIVE (Metadaten „livestream“).
 // Status und Fehler: Ereignis „egress“ vom Server + Abfrage alle 5 s, solange etwas läuft.
-import { $, h, blatt, toast, beschaeftigt, status } from '../common.js';
+// Webinare (mit AGORA_HLS=1): „Öffentliche Übertragung (HLS)“ – Zuschauer ohne WebRTC auf /h/<code> (app/hls.py).
+import { $, h, blatt, toast, beschaeftigt, status, kopieren } from '../common.js';
 import { t } from '../i18n.js';
 import './egress.css';
 
 const LAEUFT = new Set(['startet', 'laeuft', 'endet']);
+const ARTEN = ['aufnahme', 'stream', 'hls'];
 
 export class ServerAufnahme {
   constructor(m) {
     this.m = m;
     this.verfuegbar = false;
-    this.zustand = { aufnahme: null, stream: null };
+    this.zustand = { aufnahme: null, stream: null, hls: null };
+    this.hlsVerfuegbar = false;
+    this.hlsAnmeldung = false;
     this.live = null;
     this.gesehen = new Set();        // Lauf-IDs, die in diesem Meeting liefen
     this.gemeldet = new Set();       // „id:status“ – jede Meldung nur einmal
@@ -27,11 +31,13 @@ export class ServerAufnahme {
       this.verfuegbar = !!z.verfuegbar;
       if (!this.verfuegbar) return;
       const vorher = this.zustand;
-      this.zustand = { aufnahme: z.aufnahme || null, stream: z.stream || null };
-      for (const art of ['aufnahme', 'stream']) this.wechsel(art, vorher[art], this.zustand[art]);
+      this.hlsVerfuegbar = !!z.hls_verfuegbar;
+      this.hlsAnmeldung = !!z.hls_anmeldung;
+      this.zustand = { aufnahme: z.aufnahme || null, stream: z.stream || null, hls: z.hls || null };
+      for (const art of ARTEN) this.wechsel(art, vorher[art], this.zustand[art]);
     } catch { /* still */ }
     clearTimeout(this.timer);
-    if (this.laeuft('aufnahme') || this.laeuft('stream')) this.timer = setTimeout(() => this.laden(), 5000);
+    if (ARTEN.some((a) => this.laeuft(a))) this.timer = setTimeout(() => this.laden(), this.laeuft('hls') ? 15000 : 5000);
   }
 
   laeuft(art) { return LAEUFT.has(this.zustand[art]?.status); }
@@ -64,10 +70,10 @@ export class ServerAufnahme {
 
   /** Raum-Metadaten: LIVE-Hinweis für alle. */
   metadaten(md) {
-    const live = md.livestream || null;
+    const live = md.livestream || md.hls || null;
     this.pille.hidden = !live;
     if (live) {
-      this.pille.title = t('egress.liveVon', { name: live.von_name || t('rolle.host') });
+      this.pille.title = t(md.livestream ? 'egress.liveVon' : 'egress.hlsVon', { name: live.von_name || t('rolle.host') });
       this.pille.setAttribute('aria-label', this.pille.title);
       if (!this.live && !this.m.istMod()) toast(t('egress.liveHinweis', { name: live.von_name || t('rolle.host') }), 'warn', { dauer: 8000 });
     }
@@ -82,7 +88,44 @@ export class ServerAufnahme {
         deaktiviert: !auf && (!!this.m.aufnahmeInfo || this.zustand.aufnahme?.status === 'endet'), aktion: () => (auf ? this.stoppen('aufnahme') : this.aufnahmeDialog()) },
       { text: str ? t('egress.streamStoppen') : t('egress.streamStarten'), symbol: str ? 'stopp' : 'teilenLink',
         aktion: () => (str ? this.stoppen('stream') : this.streamDialog()) },
+      ...this.hlsEintraege(),
     ];
+  }
+
+  hlsEintraege() {
+    if (!this.hlsVerfuegbar) return [];
+    const z = this.zustand.hls, an = this.laeuft('hls');
+    const liste = [{ text: an ? t('egress.hlsStoppen') : t('egress.hlsStarten'), symbol: an ? 'stopp' : 'teilenLink',
+      aktion: () => (an ? this.stoppen('hls') : this.hlsDialog()) }];
+    if (an && z?.link) liste.push({ text: t('egress.hlsLink', { n: z.zuschauer ?? 0 }), symbol: 'kopie', aktion: () => kopieren(z.link) });
+    return liste;
+  }
+
+  hlsDialog() {
+    const { inhalt, schliessen } = blatt(t('egress.hlsTitel'));
+    const st = h('div', { class: 'status', role: 'status', hidden: true });
+    const f = h('form', { class: 'formular egress-form' },
+      h('p', { class: 'sec' }, t('egress.hlsText')),
+      h('label', { class: 'feld' }, h('span', {}, t('egress.hlsZugang')),
+        h('select', { name: 'zugang' }, h('option', { value: 'oeffentlich' }, t('egress.hlsOeffentlich')),
+          h('option', { value: 'anmeldung', disabled: !this.hlsAnmeldung }, t('egress.hlsNurAngemeldete')))),
+      this.hlsAnmeldung ? null : h('p', { class: 'sec klein' }, t('egress.hlsOhneAnmeldung')),
+      h('label', { class: 'schalter' }, h('span', { class: 'txt' }, h('span', {}, t('egress.hls360')), h('small', {}, t('egress.hls360Hinweis'))),
+        h('input', { type: 'checkbox', role: 'switch', name: 'klein' })),
+      this.layoutFeld(), st,
+      h('div', { class: 'knoepfe' }, h('button', { type: 'button', class: 'btn', onclick: schliessen }, t('allg.abbrechen')),
+        h('button', { type: 'submit', class: 'btn primary' }, t('egress.hlsStartKnopf'))));
+    inhalt.append(f);
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      beschaeftigt(f.querySelector('button[type=submit]'), async () => {
+        const r = await this.m.api(`/api/raeume/${this.m.code}/egress/hls`, { methode: 'POST', json: {
+          aktion: 'start', zugang: f.zugang.value, layout: f.layout.value, stufen: f.klein.checked ? ['720p', '360p'] : ['720p'] } });
+        schliessen();
+        toast(t('egress.hlsStartet'), 'ok', { dauer: 8000, aktion: { text: t('konto.linkKopieren'), fn: () => kopieren(r.link) } });
+        this.laden();
+      }, st);
+    });
   }
 
   layoutFeld() {

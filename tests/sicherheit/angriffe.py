@@ -1091,6 +1091,43 @@ def fehlerbericht():
                 geheim not in roh_text and 'abc-defg-hij' not in roh_text and 'ada@example.org' not in roh_text and alle.get('gruppen'), roh_text[:200])
 
 
+# ================================================================= 15. Öffentliche Übertragung (HLS): Rechte und Pfade
+def hls():
+    a = konto_anlegen('HLS Host')
+    code = raum(a, titel='HLS')['code']
+    r = a.patch(f'/api/raeume/{code}/webinar', {'an': True})
+    assert r.status == 200, f'Webinar: {r}'
+    z = zugang(a, code)
+    g = Sitzung()
+    gz = zugang(g, code, name='Zuschauer')
+    assert a.patch(f'/api/raeume/{code}/webinar', {'registrierung': True}).status == 200
+    r = g.post(f'/api/raeume/{code}/egress/hls', {'aktion': 'start'}, kopf=T(gz))
+    pruefen('HLS: Zuschauer kann keine Übertragung starten', r.status == 403, r)
+    r = Sitzung().post(f'/api/raeume/{code}/egress/hls', {'aktion': 'start'})
+    pruefen('HLS: ohne Teilnahme kein Start', abgelehnt(r), r)
+    r = Sitzung().post(f'/api/raeume/{code}/egress/hls', {'aktion': 'start'}, agora=False, kopf=T(z))
+    pruefen('HLS: Start ohne X-Agora (CSRF) abgelehnt', r.status == 403, r)
+    r = a.post(f'/api/raeume/{code}/egress/hls', {'aktion': 'start', 'zugang': 'anmeldung'}, kopf=T(z), timeout=60)   # ohne Egress-Dienst
+    pruefen('HLS: Start ohne Egress-Dienst sauber abgelehnt (kein 500)', r.status in (502, 503), r)
+    i = Sitzung().get(f'/api/hls/{code}')
+    pruefen('HLS: Info verrät keine Quelle, solange nichts läuft', i.status == 200 and 'quelle' not in i.text and '/hls/' not in i.text, i)
+    for tok in ('x' * 32, "' OR 1=1 --", '../' * 10):
+        r = Sitzung().post(f'/api/hls/{code}/zugang', {'anmeldung': tok})
+        pruefen(f'HLS: Zugang mit falschem Token {tok[:12]!r} → keine Quelle', abgelehnt(r) and 'quelle' not in r.text, r)
+    kennung = 'A' * 22
+    pfade_ = [f'/hls/{code}/{kennung}/..%2F..%2F..%2Fagora.sqlite3', f'/hls/{code}/{kennung}/%2e%2e%2f%2e%2e%2fagora.sqlite3',
+              f'/hls/{code}/..%2F..%2F/index.m3u8', f'/hls/..%2F..%2F..%2Fetc/{kennung}/passwd', f'/hls/{code}/{kennung}/../../../../etc/passwd',
+              f'/hls/{code}/{kennung}/720p_00000.ts%00.html', f'/hls/{code}/{kennung}/..\\..\\agora.sqlite3', '/hls/%2e%2e/%2e%2e/%2e%2e/etc/passwd',
+              f'/hls/{code}/%2e%2e/%2e%2e/agora.sqlite3', '/hls/../app.env', f'/hls/{code}/{kennung}/720p.m3u8', '/h/..%2F..%2Fetc%2Fpasswd',
+              f'/hls/{code}/{kennung}/index.m3u8']
+    for p in pfade_:
+        r = Sitzung().get(p)
+        geheim = any(x in r.body for x in (b'root:x:', b'SQLite format', b'import os', b'AGORA_GEHEIM', b'#EXTM3U'))
+        pruefen(f'HLS-Pfad {p}', not geheim and r.status in (400, 404) or (p.startswith('/h/') and r.status == 200 and b'<!doctype' in r.body.lower()), r)
+    r = Sitzung().post(f'/api/hls/{code}/da', {'id': '../../' + 'a' * 20})
+    pruefen('HLS: Zuschauer-Meldung mit Pfad-Zeichen abgelehnt', r.status == 400, r)
+
+
 # ================================================================= Ablauf
 def main():
     print(f'Sicherheitstest gegen {B} (LiveKit {LK_URL})', flush=True)
@@ -1100,7 +1137,7 @@ def main():
     ctx = adm = None
     schritte = [('kopfzeilen', kopfzeilen), ('csrf', csrf), ('anmeldung', anmeldung), ('idor', idor), ('rollen', rollen),
                 ('token', None), ('ssrf', ssrf), ('pfade', None), ('groessen', groessen), ('brute', brute), ('sqli', sqli),
-                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('fehlerbericht', None), ('browser', None)]
+                ('einbetten', einbetten), ('orgs', orgs), ('status', status_seite), ('fehlerbericht', None), ('hls', hls), ('browser', None)]
     abbrueche = []
     noetig = set(NUR)
     for n in list(NUR):

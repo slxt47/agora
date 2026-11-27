@@ -1,7 +1,10 @@
 # Ergänzung zu tests/e2e/docker-compose.test.yml für den Sicherheitstest (tests/sicherheit/lauf.sh):
-# Begrenzer AN (Brute-Force-Grenzen werden geprüft) und Webhook-Ziele im eigenen Netz VERBOTEN (SSRF wird geprüft).
+# Begrenzer AN (Brute-Force-Grenzen werden geprüft) und Webhook-Ziele im eigenen Netz VERBOTEN (SSRF wird geprüft),
+# Egress/HLS-Endpunkte an (Rechte, Pfade).
 services:
   app-test:
     environment:
       AGORA_GRENZEN_AUS: "0"
       AGORA_WEBHOOK_LOKAL: "0"
+      AGORA_EGRESS: "1"                 # Egress-/HLS-Endpunkte angreifbar machen (ohne Egress-Dienst: Start → 502)
+      AGORA_HLS: "1"

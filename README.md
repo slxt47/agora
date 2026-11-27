@@ -175,13 +175,17 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   - Optional (`AGORA_EGRESS=1` + Dienste `redis`/`egress`, Profil `egress`): **Aufnahme auf dem Server** (LiveKit Egress,
     Galerie oder Sprecher, MP4 direkt in die Bibliothek des Besitzers) und **Livestream** zu YouTube/Twitch (RTMP/RTMPS,
     Stream-Schlüssel nie im Log, nur verschlüsselt und nur während des Streams gespeichert). Alle sehen REC bzw. LIVE.
+  - Optional zusätzlich `AGORA_HLS=1`: **Öffentliche Übertragung (HLS)** eines Webinars für sehr viele Zuschauer –
+    Egress schreibt HLS-Segmente (720p, optional 360p), die App liefert sie mit Cloudflare-tauglichen Cache-Kopfzeilen
+    aus; Zuschauerseite `/h/<code>` ohne WebRTC (Safari nativ, sonst hls.js selbst gehostet), ≈ 10–20 s Verzögerung,
+    öffentlich oder nur mit persönlichem Anmeldelink, ungefähre Zuschauerzahl für den Host, Dateien 1 h nach dem Ende gelöscht.
 
 ## Aufbau
 
 | Teil | Technik |
 |---|---|
 | `app/` | FastAPI + SQLite, argon2, LiveKit-Server-API (`livekit-api`), Mails über SMTP |
-| `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), RNNoise (`scripts/rnnoise.mjs`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
+| `web/` | Vite, Vanilla JS, `livekit-client`, `@livekit/track-processors` (MediaPipe-Dateien selbst gehostet, `scripts/mediapipe.mjs`), RNNoise (`scripts/rnnoise.mjs`), `hls.js` 1.7.4 (light, nur Zuschauerseite `/h/`), slxt-Design (`src/app.css`), Hell/Dunkel über `public/modus.js` |
 | `livekit.yaml` | LiveKit-SFU: Signalisierung nur lokal, Medien über UDP 7882 und ICE-TCP 7881 |
 | `docker-compose.yml` | `livekit`, `app` und `cloudflared`, alle im Host-Netz und gehärtet (read-only, cap_drop, no-new-privileges); `redis` + `egress` nur mit Profil `egress` |
 
@@ -207,6 +211,7 @@ sh tests/e2e/lauf.sh       # Browser-E2E: echte LiveKit, zwei Browser mit Kamera
 BROWSER=firefox sh tests/e2e/lauf.sh   # Browser-Matrix (firefox|webkit|chromium), Ergebnis in docs/BROWSER.md
 sh desktop/scripts/docker-bauen.sh     # Desktop-App: Tests + AppImage/deb (arm64, x64); Smoke-Test: desktop/scripts/docker-smoke.sh
 sh tests/egress/lauf.sh    # Server-Aufnahme + Livestream gegen eigenen Wegwerf-Stapel (Redis, LiveKit, Egress, App)
+sh tests/egress/hls-lauf.sh  # Öffentliche Übertragung (HLS): Segmente + Zuschauerseite in Chromium (nativ und hls.js)
 sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```
 

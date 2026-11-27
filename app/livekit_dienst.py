@@ -319,6 +319,34 @@ async def egress_stream(code, url, layout, geheim=()):
     return await _egress('egress_stream', f, _geheim=(url, *geheim))
 
 
+HLS_KODIERUNG = {     # Stufe → Kodierung (720p: Preset; 360p gibt es als Preset nicht → eigene Werte, Keyframe = Segmentlänge)
+    '720p': {'preset': api.EncodingOptionsPreset.H264_720P_30},
+    '360p': {'advanced': api.EncodingOptions(width=640, height=360, framerate=30, video_bitrate=900, audio_bitrate=96,
+                                             audio_frequency=48000, key_frame_interval=4)},
+}
+
+
+async def egress_hls(code, praefix, stufe, layout, segment_s=4):
+    """Raum als HLS (MPEG-TS-Segmente) in den Ordner von `praefix` schreiben → (egress_id, fehler).
+    Dateien: <stufe>.m3u8 (alles), <stufe>-live.m3u8 (gleitendes Fenster), <stufe>_<nr>.ts (Segmente)."""
+    if FAKE:
+        eid = f'EG_fake{secrets.token_hex(6)}'
+        AUFRUFE.append(('egress_hls', {'code': code, 'praefix': praefix, 'stufe': stufe, 'layout': layout, 'segment_s': segment_s}))
+        FAKE_EGRESS[eid] = {'status': 'laeuft'}
+        return eid, None
+    ordner = praefix.rsplit('/', 1)[0]
+
+    async def f(lk):
+        info = await lk.egress.start_room_composite_egress(api.RoomCompositeEgressRequest(
+            room_name=code, layout=layout, **HLS_KODIERUNG[stufe],
+            segment_outputs=[api.SegmentedFileOutput(protocol=api.SegmentedFileProtocol.HLS_PROTOCOL, filename_prefix=praefix,
+                                                     playlist_name=f'{ordner}/{stufe}.m3u8', live_playlist_name=f'{ordner}/{stufe}-live.m3u8',
+                                                     segment_duration=segment_s, filename_suffix=api.SegmentedFileSuffix.INDEX,
+                                                     disable_manifest=True)]))
+        return info.egress_id
+    return await _egress('egress_hls', f)
+
+
 async def egress_stoppen(egress_id):
     if FAKE:
         AUFRUFE.append(('egress_stoppen', {'egress_id': egress_id}))

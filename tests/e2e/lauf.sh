@@ -7,6 +7,7 @@
 set -e
 cd "$(dirname "$0")"
 export APP_PORT=${APP_PORT:-8111} LK_PORT=${LK_PORT:-7980}
+export KI_PORT=${KI_PORT:-$((APP_PORT+5))}          # Fake-KI für die Zusammenfassung (startet browser_e2e.py)
 export COMPOSE_PROJECT_NAME="agora-test-$APP_PORT"
 export LK_CONFIG="/tmp/agora-livekit-test-$APP_PORT.yaml"
 sed -e "s/^port: 7980/port: $LK_PORT/; s/tcp_port: 7981/tcp_port: $((LK_PORT+1))/; s/udp_port: 7982/udp_port: $((LK_PORT+2))/" livekit-test.yaml > "$LK_CONFIG"
@@ -22,5 +23,5 @@ if [ -n "$BROWSER" ]; then
 else
   SKRIPT=browser_e2e.py
 fi
-docker run --rm --network host --ipc=host -v "$PWD:/e2e" -e "BASIS=http://127.0.0.1:$APP_PORT" -e AUSGABE=/e2e/bilder/ \
+docker run --rm --network host --ipc=host -v "$PWD:/e2e" -e "BASIS=http://127.0.0.1:$APP_PORT" -e AUSGABE=/e2e/bilder/ -e "KI_PORT=$KI_PORT" \
   -e "BROWSER=${BROWSER:-chromium}" agora-playwright:1.64.1 python3 -u "/e2e/$SKRIPT"

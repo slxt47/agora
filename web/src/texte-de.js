@@ -837,4 +837,17 @@ export const de = {
   'ut.uebAn': 'Untertitel werden auf diesem Gerät nach {sprache} übersetzt.', 'ut.uebLaden': 'Der Browser lädt das Übersetzungsmodell ({n} %) …',
   'ut.uebFehler': 'Diese Sprache kann dein Browser nicht übersetzen – du siehst den Originaltext.',
   // ==== Ende Block Live-Übersetzung der Untertitel ====
+  // ==== Block Zusammenfassung + Kapitel (web/src/zusammenfassung-konto.js) ====
+  'zf.knopf': 'Zusammenfassung', 'zf.titel': 'Zusammenfassung: {titel}',
+  'zf.text': 'Kapitelmarken, Zusammenfassung und Aufgaben zu diesem Transkript. Das Ergebnis wird beim Transkript gespeichert und mit ihm gelöscht.',
+  'zf.laeuft': 'Wird erstellt – das kann je nach Länge ein paar Minuten dauern …', 'zf.fehler': 'Das ging nicht: {text}',
+  'zf.artKi': 'KI-Zusammenfassung (Modell {modell}) – bitte prüfen, Modelle können sich irren.',
+  'zf.artStichwort': 'Stichwort-Kapitel – automatisch ohne KI erstellt: Grenzen an Pausen und Sprecherwechseln, Titel aus häufigen Wörtern. Keine Zusammenfassung.',
+  'zf.zusammenfassung': 'Zusammenfassung', 'zf.kapitel': 'Kapitel', 'zf.aufgaben': 'Aufgaben', 'zf.vtt': 'Kapitel (.vtt)', 'zf.loeschen': 'Zusammenfassung löschen',
+  'zf.erstellen': 'Neu erstellen', 'zf.ki': 'Mit KI zusammenfassen', 'zf.stichwort': 'Stichwort-Kapitel (ohne KI)',
+  'zf.kiTitel': 'Transkript an den KI-Dienst schicken?',
+  'zf.kiHinweis': 'Für die Zusammenfassung schickt Agora das ganze Transkript – mit den Namen der Sprechenden – an den vom Betreiber eingerichteten KI-Dienst ({ziel}). Nur fortfahren, wenn das für dieses Meeting in Ordnung ist.',
+  'zf.kiSenden': 'Ja, schicken', 'zf.kiNicht': 'Eine KI-Zusammenfassung ist auf diesem Server nicht eingerichtet.',
+  'zf.stichwortHinweis': 'Stichwort-Kapitel entstehen auf dem Server ohne KI; das Transkript verlässt ihn dafür nicht.',
+  // ==== Ende Block Zusammenfassung + Kapitel ====
 };

@@ -670,6 +670,28 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Dolmetscher-Kanäle“ ========
+    # ======== Block „Zusammenfassung + Kapitel“ (app/zusammenfassung.py) – Version 30 ========
+    # Eine Zusammenfassung je Quelle: Transkript eines Meetings (raum_id + sitzung) oder Whisper-Transkript einer Aufnahme.
+    # Weg mit der Aufnahme (CASCADE), mit dem Raum (CASCADE) und – über aufraeumen() – mit dem Transkript (90 Tage).
+    """
+    CREATE TABLE zusammenfassungen (
+      id INTEGER PRIMARY KEY,
+      raum_id INTEGER REFERENCES raeume(id) ON DELETE CASCADE,
+      sitzung INTEGER,
+      aufnahme_id TEXT REFERENCES aufnahmen(id) ON DELETE CASCADE,
+      benutzer_id INTEGER NOT NULL REFERENCES benutzer(id) ON DELETE CASCADE,   -- wer es ausgelöst hat
+      art TEXT NOT NULL,               -- ki | stichwort
+      status TEXT NOT NULL,            -- laeuft | fertig | fehler
+      fehler TEXT,
+      ergebnis TEXT,                   -- JSON {zusammenfassung, kapitel:[{start_ms, titel, sprecher?}], aufgaben:[{text, wer}], teile?}
+      modell TEXT,
+      erstellt INTEGER NOT NULL,
+      fertig INTEGER,
+      UNIQUE (raum_id, sitzung),
+      UNIQUE (aufnahme_id)
+    );
+    """,
+    # ======== Ende Block „Zusammenfassung + Kapitel“ ========
 ]
 
 

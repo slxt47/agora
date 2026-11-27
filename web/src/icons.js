@@ -93,6 +93,9 @@ const P = {
   // ==== Block „Dolmetschen“ ====
   sprache: '<path d="M4 5h9M8.5 3v2M6 5c.5 3.5 2.5 6 5.5 7.5M11 5c-.8 3.6-3 6.4-6.5 8"/><path d="m12 20 4-9 4 9M13.4 17h5.2"/>',
   // ==== Ende Block „Dolmetschen“ ====
+  // ==== Block „Zusammenfassung“ ====
+  funke: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
+  // ==== Ende Block „Zusammenfassung“ ====
 };
 
 /** SVG-Zeichenkette für ein Symbol. */

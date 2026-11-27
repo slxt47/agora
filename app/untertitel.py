@@ -33,6 +33,7 @@ WHISPER_URL = os.environ.get('AGORA_WHISPER_URL', '').strip()
 WHISPER_MODELL = os.environ.get('AGORA_WHISPER_MODELL', 'whisper-1')
 WHISPER_TIMEOUT_S = int(os.environ.get('AGORA_WHISPER_TIMEOUT', '3600'))
 _whisper_lock = threading.Lock()
+BEIM_LOESCHEN = []            # f() – Transkript (teilweise) gelöscht oder abgelaufen (Zusammenfassungen aufräumen)
 NACH_TRANSKRIPT = []          # f(aufnahme_zeile) – Whisper-Transkript fertig (Push)
 
 
@@ -46,6 +47,8 @@ raeume.RAUM_JSON_EXTRA.append(lambda r, b: {'transkript_speichern': bool(r['tran
 
 def aufraeumen(t=None):
     db.verbindung().execute('DELETE FROM transkript WHERE zeit < ?', ((t or jetzt()) - AUFBEWAHRUNG_S,))
+    for f in BEIM_LOESCHEN:
+        f()
 
 
 # ---------------------------------------------------------------- Live-Untertitel
@@ -142,6 +145,8 @@ def loeschen(code: str, req: Request, sitzung: int = 0):
         c.execute('DELETE FROM transkript WHERE raum_id = ? AND sitzung = ?', (r['id'], sitzung))
     else:
         c.execute('DELETE FROM transkript WHERE raum_id = ?', (r['id'],))
+    for f in BEIM_LOESCHEN:
+        f()
     db.protokollieren('Transkript gelöscht', b['id'], code)
     return {'ok': True}
 

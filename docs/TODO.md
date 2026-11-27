@@ -161,7 +161,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟡 Aufzeichnungen-Bibliothek: Liste, Wiedergabe, Download, Löschen
 - [x] 🟢 Freigabelinks mit Passwort / Ablaufdatum
 - [x] 🟢 Automatisches Transkript
-- [ ] 🟢 Zusammenfassung & Kapitelmarken (KI) — *noch offen (bräuchte ein KI-Modell)*
+- [x] 🟢 Zusammenfassung & Kapitelmarken (KI) — *KI nur mit eingerichtetem Modell (`AGORA_KI_URL`), sonst Stichwort-Kapitel ohne KI*
 
 ---
 

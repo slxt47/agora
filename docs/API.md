@@ -628,3 +628,18 @@ schaltet minütlich (Hook `raeume.BEI_LISTE_ASYNC`) jede andere `dolmetsch:`-Spu
 `livekit_dienst.teilnehmer()` liefert je Spur zusätzlich `name`; `livekit_dienst.extra_quellen(code, identity)` (von
 dolmetsch.py gesetzt) ergänzt die Quellen bei jedem `aktualisieren` mit Rolle.
 
+## Zusammenfassung + Kapitel (app/zusammenfassung.py)
+| Methode + Pfad | Wer | Body / Antwort |
+|---|---|---|
+| GET `/api/raeume/{code}/zusammenfassung?sitzung=` | wer den Raum verwalten darf (`darf_verwalten`) | `{zusammenfassung: null\|{art, status, fehler, modell, erstellt, fertig, ergebnis}, ki_verfuegbar, ki_ziel}`; ohne `sitzung`: neuestes Transkript |
+| POST `/api/raeume/{code}/zusammenfassung?sitzung=` | ebenso | `{art: "stichwort"}` → sofort `fertig`; `{art: "ki", zustimmung: true}` → `laeuft` (Hintergrund), 404 ohne KI, 400 ohne `zustimmung`, 409 läuft schon, 20/h; ersetzt ein vorhandenes Ergebnis |
+| DELETE `/api/raeume/{code}/zusammenfassung?sitzung=` | ebenso | `{ok}` |
+| GET `/api/raeume/{code}/kapitel.vtt?sitzung=` | ebenso | WebVTT-Kapitel; 404 ohne Kapitel |
+| GET/POST/DELETE `/api/aufnahmen/{id}/zusammenfassung`, GET `/api/aufnahmen/{id}/kapitel.vtt` | Besitzer der Aufnahme | wie oben, Quelle ist das Whisper-Transkript `<id>.vtt` (404 ohne) |
+
+`ergebnis` = `{zusammenfassung: Text|null, kapitel:[{start_ms, titel, sprecher?}], aufgaben:[{text, wer}], teile?}` (Stichwort: ohne
+Zusammenfassung/Aufgaben). `aufnahme_json` hat zusätzlich `zusammenfassung: null|{art, status}`. Die KI bekommt Zeilen
+`[MM:SS] Name: Text` in Teilen von `AGORA_KI_ZEICHEN` Zeichen und antwortet mit JSON; ein Schluss-Aufruf fasst Teile zusammen.
+Hooks: `untertitel.BEIM_LOESCHEN` (f()), `untertitel.NACH_TRANSKRIPT` (neues Whisper-Transkript löscht die alte Zusammenfassung).
+Push-Ereignis `fertig` bei fertiger KI-Zusammenfassung.
+

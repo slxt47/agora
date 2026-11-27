@@ -1324,6 +1324,61 @@ window.addEventListener('message', function (e) {{ if (e.origin !== '{B}') windo
         hp.goto(B + '/konto')                          # Meeting verlassen (endet nach Leerlauf von selbst)
         time.sleep(1)
         # ==== Ende Block Dolmetschen ====
+        # ==== Block Zusammenfassung: Fake-KI (OpenAI-kompatibel, AGORA_KI_URL im Test-Stapel) auf KI_PORT; Transkript per API,
+        # im Konto erst Stichwort-Kapitel (ohne KI), dann „Mit KI“ nach Bestätigung des Hinweises
+        ki_anfragen = []
+
+        class FakeKI(BaseHTTPRequestHandler):
+            def do_POST(self):
+                d = json.loads(self.rfile.read(int(self.headers.get('content-length') or 0)))
+                ki_anfragen.append(d)
+                inhalt = {'zusammenfassung': 'Kurze Runde zum Budget; Folien kommen per Mail.', 'kapitel': [{'zeit': '00:00', 'titel': 'Begrüßung und Budget'}],
+                          'aufgaben': [{'text': 'Folien verschicken', 'wer': 'Florian'}]}
+                body = json.dumps({'choices': [{'message': {'role': 'assistant', 'content': json.dumps(inhalt, ensure_ascii=False)}}]}).encode()
+                self.send_response(200); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(body)))
+                self.end_headers(); self.wfile.write(body)
+
+            def log_message(self, *a):
+                pass
+        ki_server = ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('KI_PORT', '8116'))), FakeKI)
+        threading.Thread(target=ki_server.serve_forever, daemon=True).start()
+        r = hp.evaluate("""async () => (await (await fetch('/api/raeume', {method:'POST', headers:{'X-Agora':'1','Content-Type':'application/json'}, body: JSON.stringify({titel:'Budgetrunde'})})).json())""")
+        zcode = r['raum']['code']
+        J = {'X-Agora': '1', 'Content-Type': 'application/json'}
+        hp.request.patch(f'{B}/api/raeume/{zcode}/transkript', data=json.dumps({'speichern': True}), headers=J)
+        zz = hp.request.post(f'{B}/api/raeume/{zcode}/beitreten', data=json.dumps({'name': 'Florian Test'}), headers=J).json()['zugang']
+        for satz in ('Willkommen zur Budgetrunde, heute geht es um das Budget.', 'Die Folien zum Budget schicke ich per Mail.'):
+            hp.request.post(f'{B}/api/raeume/{zcode}/untertitel', data=json.dumps({'text': satz, 'final': True, 'dauer_ms': 1500}),
+                            headers={**J, 'X-Teilnahme': zz['teilnahme']})
+            time.sleep(0.3)
+        hp.goto(B + '/konto#meetings'); hp.reload()
+        hp.click(f'[data-transkripte="{zcode}"]')
+        hp.click(f'dialog [data-zusammenfassung="{zcode}"]')
+        hp.wait_for_selector('dialog #zf-stichwort')
+        hp.click('dialog #zf-stichwort')
+        hp.wait_for_selector('dialog #zf-status[data-art="stichwort"]')
+        st = hp.inner_text('dialog .zf-kapitel')
+        print('Stichwort-Kapitel:', st.replace('\n', ' | '))
+        if 'Budget' not in st: fehler.append(f'Stichwort-Kapitel ohne Stichwort: {st}')
+        hp.screenshot(path=OUT + '55a-stichwort-kapitel.png')
+        hp.click('dialog #zf-ki')
+        hp.wait_for_selector('dialog:has-text("Transkript an den KI-Dienst schicken?")')
+        hinweis = hp.inner_text('dialog:has-text("Transkript an den KI-Dienst schicken?")')
+        if '127.0.0.1' not in hinweis: fehler.append('KI-Hinweis nennt das Ziel nicht')
+        if ki_anfragen: fehler.append('KI vor der Bestätigung aufgerufen')
+        hp.click('dialog button:has-text("Ja, schicken")')
+        hp.wait_for_selector('dialog #zf-status[data-art="ki"]', timeout=30000)
+        ki_text = hp.inner_text('#zf-inhalt')
+        print('KI-Zusammenfassung:', ki_text.replace('\n', ' | ')[:200])
+        if 'Folien kommen per Mail' not in ki_text or 'Folien verschicken' not in ki_text: fehler.append('KI-Zusammenfassung fehlt')
+        if not ki_anfragen or 'Florian Test: Willkommen zur Budgetrunde' not in ki_anfragen[0]['messages'][-1]['content']:
+            fehler.append('KI bekam das Transkript nicht')
+        vtt = hp.request.get(f'{B}/api/raeume/{zcode}/kapitel.vtt').text()
+        if 'Begrüßung und Budget' not in vtt: fehler.append(f'Kapitel-VTT falsch: {vtt[:80]}')
+        hp.screenshot(path=OUT + '55b-ki-zusammenfassung.png')
+        ki_server.shutdown()
+        hp.goto(B + '/konto')
+        # ==== Ende Block Zusammenfassung ====
     except Exception:
         traceback.print_exc()
         fehler.append('Ablauf abgebrochen')

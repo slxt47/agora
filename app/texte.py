@@ -75,6 +75,14 @@ FEHLER_EN = {
     'Du bist in diesem Meeting kein Dolmetscher.': 'You aren’t an interpreter in this meeting.',
     'Für dieses Sprachpaar ist niemand in Bereitschaft.': 'Nobody is on standby for this language pair.',
     # ==== Ende Block Dolmetscher-Kanäle ====
+    # ==== Block Zusammenfassung + Kapitel ====
+    'Art: ki oder stichwort.': 'Kind: ki or stichwort.',
+    'Kein Transkript vorhanden.': 'No transcript available.',
+    'Die Zusammenfassung wird schon erstellt.': 'The summary is already being created.',
+    'Die KI-Zusammenfassung ist nicht eingerichtet.': 'The AI summary isn’t set up.',
+    'Bitte bestätige, dass das Transkript an den KI-Dienst geschickt wird.': 'Please confirm that the transcript is sent to the AI service.',
+    'Keine Kapitel vorhanden.': 'No chapters available.',
+    # ==== Ende Block Zusammenfassung + Kapitel ====
     # ==== Block Öffentliche API, Webhooks, Einbetten ====
     'Ungültige Herkunft.': 'Invalid origin.',
     'Zum Einbetten mindestens eine Herkunft angeben (z. B. https://beispiel.de).': 'To embed, provide at least one origin (e.g. https://example.com).',
@@ -429,6 +437,7 @@ MAIL = {
         'push.aufnahme.titel': 'Aufnahme fertig', 'push.aufnahme.text': '„{titel}“ liegt jetzt in deiner Bibliothek.',
         'push.transkript.titel': 'Transkript fertig', 'push.transkript.text': 'Das Transkript zu „{titel}“ ist fertig.',
         'push.test.titel': 'Agora', 'push.test.text': 'So sehen Benachrichtigungen von Agora aus.',
+        'push.zusammenfassung.titel': 'Zusammenfassung fertig', 'push.zusammenfassung.text': 'Die Zusammenfassung zu „{titel}“ ist fertig.',
         # ==== Ende Block Push-Benachrichtigungen ====
     },
     'en': {
@@ -482,6 +491,7 @@ MAIL = {
         'push.aufnahme.titel': 'Recording ready', 'push.aufnahme.text': '“{titel}” is now in your library.',
         'push.transkript.titel': 'Transcript ready', 'push.transkript.text': 'The transcript for “{titel}” is ready.',
         'push.test.titel': 'Agora', 'push.test.text': 'This is what notifications from Agora look like.',
+        'push.zusammenfassung.titel': 'Summary ready', 'push.zusammenfassung.text': 'The summary for “{titel}” is ready.',
         # ==== Ende Block Push-Benachrichtigungen ====
     },
 }

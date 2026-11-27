@@ -85,6 +85,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   geht über den Server an alle; jede Person blendet die Untertitel mit Namen selbst ein. Der Besitzer kann „Transkript
   speichern“ einschalten (alle sehen einen Hinweis) und lädt es als .txt/.vtt (Ende-Bildschirm oder Konto, 90 Tage).
   Optional „Transkript aus Aufnahme erstellen“ über einen Whisper-Dienst (`AGORA_WHISPER_URL`).
+  **Zusammenfassung & Kapitel:** zu gespeicherten Transkripten (und Whisper-Transkripten von Aufnahmen) erstellt der Besitzer
+  auf Knopfdruck Kapitelmarken, Zusammenfassung und Aufgaben – mit KI nur, wenn ein OpenAI-kompatibles Modell eingerichtet
+  ist (`AGORA_KI_URL`, `AGORA_KI_MODELL`) und nach einem Hinweis, wohin das Transkript geht; ohne KI immer als
+  „Stichwort-Kapitel“ (Pausen, Sprecherwechsel, häufige Wörter – so beschriftet). Kapitel als WebVTT im Spieler.
   **Untertitel übersetzen:** jede Person wählt für sich eine Zielsprache; übersetzt wird nur auf dem eigenen Gerät mit der
   eingebauten Translator-API des Browsers (derzeit Chrome am Computer, ab 138). Agora schickt Untertitel nie an einen
   Übersetzungsdienst – ohne die API gibt es einen Hinweis und den Originaltext.

@@ -26,6 +26,9 @@ services:
       LIVEKIT_API_HOST: http://127.0.0.1:${LK_PORT:-7980}
       LIVEKIT_API_KEY: testschluessel
       LIVEKIT_API_SECRET: testgeheimnis-testgeheimnis-testgeheimnis-123
+      # KI-Zusammenfassung gegen eine Fake-KI, die browser_e2e.py auf KI_PORT startet (OpenAI-kompatibel)
+      AGORA_KI_URL: http://127.0.0.1:${KI_PORT:-8116}/v1
+      AGORA_KI_MODELL: fake-modell
     tmpfs: ["/daten:uid=1000,gid=1000", "/tmp"]
     user: "1000:1000"
     depends_on: [livekit-test]

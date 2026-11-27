@@ -833,4 +833,17 @@ export const en = {
   'ut.uebAn': 'Captions are translated into {sprache} on this device.', 'ut.uebLaden': 'The browser is downloading the translation model ({n} %) …',
   'ut.uebFehler': 'Your browser can’t translate this language – you see the original text.',
   // ==== Ende Block Live-Übersetzung der Untertitel ====
+  // ==== Block Zusammenfassung + Kapitel (web/src/zusammenfassung-konto.js) ====
+  'zf.knopf': 'Summary', 'zf.titel': 'Summary: {titel}',
+  'zf.text': 'Chapter markers, summary and action items for this transcript. The result is stored with the transcript and deleted with it.',
+  'zf.laeuft': 'Being created – depending on the length this can take a few minutes …', 'zf.fehler': 'That didn’t work: {text}',
+  'zf.artKi': 'AI summary (model {modell}) – please check it, models can be wrong.',
+  'zf.artStichwort': 'Keyword chapters – created automatically without AI: boundaries at pauses and speaker changes, titles from frequent words. No summary.',
+  'zf.zusammenfassung': 'Summary', 'zf.kapitel': 'Chapters', 'zf.aufgaben': 'Action items', 'zf.vtt': 'Chapters (.vtt)', 'zf.loeschen': 'Delete summary',
+  'zf.erstellen': 'Create again', 'zf.ki': 'Summarize with AI', 'zf.stichwort': 'Keyword chapters (no AI)',
+  'zf.kiTitel': 'Send the transcript to the AI service?',
+  'zf.kiHinweis': 'For the summary, Agora sends the whole transcript – including the speakers’ names – to the AI service set up by the operator ({ziel}). Only continue if that is fine for this meeting.',
+  'zf.kiSenden': 'Yes, send it', 'zf.kiNicht': 'An AI summary isn’t set up on this server.',
+  'zf.stichwortHinweis': 'Keyword chapters are created on the server without AI; the transcript doesn’t leave it for that.',
+  // ==== Ende Block Zusammenfassung + Kapitel ====
 };

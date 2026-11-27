@@ -3,6 +3,7 @@
 import { h, api, blatt, knopf, beschaeftigt, bestaetigen, toast } from './common.js';
 import { t } from './i18n.js';
 import { zeitText } from './helfer.js';
+import { zusammenfassungKnopf } from './zusammenfassung-konto.js';    // KI-Zusammenfassung / Stichwort-Kapitel
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Berlin';
 
@@ -26,6 +27,7 @@ export async function transkriptDialog(raum) {
       h('div', { class: 'aktionen' },
         h('a', { class: 'btn klein', href: `/api/raeume/${raum.code}/transkript?sitzung=${x.sitzung}&format=txt`, download: '' }, '.txt'),
         h('a', { class: 'btn klein', href: `/api/raeume/${raum.code}/transkript?sitzung=${x.sitzung}&format=vtt`, download: '' }, '.vtt'),
+        zusammenfassungKnopf({ art: 'raum', code: raum.code, sitzung: x.sitzung, titel: raum.titel }),
         knopf(t('konto.loeschen'), { klasse: 'icon-btn', symbol: 'muell', 'aria-label': t('tk.loeschen'), onclick: async () => {
           if (!await bestaetigen(t('tk.loeschen'), null, { ja: t('konto.loeschen'), gefahr: true })) return;
           beschaeftigt(null, async () => { await api(`/api/raeume/${raum.code}/transkript?sitzung=${x.sitzung}`, { methode: 'DELETE' }); laden(); });
@@ -44,7 +46,8 @@ export function aufnahmeTranskript(a, neuLaden) {
   const s = a.transkript?.status;
   if (s === 'fertig') {
     return [h('a', { class: 'btn klein', href: `/api/aufnahmen/${a.id}/transkript?format=vtt`, download: '' }, t('tk.aufnahmeVtt')),
-      h('a', { class: 'btn klein', href: `/api/aufnahmen/${a.id}/transkript?format=txt`, download: '' }, t('tk.aufnahmeTxt'))];
+      h('a', { class: 'btn klein', href: `/api/aufnahmen/${a.id}/transkript?format=txt`, download: '' }, t('tk.aufnahmeTxt')),
+      zusammenfassungKnopf({ art: 'aufnahme', id: a.id, titel: a.titel })];
   }
   if (s === 'laeuft') return [h('span', { class: 'marker' }, t('tk.aufnahmeLaeuft'))];
   return [knopf(s === 'fehler' ? t('tk.aufnahmeNochmal') : t('tk.aufnahmeErstellen'), { klasse: 'btn klein', symbol: 'stift', title: a.transkript?.fehler || undefined,

@@ -166,6 +166,16 @@ bei Webhooks nur zu öffentlichen IPs, ohne Weiterleitungen. Der Inhalt ist Ende
 Dienst sieht Zeitpunkt, Größe und Gerät, nicht den Text. iPhone/iPad bekommen Push nur in der installierten App
 („Zum Home-Bildschirm“, iOS 16.4+), nicht im Safari-Tab. Zähler `agora_push_total{ergebnis=ok|weg|fehler}` in `/api/metriken`.
 
+## KI-Zusammenfassung – optional
+
+Mit `AGORA_KI_URL` (OpenAI-kompatibel; volle Adresse `…/v1/chat/completions`, oder nur bis `/v1` bzw. die Basis – der Rest
+wird ergänzt) und `AGORA_KI_MODELL` bieten Transkript-Dialog und Bibliothek „Mit KI zusammenfassen“ an. Optional
+`AGORA_KI_SCHLUESSEL` (Bearer), `AGORA_KI_TIMEOUT` (s, Standard 300), `AGORA_KI_ZEICHEN` (Teilgröße, Standard 12000).
+Das ganze Transkript mit Namen geht an diese Adresse – deshalb nur einen eigenen Dienst eintragen (z. B. llama.cpp-Server
+oder Ollama mit OpenAI-API auf 127.0.0.1). Die Oberfläche nennt Host:Port vor dem Senden, die API verlangt
+`zustimmung: true`, im Protokoll steht „KI-Zusammenfassung angefordert (Host)“. Ein Auftrag nach dem anderen. Ohne die
+Variablen gibt es nur „Stichwort-Kapitel“ (läuft auf dem Server, ohne KI).
+
 ## Aufbewahrung
 
 - Nicht bestätigte Konten: 48 h
@@ -205,6 +215,8 @@ Dienst sieht Zeitpunkt, Größe und Gerät, nicht den Text. iPhone/iPad bekommen
   selbst läuft im Browser (bei Chrome/Edge beim Browser-Hersteller) und nur nach Zustimmung der jeweiligen Person.
 - Übersetzung der Untertitel: nur im Browser der Person, die sie einschaltet (Translator-API, Modell vom Browser-Hersteller,
   Text bleibt auf dem Gerät); der Server speichert dafür nichts, er reicht nur die Sprache der Erkennung (`sprache`) mit.
+- Zusammenfassungen/Kapitel/Aufgaben (Ergebnis, Art, Modell, wer es ausgelöst hat): neben dem Transkript – weg, wenn es
+  gelöscht wird oder nach 90 Tagen abläuft, mit der Aufnahme bzw. dem Raum; ein neues Whisper-Transkript löscht die alte.
 - Transkripte aus Aufnahmen (Whisper): `.vtt` neben der Aufnahme, mit ihr gelöscht (90 Tage).
 - API-Schlüssel (Name, SHA-256 des Schlüssels, erste 12 Zeichen, Rechte, Erstellzeit, Ablauf, letzte Nutzung ohne IP):
   bis der Besitzer sie widerruft oder das Konto gelöscht wird; abgelaufene Schlüssel sind sofort ungültig und werden

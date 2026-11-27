@@ -856,4 +856,5 @@ export const en = {
   'fb.browser': 'Browsers', 'fb.kachel': 'Open errors', 'fb.kachelUnter': 'groups from browsers and server', 'fb.loeschenTitel': 'Delete error group?',
   'fb.loeschenText': 'The group disappears with all its counts. If the error happens again, a new one starts.', 'fb.keinStapel': 'No stack sent.', 'fb.auftreten': 'Occurrences',
   // ==== Ende Block Fehler-Monitoring ====
+  'admin.online': 'Active now', 'admin.onlineUnter': 'accounts · {n} in meetings (last 5 min)',
 };

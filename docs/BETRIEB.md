@@ -6,7 +6,7 @@
 |---|---|---|
 | `app` | 127.0.0.1:8110 | Webseite und API, SQLite und Aufnahmen in `./daten` (Aufnahmen/Dateien optional in S3) |
 | `livekit` | 127.0.0.1:7880 (Signalisierung), öffentlich UDP 7882 und TCP 7881 | SFU für Video und Ton |
-| `redis`, `egress` | 127.0.0.1:6390, 7884 | nur Profil `egress`: Server-Aufnahme + Livestream (siehe unten) |
+| `redis`, `egress` | 127.0.0.1:6390, 7884 | nur Profil `egress`: Server-Aufnahme + Livestream (siehe unten); `redis` auch Profil `redis` (mehrere App-Worker) |
 | `cloudflared` | – | Tunnel `agora`: `HOST/rtc` geht an 127.0.0.1:7880, alles andere an 127.0.0.1:8110 |
 
 Alle drei laufen im Host-Netz, damit LiveKit die öffentliche Schnittstelle sieht und der Tunnel beide lokalen Ports erreicht. LiveKit nutzt nur die Schnittstelle `eth0` (`rtc.interfaces.includes`), damit keine Docker-Brücken als Kandidaten auftauchen.
@@ -85,7 +85,7 @@ Ist clamd nicht erreichbar, lehnt die App Uploads mit 503 ab (fail closed). Ohne
 
 Nutzer legen persönliche API-Schlüssel im Konto an (Reiter „Entwickler“), Beschreibung in [`API-V1.md`](API-V1.md).
 Nichts einzurichten; die Grenzen (120/min je Schlüssel, 30 ungültige Schlüssel/10 min je IP) liegen wie alle anderen im
-Arbeitsspeicher des einen Workers. Download-Links sind mit `AGORA_GEHEIM` signiert – ändert er sich, werden offene Links
+Arbeitsspeicher des einen Workers (mit `AGORA_REDIS_URL` in Redis, siehe „Zwei App-Worker mit Redis“). Download-Links sind mit `AGORA_GEHEIM` signiert – ändert er sich, werden offene Links
 ungültig (sie gelten ohnehin nur 15 min). Ein kompromittierter Schlüssel: Nutzer widerruft ihn selbst, oder ein Admin
 sperrt das Konto (gesperrte Konten können keine Schlüssel nutzen). Im Protokoll stehen nur Erstellen/Widerrufen und
 „Raum angelegt/gelöscht (API)“, keine einzelnen Abrufe.
@@ -225,6 +225,50 @@ Der erste Lauf vor dem Umschalten braucht die `AGORA_S3_*`-Werte schon in der Um
 (`docker compose run -e AGORA_S3_ENDPOINT=… …` oder `app.env` vorher ergänzen und die App erst danach neu starten).
 Zurück: `AGORA_S3_*` entfernen – Objekte müssen dann von Hand zurück nach `daten/` (gleiche Schlüssel = gleiche Pfade).
 Test: `sh tests/speicher/lauf.sh` (Wegwerf-MinIO auf 127.0.0.1:9351/9352, Daten im tmpfs).
+
+## Zwei App-Worker mit Redis – optional, standardmäßig aus
+
+Standard ist ein uvicorn-Worker; Begrenzer und Präsenz liegen dann im Arbeitsspeicher (wie bisher). Mit
+`AGORA_REDIS_URL` teilen sich alle Worker diese Zustände:
+
+- **Begrenzer** (`kern.grenze`, alle Login-/Passcode-/API-Grenzen): gleitendes Fenster als Sorted Set, atomar in einem
+  Lua-Skript mit der Uhr des Redis-Servers. Schlüssel nur als SHA-256 (`agora:g:…`, keine IPs/E-Mail-Adressen im Klartext),
+  sie laufen mit dem Fenster ab.
+- **Präsenz** (`agora:p:konten`, `agora:p:meeting`, Hashes der Konto-IDs bzw. Teilnahmen, 1 h): „Gerade aktiv“ in der
+  Admin-Übersicht und `agora_online{bereich}` in `/api/metriken`.
+- **Hintergrund-Aufgaben** (Aufräumen, Erinnerungen, Egress-Abgleich, Sicherung, Webhooks, Status-Prüfung) laufen nur
+  im Worker, der `daten/hintergrund.lock` (flock) hält; stirbt er, übernimmt ein anderer. Dafür braucht es kein Redis.
+  Das Schema legt beim Start immer nur ein Worker an (`daten/schema.lock`).
+- **Redis weg** (Zeitlimit 2 s): Begrenzer und Präsenz fallen je Worker auf den Arbeitsspeicher zurück (Zähler
+  `agora_redis_fehler_total`, eine Logzeile je Minute) – Anfragen hängen nicht, die Grenzen gelten dann je Worker.
+- Weiter je Worker (bewusst): Zähler/Histogramme in `/api/metriken` (Prometheus sieht den Worker, den es gerade trifft –
+  für Summen alle Worker abfragen oder bei einem bleiben), der 30-s-Zwischenspeicher der Status-Seite, der
+  Whiteboard-Zwischenspeicher (wird über die Sequenz in der Datenbank geprüft) und der Passwort-Cache der Freigabe-Links.
+- Mehrere Rechner gehen nicht: alle Worker brauchen dasselbe `daten/` (SQLite, Aufnahmen bzw. tmp).
+
+Einschalten (der `redis`-Dienst ist derselbe wie für Egress – ohne Persistenz, `maxmemory 64mb`, nur 127.0.0.1:6390):
+
+1. `livekit.env`: `REDIS_PASSWORD=<openssl rand -hex 24>` (falls noch nicht da – Redis liest es von dort).
+2. `app.env`: `AGORA_REDIS_URL=redis://:<dasselbe Passwort>@127.0.0.1:6390/1` (Datenbank 1; LiveKit/Egress nutzen 0).
+3. `docker-compose.override.yml` (nicht im Repo) für zwei Worker und etwas mehr Speicher:
+   ```yaml
+   services:
+     app:
+       command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8110", "--workers", "2",
+                 "--no-access-log", "--no-server-header", "--timeout-keep-alive", "15"]
+       mem_limit: 1g
+       depends_on: [livekit, redis]
+   ```
+   (`depends_on: redis` nur, wenn der Dienst auch gestartet wird – sonst die Zeile weglassen.)
+4. `docker compose --profile redis up -d redis && docker compose up -d app`
+5. Prüfen: `docker logs agora-app-1 | grep -c "Application startup complete"` → 2; `curl -s http://127.0.0.1:8110/api/gesund?tief=1`
+   (Hintergrund ok); `docker exec agora-redis-1 sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning -n 1 dbsize'` > 0
+   nach ein paar Anmeldungen.
+
+Zurück auf einen Worker: Override entfernen, `AGORA_REDIS_URL` aus `app.env`, `docker compose up -d app`
+(Redis kann laufen bleiben, wenn Egress es braucht). Getestet: `sh tests/geteilt/lauf.sh` (Wegwerf-Redis auf
+127.0.0.1:6391) – darin zwei echte uvicorn-Worker, die zusammen genau 30 Fehlerberichte je IP annehmen
+(ohne Redis nahmen sie in der Gegenprobe 57 von 80 an).
 
 ## Aufbewahrung
 

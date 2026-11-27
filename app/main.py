@@ -2,7 +2,8 @@
 
 Die App verwaltet Konten, Räume, Warteraum, Host-Rechte, Chat und Aufnahmen; Audio/Video laufen direkt zwischen
 Browser und LiveKit. Die App gibt dafür kurzlebige LiveKit-Token aus und steuert Räume über die LiveKit-Server-API.
-Ein uvicorn-Worker (Begrenzer und Cache liegen im Arbeitsspeicher).
+Standard: ein uvicorn-Worker. Mehrere Worker gehen mit AGORA_REDIS_URL (Begrenzer + Präsenz in Redis, app/geteilt.py);
+Hintergrund-Aufgaben laufen dann nur im Worker mit der Sperre (app/leitung.py), siehe docs/BETRIEB.md.
 """
 import asyncio
 import os
@@ -49,6 +50,7 @@ from . import push            # Push-Benachrichtigungen (Web Push, opt-in je Ger
 from . import dolmetsch       # Dolmetscher-Kanäle (Spur dolmetsch:<sprache>, Rechte vom Server)
 from . import zusammenfassung  # KI-Zusammenfassung + Kapitel (AGORA_KI_URL), Stichwort-Kapitel ohne KI
 from . import speicher         # Speicher für Aufnahmen/Dateien: lokal (Standard) oder S3-kompatibel (AGORA_S3_*)
+from . import leitung          # mehrere Worker: wer die Hintergrund-Aufgaben übernimmt (flock)
 from . import fehlerbericht    # Fehler-Monitoring (Browser + Server, gruppiert, Admin-Reiter „Fehler“)
 from . import livekit_dienst as lk
 from . import texte          # Sprachen: Fehlermeldungen und Mails Deutsch/Englisch (ADR 0006)
@@ -61,9 +63,11 @@ speicher.aktiv()     # Objektspeicher (lokal oder S3) prüfen: unvollständige A
 @asynccontextmanager
 async def lebenszeit(_app):
     if not TEST:
-        threading.Thread(target=hintergrund, daemon=True).start()
-        webhooks.starten()
-        status.starten()
+        def aufgaben():
+            threading.Thread(target=hintergrund, daemon=True).start()
+            webhooks.starten()
+            status.starten()
+        leitung.starten(aufgaben)      # mehrere Worker: nur einer (flock auf daten/hintergrund.lock), die anderen übernehmen
     yield
 
 

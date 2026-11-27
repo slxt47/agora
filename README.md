@@ -139,6 +139,9 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   standardmäßig unter `daten/`; mit `AGORA_S3_ENDPOINT/BUCKET/KEY/SECRET/REGION` in einem S3-Bucket (AWS, Hetzner,
   MinIO …). Eigener kleiner SigV4-Client ohne neue Abhängigkeit, Upload und Download gestreamt, Range bleibt, optional
   serverseitige Verschlüsselung; Migration mit `python -m app.speicher_migrieren`.
+- **Optionales Redis für mehrere Worker:** mit `AGORA_REDIS_URL` teilen sich alle App-Worker die Begrenzer (atomar, gleitendes
+  Fenster per Lua) und die Präsenz („Gerade aktiv“ im Admin-Bereich); Hintergrund-Aufgaben übernimmt immer nur ein Worker
+  (flock). Ohne die Variable bleibt alles im Arbeitsspeicher wie bisher; fällt Redis aus, greift der Arbeitsspeicher.
 - **Fehler-Monitoring (selbst gehostet, statt Sentry):** JS-Fehler, unbehandelte Promises, unerwartete LiveKit-Trennungen
   und API-Antworten ≥ 500 aus dem Browser (`POST /api/fehlerbericht`) sowie Ausnahmen des Servers, gruppiert nach
   Fingerabdruck mit Anzahl, erstem/letztem Auftreten, Version und Browser-Familie. Admin-Reiter „Fehler“ (Details, erledigt;
@@ -207,6 +210,7 @@ sh tests/egress/lauf.sh    # Server-Aufnahme + Livestream gegen eigenen Wegwerf-
 sh scripts/lasttest.sh     # Lasttest (lk load-test) + Netzsimulation (tc/netem im eigenen Docker-Netz), Ergebnisse in docs/LASTTEST.md
 ```
 
+Redis (Begrenzer, Präsenz, zwei uvicorn-Worker) gegen einen Wegwerf-Redis: `sh tests/geteilt/lauf.sh`.
 Objektspeicher gegen einen Wegwerf-MinIO: `sh tests/speicher/lauf.sh` (ohne MinIO überspringt pytest diese Tests).
 
 ## Lizenz

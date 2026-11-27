@@ -43,6 +43,7 @@ HILFE = {
     'agora_livekit_fehler_total': ('counter', 'Fehlgeschlagene Aufrufe der LiveKit-Server-API je Aufruf'),
     'agora_hintergrund_fehler_total': ('counter', 'Fehler in der Hintergrund-Schleife'),
     'agora_http_anfragen_total': ('counter', 'HTTP-Anfragen je Routengruppe und Statusklasse'),
+    'agora_redis_fehler_total': ('counter', 'Redis nicht erreichbar/Fehler (Begrenzer und Präsenz fallen auf den Arbeitsspeicher zurück)'),
     'agora_fehlerberichte_total': ('counter', 'Erfasste Fehler (Fehler-Monitoring) je Quelle (browser, server)'),
 }
 
@@ -55,6 +56,13 @@ def zaehlen(name, wert=1, **labels):
 
 def hintergrund_gelaufen():
     ZUSTAND['hintergrund'] = time.time()
+    from .leitung import gelaufen
+    gelaufen()                     # auch für die anderen Worker sichtbar (daten/hintergrund.zeit)
+
+
+def letzter_hintergrund():
+    from .leitung import letzter_lauf
+    return max(ZUSTAND['hintergrund'], letzter_lauf() if not TEST else 0.0)
 
 
 def gruppe(pfad):
@@ -200,7 +208,10 @@ async def metriken(req: Request):
     gauge('agora_daten_frei_bytes', 'Freier Platz unter daten/', [(platte.free, {})])
     gauge('agora_daten_gesamt_bytes', 'Größe des Dateisystems unter daten/', [(platte.total, {})])
     gauge('agora_hintergrund_letzter_lauf_zeitstempel_sekunden', 'Letzter erfolgreicher Lauf der Hintergrund-Schleife (Unix, 0 = noch nie)',
-          [(ZUSTAND['hintergrund'], {})])
+          [(letzter_hintergrund(), {})])
+    from . import geteilt
+    gauge('agora_online', 'Gerade aktiv (letzte 5 min): Konten mit Sitzung, Teilnahmen im Meeting – mit Redis über alle Worker',
+          [(geteilt.anzahl(b), {'bereich': b}) for b in geteilt.BEREICHE])
     with _lock:
         zaehler = dict(ZAEHLER)
         histo = {g: {'b': list(h['b']), 'summe': h['summe'], 'anzahl': h['anzahl']} for g, h in HISTO.items()}
@@ -241,7 +252,7 @@ async def gesund_tief(req: Request):
     platte = shutil.disk_usage(db.DATEN)
     p['platte'] = {'ok': platte.free >= PLATTE_MIN and platte.free / platte.total >= 0.05, 'frei_bytes': platte.free,
                    'frei_prozent': round(platte.free / platte.total * 100, 1)}
-    letzter = ZUSTAND['hintergrund']
+    letzter = letzter_hintergrund()
     alter = round(time.time() - letzter) if letzter else None
     if TEST and not letzter:
         ok = True                        # Testmodus: keine Hintergrund-Schleife

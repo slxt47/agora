@@ -8,7 +8,7 @@ import json
 
 from fastapi import APIRouter, Request
 
-from . import db
+from . import db, geteilt
 from . import livekit_dienst as lk
 from .kern import benutzer_aus_sitzung, fehler, grenze, h, iso, jetzt, json_body, text_feld
 from .raeume import (RANG, darf_verwalten, grundrolle, meeting_beenden, meta, nachricht_json, neu_laden, raum_laden, rechte, teilnahmen,
@@ -29,6 +29,7 @@ def teilnahme(req: Request, code):
                                     (h(g), r['id'], r['sitzung'])).fetchone()
     if not t:
         fehler(403, 'Du bist nicht in diesem Meeting.')
+    geteilt.gesehen('meeting', t['identity'])      # Präsenz: Teilnahmen, die gerade die API nutzen
     return r, t
 
 

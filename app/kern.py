@@ -14,7 +14,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import HTTPException, Request, Response
 
-from . import db
+from . import db, geteilt
 
 TEST = os.environ.get('AGORA_TEST') == '1'
 GRENZEN_AUS = os.environ.get('AGORA_GRENZEN_AUS') == '1'      # nur für E2E-Tests
@@ -80,7 +80,8 @@ def livekit_herkunft():
 
 
 class Begrenzer:
-    """Gleitendes Fenster je Schlüssel, nur im Arbeitsspeicher (ein uvicorn-Worker)."""
+    """Gleitendes Fenster je Schlüssel. Mit AGORA_REDIS_URL gemeinsam für alle Worker/Instanzen (app/geteilt.py, atomar
+    per Lua), sonst – und als Rückfall, wenn Redis nicht antwortet – im Arbeitsspeicher dieses Workers."""
     def __init__(self):
         self.d = defaultdict(deque)
         self.lock = threading.Lock()
@@ -88,6 +89,9 @@ class Begrenzer:
     def ok(self, schluessel, anzahl, sekunden):
         if GRENZEN_AUS:
             return True
+        x = geteilt.grenze(schluessel, anzahl, sekunden)
+        if x is not None:
+            return x
         t = time.monotonic()
         with self.lock:
             q = self.d[schluessel]
@@ -105,6 +109,9 @@ class Begrenzer:
         """Ist das Fenster schon voll? Zählt selbst nicht mit (für „nur Fehlversuche zählen“)."""
         if GRENZEN_AUS:
             return False
+        x = geteilt.grenze(schluessel, anzahl, sekunden, nur_pruefen=True)
+        if x is not None:
+            return x
         t = time.monotonic()
         with self.lock:
             q = self.d.get(schluessel)
@@ -167,6 +174,8 @@ def benutzer_aus_sitzung(req: Request, pflicht=True):
         row = None
     if pflicht and not row:
         fehler(401, 'Bitte anmelden.')
+    if row:
+        geteilt.gesehen('konten', row['id'])      # Präsenz: „gerade aktiv“ (Admin-Übersicht, Metriken)
     return row
 
 

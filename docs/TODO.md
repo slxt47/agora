@@ -205,7 +205,7 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🔴 WebSocket-Gateway für Signalisierung & Events
 - [x] 🔴 Datenbank-Schema (Users, Meetings, Participants, Recordings, Chat)
 - [x] 🔴 Migrationen
-- [ ] 🟡 Redis für Präsenz, Pub/Sub, Rate-Limits — *nur für Egress vorbereitet; Begrenzer im Speicher (1 Prozess)*
+- [ ] 🟡 Redis für Präsenz, Pub/Sub, Rate-Limits — *optional umgesetzt: Begrenzer + Präsenz in Redis (`AGORA_REDIS_URL`), mehrere Worker getestet; Pub/Sub fehlt (Ereignisse laufen über den LiveKit-Datenkanal), in Produktion nicht eingeschaltet*
 - [x] 🟡 Object Storage für Aufzeichnungen und Dateien — *optional S3-kompatibel (Aufnahmen, Transkripte, Dateien), Migration per Skript; Standard weiter lokal unter daten/*
 - [x] 🟡 E-Mail-Versand (Einladungen, Reset)
 - [x] 🟡 Hintergrund-Jobs / Queue (Transkodierung, Mails, Aufräumen)

@@ -44,7 +44,7 @@ services:
   # ---- Server-Aufnahme + Livestream (LiveKit Egress) – NUR mit Profil „egress“, siehe docs/BETRIEB.md ----
   # Ein normales `docker compose up -d` startet beide nicht. Einschalten erst nach den Schritten in BETRIEB.md.
   redis:
-    profiles: [egress]
+    profiles: [egress, redis]               # „redis“: auch für mehrere App-Worker (AGORA_REDIS_URL, docs/BETRIEB.md)
     image: redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
     restart: unless-stopped
     network_mode: host                     # nur 127.0.0.1:6390, Passwort REDIS_PASSWORD aus livekit.env

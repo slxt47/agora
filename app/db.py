@@ -1,4 +1,5 @@
 """SQLite-Datenbank für Agora. WAL-Modus, eine Verbindung pro Thread, Schema per Version."""
+import fcntl
 import os
 import sqlite3
 import threading
@@ -735,6 +736,16 @@ def verbindung():
 def einrichten():
     for d in ('aufnahmen', 'tmp', 'sicherung'):
         os.makedirs(os.path.join(DATEN, d), exist_ok=True)
+    # Mehrere Worker starten gleichzeitig: Schema nur einer nach dem anderen (sonst „table already exists“)
+    with open(os.path.join(DATEN, 'schema.lock'), 'a') as sperre:
+        fcntl.flock(sperre, fcntl.LOCK_EX)
+        try:
+            _schema()
+        finally:
+            fcntl.flock(sperre, fcntl.LOCK_UN)
+
+
+def _schema():
     c = verbindung()
     c.execute('CREATE TABLE IF NOT EXISTS schema_version (v INTEGER NOT NULL)')
     v = (c.execute('SELECT v FROM schema_version').fetchone() or [0])[0]

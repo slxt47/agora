@@ -56,6 +56,7 @@ async function uebersichtLaden() {
       kachel(t('admin.aufnahmen'), groesseText(u.aufnahmen.belegt), t('admin.aufnahmenUnter', { n: adminZahl(u.aufnahmen.anzahl) })),
       kachel(t('admin.meldungenOffen'), adminZahl(u.meldungen_offen), t('admin.meldungenUnter'), u.meldungen_offen ? 'warn' : ''),
       kachel(t('fb.kachel'), adminZahl(u.fehler_offen), t('fb.kachelUnter'), u.fehler_offen ? 'warn' : ''),
+      ...(u.online ? [kachel(t('admin.online'), adminZahl(u.online.konten), t('admin.onlineUnter', { n: adminZahl(u.online.meeting) }))] : []),
     );
   } catch (e) { box.replaceChildren(h('p', { class: 'leer' }, e.message)); }
 }

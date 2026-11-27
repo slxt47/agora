@@ -9,7 +9,7 @@ import os
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
-from . import admins, db, raeume
+from . import admins, db, geteilt, raeume
 from . import livekit_dienst as lk
 from .kern import WEB, benutzer_aus_sitzung, fehler, iso, jetzt, json_body, text_feld
 from .melden import meldung_json
@@ -88,6 +88,7 @@ async def uebersicht(req: Request):
         'aufnahmen': {'anzahl': eins('SELECT COUNT(*) FROM aufnahmen'), 'belegt': eins('SELECT COALESCE(SUM(groesse), 0) FROM aufnahmen')},
         'meldungen_offen': eins("SELECT COUNT(*) FROM meldungen WHERE status = 'offen'"),
         'fehler_offen': eins('SELECT COUNT(*) FROM fehler_gruppen WHERE erledigt IS NULL'),
+        'online': {'konten': geteilt.anzahl('konten'), 'meeting': geteilt.anzahl('meeting'), 'geteilt': geteilt.aktiv()},
     }
 
 

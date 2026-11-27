@@ -860,4 +860,5 @@ export const de = {
   'fb.browser': 'Browser', 'fb.kachel': 'Offene Fehler', 'fb.kachelUnter': 'Gruppen aus Browsern und Server', 'fb.loeschenTitel': 'Fehlergruppe löschen?',
   'fb.loeschenText': 'Die Gruppe verschwindet mit allen Zählern. Tritt der Fehler wieder auf, beginnt eine neue.', 'fb.keinStapel': 'Kein Stack übermittelt.', 'fb.auftreten': 'Auftreten',
   // ==== Ende Block Fehler-Monitoring ====
+  'admin.online': 'Gerade aktiv', 'admin.onlineUnter': 'Konten · {n} im Meeting (letzte 5 min)',
 };

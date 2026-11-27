@@ -247,7 +247,7 @@ Admin = bestätigtes Konto, dessen E-Mail in `AGORA_ADMIN_MAILS` steht. Jede än
 
 | Methode + Pfad | Body / Parameter | Antwort |
 |---|---|---|
-| GET `/api/admin/uebersicht` | – | `{konten:{gesamt, bestaetigt, gesperrt, zwei_faktor, neu_7}, laufend:{meetings, teilnehmer, livekit}, meetings:{tage_7, tage_30, raeume}, aufnahmen:{anzahl, belegt}, meldungen_offen, fehler_offen}` |
+| GET `/api/admin/uebersicht` | – | `{konten:{gesamt, bestaetigt, gesperrt, zwei_faktor, neu_7}, laufend:{meetings, teilnehmer, livekit}, meetings:{tage_7, tage_30, raeume}, aufnahmen:{anzahl, belegt}, meldungen_offen, fehler_offen, online:{konten, meeting, geteilt}}` (`online`: verschiedene Konten mit Sitzung bzw. Teilnahmen mit API-Aufrufen in den letzten 5 min; `geteilt` = über Redis für alle Worker) |
 | GET `/api/admin/benutzer` | `?q=&seite=` (50 je Seite) | `{benutzer:[konto], gesamt, seite_groesse}` |
 | POST `/api/admin/benutzer/{id}/sperren` | `{an: bool}` | `{benutzer: konto}` – Sperren meldet überall ab und beendet eigene laufende Meetings |
 | POST `/api/admin/benutzer/{id}/2fa-zuruecksetzen` | – | `{benutzer: konto}` |
@@ -275,7 +275,7 @@ GET `/api/gesund` → `{ok:true}` · GET `/api/einstellungen` → `{livekit_url,
   `agora_aufnahmen_bytes`, `agora_db_bytes`, `agora_daten_frei_bytes`, `agora_daten_gesamt_bytes`, `agora_hintergrund_letzter_lauf_zeitstempel_sekunden`,
   `agora_start_zeitstempel_sekunden`, `agora_info{version}`. Zähler (seit Start): `agora_anmeldungen_total{ergebnis=ok|fehlgeschlagen|begrenzt}`,
   `agora_registrierungen_total`, `agora_mails_total{ergebnis=ok|fehler}`, `agora_livekit_fehler_total{aufruf}`, `agora_hintergrund_fehler_total`,
-  `agora_http_anfragen_total{gruppe, status=2xx…}`. Histogramm `agora_http_dauer_sekunden{gruppe}` mit
+  `agora_http_anfragen_total{gruppe, status=2xx…}`, `agora_redis_fehler_total`; Momentwert `agora_online{bereich=konten|meeting}`. Histogramm `agora_http_dauer_sekunden{gruppe}` mit
   `gruppe` ∈ konto, raeume, meeting, aufnahmen, freigaben, betrieb, api, statisch, seiten (nie Codes oder IDs als Label).
 
 ## Ergänzungen Backend (Stand Umsetzung)

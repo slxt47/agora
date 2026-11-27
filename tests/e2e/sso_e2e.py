@@ -1,7 +1,8 @@
 # Anmelden über einen echten Identity-Provider (Dex, tests/e2e/sso.sh): Playwright klickt auf der Startseite
-# „Mit Google anmelden“ (AGORA_GOOGLE_* zeigt auf Dex), meldet sich auf der Login-Seite von Dex an und kommt zurück.
+# „Mit Google anmelden“ (AGORA_GOOGLE_* zeigt auf Dex) bzw. „Mit Firmenkonto anmelden“ (Dex als OIDC-IdP einer
+# Organisation, im Konto vom Owner eingerichtet), meldet sich auf der Login-Seite von Dex an und kommt zurück.
 # Geprüft: neues Konto, bestehendes Konto nur nach Agora-Passwort, Wiederkehr ohne Passwort, Profil (verknüpft,
-# Konto ohne Passwort), Abbruch/Fehlerseite. Exit ≠ 0 bei jedem Fehler.
+# Konto ohne Passwort), Firmen-Login (Einrichtung, Beitritt, fremde Domain, Erzwingen), Fehlerseite. Exit ≠ 0 bei Fehlern.
 import json
 import os
 import re
@@ -130,7 +131,111 @@ with sync_playwright() as p:
     ok('Sicherheitsereignisse verknüpft/angemeldet/getrennt', {'extern_verknuepft', 'anmeldung_extern', 'extern_getrennt'} <= set(ereignisse), ereignisse)
     ctx.close()
 
-    # ---------------------------------------------------------------- 3. Fehler: gefälschte Rückkehr
+    # ---------------------------------------------------------------- 3. Firmen-Login (generisches OIDC, Dex als IdP der Firma)
+    print('Firmen-Login: Owner richtet Dex ein')
+    konto_mit_passwort('Chefin', 'chef@firma.example', 'chef-agora-passwort-1')
+    konto_mit_passwort('Anna', 'anna@firma.example', 'anna-agora-passwort-1')
+    ctx = br.new_context(locale='de-DE')
+    pg = ctx.new_page()
+    pg.goto(B + '/')
+    pg.fill('#f-anmelden [name=email]', 'chef@firma.example')
+    pg.fill('#f-anmelden [name=passwort]', 'chef-agora-passwort-1')
+    pg.click('#f-anmelden button[type=submit]')
+    pg.wait_for_selector('#angemeldet:not([hidden])', timeout=10000)
+    slug = pg.evaluate("""async () => (await (await fetch('/api/orgs', {method: 'POST', headers: {'X-Agora': '1', 'Content-Type': 'application/json'},
+        body: JSON.stringify({name: 'Firma Beispiel'})})).json()).org.slug""")
+    pg.goto(B + '/konto#teams')
+    pg.click(f'[data-org-oeffnen="{slug}"]')
+    pg.wait_for_selector('#f-org-sso', timeout=10000)
+    ok('Redirect-URI angezeigt', pg.inner_text('#sso-redirect') == B + '/api/anmeldung/firma/zurueck', pg.inner_text('#sso-redirect'))
+    ok('Domain vorgeschlagen (eigene Adresse)', pg.input_value('#f-org-sso [name=domain]') == 'firma.example')
+    pg.fill('#f-org-sso [name=issuer]', DEX)
+    pg.fill('#f-org-sso [name=client_id]', 'agora-firma')
+    pg.fill('#f-org-sso [name=client_secret]', 'firma-geheimnis-nur-test')
+    pg.click('#f-org-sso button[type=submit]')
+    pg.wait_for_selector('#f-org-sso [name=client_secret][placeholder*="gespeichert"]', timeout=10000)
+    sso = pg.evaluate(f"async () => (await (await fetch('/api/orgs/{slug}/sso')).json()).sso")
+    ok('Firmen-Login gespeichert (Geheimnis nicht lesbar)', sso and sso['issuer'] == DEX and sso['geheimnis_gesetzt'] and 'nur-test' not in json.dumps(sso), sso)
+    pg.screenshot(path=AUS + 'sso-06-org-einrichten.png', full_page=True)
+    ctx.close()
+    ok('Startseite bietet Firmen-Login an', api('/api/einstellungen').get('firmen_login') is True)
+
+    def firma_login(pg, email):
+        pg.goto(B + '/')
+        pg.wait_for_selector('button[data-anbieter=firma]', timeout=10000)
+        pg.click('button[data-anbieter=firma]')
+        pg.fill('#f-firma [name=email]', email)
+        pg.click('#f-firma button[type=submit]')
+        dex_login(pg, email)
+
+    print('Firmen-Login: neues Konto (Bernd) → Mitglied')
+    ctx = br.new_context(locale='de-DE')
+    pg = ctx.new_page()
+    firma_login(pg, 'bernd@firma.example')
+    pg.wait_for_selector('#angemeldet:not([hidden])', timeout=15000)
+    j = ich(pg)
+    ok('Bernd angemeldet (neues Konto)', j.get('angemeldet') and j['ich']['email'] == 'bernd@firma.example' and j['ich']['name'] == 'Bernd Neu', j)
+    orgs = pg.evaluate("async () => (await (await fetch('/api/orgs')).json()).orgs")
+    ok('Bernd automatisch Mitglied', [(o['slug'], o['rolle']) for o in orgs] == [(slug, 'mitglied')], orgs)
+    ctx.close()
+
+    print('Firmen-Login: bestehendes Konto (Anna) nur mit Passwort')
+    ctx = br.new_context(locale='de-DE')
+    pg = ctx.new_page()
+    firma_login(pg, 'anna@firma.example')
+    pg.wait_for_selector('#f-verknuepfen:not([hidden])', timeout=15000)
+    ok('Anna: erst Passwort, nicht angemeldet', not ich(pg).get('angemeldet') and 'Firma Beispiel' in pg.inner_text('#verknuepfen-text'))
+    pg.fill('#f-verknuepfen [name=passwort]', 'anna-agora-passwort-1')
+    pg.click('#f-verknuepfen button[type=submit]')
+    pg.wait_for_selector('#angemeldet:not([hidden])', timeout=10000)
+    ok('Anna angemeldet und Mitglied', ich(pg)['ich']['email'] == 'anna@firma.example'
+       and any(o['slug'] == slug for o in pg.evaluate("async () => (await (await fetch('/api/orgs')).json()).orgs")))
+    ctx.close()
+
+    print('Firmen-Login: Adresse außerhalb der Domain')
+    ctx = br.new_context(locale='de-DE')
+    pg = ctx.new_page()
+    pg.goto(B + '/')
+    pg.click('button[data-anbieter=firma]')
+    pg.fill('#f-firma [name=email]', 'mallory@fremd.example')
+    pg.click('#f-firma button[type=submit]')
+    pg.wait_for_selector('#status:not([hidden])', timeout=5000)
+    ok('fremde Domain: kein Firmen-Login', 'kein Firmen-Login' in pg.inner_text('#status'))
+    # über die Domain starten, beim IdP aber als fremde Adresse anmelden → abgelehnt
+    pg.fill('#f-firma [name=email]', 'x@firma.example')
+    pg.click('#f-firma button[type=submit]')
+    dex_login(pg, 'mallory@fremd.example')
+    pg.wait_for_selector('#status:not([hidden])', timeout=15000)
+    ok('IdP liefert fremde Domain → abgelehnt', 'passt nicht zur Domain' in pg.inner_text('#status') and not ich(pg).get('angemeldet'),
+       pg.inner_text('#status'))
+    ctx.close()
+
+    print('Firmen-Login erzwingen')
+    ctx = br.new_context(locale='de-DE')
+    pg = ctx.new_page()
+    pg.goto(B + '/')
+    pg.fill('#f-anmelden [name=email]', 'chef@firma.example')
+    pg.fill('#f-anmelden [name=passwort]', 'chef-agora-passwort-1')
+    pg.click('#f-anmelden button[type=submit]')
+    pg.wait_for_selector('#angemeldet:not([hidden])', timeout=10000)
+    r = pg.evaluate(f"""async () => (await fetch('/api/orgs/{slug}/sso', {{method: 'PUT', headers: {{'X-Agora': '1', 'Content-Type': 'application/json'}},
+        body: JSON.stringify({{issuer: '{DEX}', client_id: 'agora-firma', domain: 'firma.example', erzwingen: true}})}})).status""")
+    ok('Owner schaltet „erzwingen“ ein', r == 200, r)
+    ctx.close()
+    ctx = br.new_context(locale='de-DE')
+    pg = ctx.new_page()
+    pg.goto(B + '/')
+    pg.fill('#f-anmelden [name=email]', 'anna@firma.example')
+    pg.fill('#f-anmelden [name=passwort]', 'anna-agora-passwort-1')
+    pg.click('#f-anmelden button[type=submit]')
+    pg.wait_for_selector('#status:not([hidden])', timeout=5000)
+    ok('Anna: Passwort-Login gesperrt (Firmen-Login Pflicht)', 'Firmen-Login' in pg.inner_text('#status') and not ich(pg).get('angemeldet'))
+    firma_login(pg, 'anna@firma.example')
+    pg.wait_for_selector('#angemeldet:not([hidden])', timeout=15000)
+    ok('Anna: über den Firmen-Login weiter möglich', ich(pg)['ich']['email'] == 'anna@firma.example')
+    ctx.close()
+
+    # ---------------------------------------------------------------- 4. Fehler: gefälschte Rückkehr
     print('Gefälschte Rückkehr (state ohne Vorgang)')
     ctx = br.new_context(locale='de-DE')
     pg = ctx.new_page()

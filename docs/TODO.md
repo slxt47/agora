@@ -35,7 +35,8 @@ Legende: `[ ]` offen · `[x]` erledigt · 🔴 kritisch · 🟡 wichtig · 🟢 
 - [x] 🟢 OAuth / SSO (Google, Microsoft, GitHub) — gebaut, wartet auf Zugangsdaten von Florian (`docs/ANMELDUNG.md`; mit Dex bewiesen, `tests/e2e/sso.sh`)
   - [ ] Apps bei Google/Microsoft/GitHub registrieren und `AGORA_*_CLIENT_ID/_SECRET` eintragen (Florian)
 - [x] 🟢 Zwei-Faktor-Authentifizierung (TOTP)
-- [ ] 🟢 SAML / OIDC für Unternehmen — *braucht einen Identity-Provider (Florian)*
+- [x] 🟢 SAML / OIDC für Unternehmen — OIDC je Organisation gebaut (Firmen-Login, mit Dex bewiesen), SAML bewusst nicht (ADR 0008); wartet auf Florian
+  - [ ] `AGORA_FIRMEN_LOGIN=1` setzen, wenn eine Organisation es braucht (Florian)
 - [x] 🟢 Konto löschen & Datenexport (DSGVO)
 
 ---

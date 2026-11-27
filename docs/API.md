@@ -54,9 +54,19 @@ Grenzen: Anmelden 10/10 min je IP+Mail und 20 Fehlversuche/15 min je Konto (alle
 | GET `/api/konto/anmeldungen` | – | `{verknuepft:[{id, anbieter, name, email, erstellt, zuletzt}], verfuegbar:[{id, name}], passwort_gesetzt}` |
 | DELETE `/api/konto/anmeldungen/{id}` | – | `{ok:true}`; 409, wenn das Konto kein Passwort hat |
 
-`anbieter`: `google` · `microsoft` · `github`. `grund`: `abgebrochen` · `ungueltig` (state/Cookie/abgelaufen) · `anbieter`
+Firmen-Login (`AGORA_FIRMEN_LOGIN=1`, app/firmen_login.py): `anbieter` = `firma`, Start mit `{email, weiter?}` → IdP der
+Organisation mit dieser Domain (404 `Für diese E-Mail-Domain ist kein Firmen-Login eingerichtet.`); `/api/einstellungen`
+enthält `firmen_login: bool` (mindestens eine Organisation hat ihn) und `firmen_login_an: bool` (Schalter an). Owner verwalten ihn (sonst 404, auch wenn aus):
+
+| Methode + Pfad | Body | Antwort |
+|---|---|---|
+| GET `/api/orgs/{slug}/sso` | – | `{sso: null \| {issuer, client_id, geheimnis_gesetzt, domain, auto_beitritt, erzwingen, aktiv, geaendert, verknuepft}, redirect_uri, domain_vorschlag}` |
+| PUT `/api/orgs/{slug}/sso` | `{issuer, client_id, client_secret? (beim ersten Mal Pflicht), domain, auto_beitritt?, erzwingen?, aktiv?}` | wie GET; 400 bei unsicherer/unerreichbarer Aussteller-URL, fremder oder Freemail-Domain; 409 Domain schon vergeben |
+| DELETE `/api/orgs/{slug}/sso` | – | `{ok:true}` (Verknüpfungen weg) |
+
+`anbieter`: `google` · `microsoft` · `github` · `firma`. `grund`: `abgebrochen` · `ungueltig` (state/Cookie/abgelaufen) · `anbieter`
 (Tausch/Netz) · `token` (id_token ungültig) · `email_unbestaetigt` · `kein_passwort` · `gesperrt` · `schon_verknuepft` ·
-`schon_da` · `firma_pflicht` · `zu_viele`. Grenzen: Start 30/10 min, Rückkehr 60/10 min je IP, Passwort 20/10 min je IP
+`schon_da` · `firma_pflicht` · `zu_viele` · `domain` (Firmen-IdP liefert eine Adresse außerhalb der Domain). Grenzen: Start 30/10 min, Rückkehr 60/10 min je IP, Passwort 20/10 min je IP
 und die Konto-Grenze des Passwort-Logins. Redirect-URI: `<AGORA_SEITE>/api/anmeldung/<anbieter>/zurueck`.
 
 ### Sicherheitsereignisse (angemeldet)

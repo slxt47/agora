@@ -804,6 +804,24 @@ SCHEMA = [
     );
     """,
     # ======== Ende Block „Anmeldung (OAuth/OIDC)“ ========
+    # ======== Block „Firmen-Login“ (app/firmen_login.py) – Version 35 ========
+    # OIDC-Identity-Provider je Organisation. Das Client-Geheimnis liegt verschlüsselt (AES-256-GCM, Schlüssel aus
+    # AGORA_GEHEIM, an org_id gebunden). Jede Domain gehört höchstens einer Organisation.
+    """
+    CREATE TABLE org_sso (
+      org_id INTEGER PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+      issuer TEXT NOT NULL,            -- Aussteller-URL (https), Discovery unter /.well-known/openid-configuration
+      client_id TEXT NOT NULL,
+      geheim TEXT NOT NULL,            -- g1.<base64(nonce + AES-GCM)>
+      domain TEXT NOT NULL UNIQUE,     -- E-Mail-Domain (klein)
+      auto_beitritt INTEGER NOT NULL DEFAULT 1,
+      erzwingen INTEGER NOT NULL DEFAULT 0,
+      aktiv INTEGER NOT NULL DEFAULT 1,
+      geaendert INTEGER NOT NULL,
+      von_id INTEGER
+    );
+    """,
+    # ======== Ende Block „Firmen-Login“ ========
 ]
 
 

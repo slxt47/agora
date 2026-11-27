@@ -10,6 +10,7 @@ import { icon } from './icons.js';
 import { zeitText, groesseText, emailsAusText } from './helfer.js';
 import { orgKuerzel, rolleRang, FARBEN_ORG } from './org-format.js';
 import { vorlageDialog, vorlageMerkmale, passcodeZeigen } from './vorlagen.js';
+import { ssoKarte } from './org-sso.js';     // Firmen-Login (OIDC) – nur Owner, nur wenn der Server es kann
 
 const ZONE = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Vienna'; } catch { return 'Europe/Vienna'; } })();
 const zeit = (iso) => zeitText(iso, ZONE);
@@ -188,6 +189,7 @@ async function oeffnen(slug) {
     admin ? abschnitt('org-h-einladungen', t('org.offeneEinladungen'), 'liste-org-offen', []) : null,
     admin ? einstellungenKarte(o) : null);
   mitgliederZeigen(o);
+  ssoKarte(o, () => oeffnen(o.slug)).then((karte) => { if (karte && offen === o.slug) box.append(karte); });
   await Promise.all([raeumeLaden(o), vorlagenLaden(o), aufnahmenLaden(o), admin ? offeneLaden(o) : null]);
 }
 

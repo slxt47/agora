@@ -13,6 +13,10 @@ Videokonferenzen direkt im Browser, ohne Installation. Selbst gehostet, im slxt-
   nur mit vom Anbieter bestätigter Adresse; ein bestehendes Konto wird erst nach einmaliger Eingabe des Agora-Passworts
   verknüpft (kein Übernehmen fremder Konten), Zwei-Faktor gilt weiter. Verknüpfen/Trennen im Profil. Einrichtung,
   Sicherheit und Text für die Datenschutzerklärung: [`docs/ANMELDUNG.md`](docs/ANMELDUNG.md).
+- **Firmen-Login (OIDC je Organisation,** nur mit `AGORA_FIRMEN_LOGIN=1`): Owner tragen den Identity-Provider ihrer Firma
+  ein (Aussteller-URL, Client-ID, Geheimnis – AES-256-GCM verschlüsselt, Domain); „Mit Firmenkonto anmelden“ führt über
+  die E-Mail-Domain zum richtigen IdP. Automatischer Beitritt, „Firmen-Login erzwingen“ (Owner ausgenommen), nur
+  öffentliche https-Ziele (SSRF-Schutz). Kein SAML – warum: [`docs/adr/0008-firmen-login-oidc-ohne-saml.md`](docs/adr/0008-firmen-login-oidc-ohne-saml.md).
 - **Zwei-Faktor-Anmeldung (TOTP):** freiwillig im Profil; QR-Code wird im Browser gezeichnet, 10 Wiederherstellungscodes
   (nur einmal sichtbar, gespeichert nur als Hash), ±30 s Toleranz, jeder Code nur einmal, Geheimnis verschlüsselt gespeichert.
 - **Sicherheit im Konto:** eigene Sicherheitsereignisse der letzten 30 Tage (Anmeldungen, Fehlversuche, Passwort- und

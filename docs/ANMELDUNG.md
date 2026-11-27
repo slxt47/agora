@@ -1,4 +1,4 @@
-# Anmelden mit Google, Microsoft und GitHub
+# Anmelden mit Google, Microsoft, GitHub und Firmen-Login
 
 Stand: gebaut und mit einem lokalen Identity-Provider (Dex) bewiesen. **In Produktion aus**, bis Florian die
 Zugangsdaten einträgt – ohne `AGORA_<ANBIETER>_CLIENT_ID` **und** `_CLIENT_SECRET` gibt es weder Knöpfe noch Routen.
@@ -106,6 +106,32 @@ wenn das Konto ein Passwort hat (sonst käme man nicht mehr hinein). Konten ohne
 ändern“ einen Link per Mail zum Festlegen; „Konto löschen“ bestätigt man dort mit der eigenen E-Mail-Adresse.
 Der Datenexport enthält die Verknüpfungen (Anbieter, Adresse, Daten).
 
+## Firmen-Login (OIDC je Organisation)
+
+Global erst mit `AGORA_FIRMEN_LOGIN=1` in `app.env` (Standard aus). Danach richtet **jeder Owner** einer Organisation
+den Identity-Provider (IdP) seiner Firma selbst ein: Konto → Teams → Organisation → „Firmen-Login (OIDC)“.
+SAML gibt es bewusst nicht (ADR [0008](adr/0008-firmen-login-oidc-ohne-saml.md)); alle gängigen IdPs können OIDC.
+
+Beim IdP eine **Web-Anwendung / vertraulichen Client** anlegen:
+
+- Redirect-URI (für alle Organisationen gleich): `https://agora.slxt.dev/api/anmeldung/firma/zurueck`
+- Grant „Authorization Code“, PKCE S256 (Agora schickt es immer mit), Scopes `openid email profile`
+- Client-Authentifizierung `client_secret_post` oder `client_secret_basic`
+- Aussteller-URL (Issuer), z. B. Entra ID `https://login.microsoftonline.com/<Mandanten-ID>/v2.0`, Keycloak
+  `https://sso.firma.de/realms/firma`, Okta `https://firma.okta.com`, Google Workspace `https://accounts.google.com`,
+  Authentik `https://auth.firma.de/application/o/agora/`, ADFS `https://adfs.firma.de/adfs`
+
+In Agora: Aussteller-URL, Client-ID, Client-Geheimnis (wird verschlüsselt gespeichert und nie wieder angezeigt),
+E-Mail-Domain (muss zur Adresse des Owners passen, keine Freemail-Domain, jede Domain nur bei einer Organisation),
+„Automatisch beitreten“ (Standard an) und „Firmen-Login erzwingen“. Beim Speichern ruft Agora die Discovery ab und
+vergleicht den Aussteller – nur `https` und öffentliche Adressen.
+
+Anmelden: Startseite → „Mit Firmenkonto anmelden“ → geschäftliche Adresse → IdP der Firma → zurück. Neue Konten nur für
+Adressen der Domain (`email_verified=false` wird abgelehnt), bestehende Konten nur nach dem Agora-Passwort (wie bei
+Google). „Erzwingen“ sperrt für Mitglieder mit Adresse in der Domain Passwort-Login und Google/Microsoft/GitHub; Owner
+bleiben ausgenommen (Notzugang). Wer per „Passwort vergessen“ ein Passwort setzt, verliert die Firmen-Verknüpfung
+(Postfach bewiesen → der IdP kommt nicht mehr in das Konto) und verknüpft beim nächsten Firmen-Login mit Passwort neu.
+
 ## Vorschlag für die Datenschutzerklärung (slxt.org/datenschutz, Abschnitt Agora)
 
 > **Anmeldung mit Google, Microsoft oder GitHub (freiwillig).** Statt mit E-Mail und Passwort kannst du dich über
@@ -121,3 +147,8 @@ Der Datenexport enthält die Verknüpfungen (Anbieter, Adresse, Daten).
 > Browser) – dafür gelten seine Datenschutzbestimmungen; bei GitHub und ggf. Microsoft/Google kann das eine
 > Übermittlung in die USA sein (EU-US Data Privacy Framework). Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO
 > (Anmeldung auf deinen Wunsch). Ohne diese Anmeldung kannst du Agora genauso mit E-Mail und Passwort nutzen.
+>
+> **Firmen-Login.** Hat deine Organisation in Agora einen eigenen Anmeldedienst (Identity-Provider) eingerichtet,
+> meldest du dich über ihn an. Er übermittelt uns eine Kennung, deinen Namen, deine E-Mail-Adresse und ob sie bestätigt
+> ist; je nach Einstellung der Organisation wirst du dabei Mitglied der Organisation in Agora. Verantwortlich für den
+> Anmeldedienst ist deine Organisation. Die Zugangsdaten der Organisation (Client-Geheimnis) speichern wir verschlüsselt.

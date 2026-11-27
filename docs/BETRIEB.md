@@ -39,6 +39,15 @@ beiden, bleibt der Anbieter aus (keine Knöpfe, Routen 404). Registrierung bei d
 `api.github.com`. **Microsoft-Geheimnis läuft ab** (höchstens 24 Monate): Termin notieren und rechtzeitig erneuern.
 Fehlversuche stehen im Protokoll (`Anmeldung Google gescheitert: token (…)`), ohne Codes oder Tokens.
 
+## Firmen-Login (OIDC je Organisation) – optional, standardmäßig aus
+
+`AGORA_FIRMEN_LOGIN=1` in `app.env` schaltet frei, dass Owner von Organisationen einen eigenen OIDC-Identity-Provider
+eintragen (ADR 0008, [`docs/ANMELDUNG.md`](ANMELDUNG.md#firmen-login-oidc-je-organisation)). Die App ruft dann
+Discovery/JWKS/Token-Endpunkte dieser IdPs auf – nur `https` und öffentliche Adressen. Das Client-Geheimnis liegt
+verschlüsselt mit einem Schlüssel aus `AGORA_GEHEIM` (ändert sich `AGORA_GEHEIM`, müssen Owner das Geheimnis neu
+eintragen). Zurücknehmen: Variable entfernen → Knopf und Routen weg, Daten bleiben. Domain einer Organisation lösen
+(Streitfall): `DELETE FROM org_sso WHERE domain = '…'` in der Datenbank.
+
 ## Ausrollen
 
 ```sh

@@ -1,4 +1,5 @@
-// Startseite: „Anmelden mit Google/Microsoft/GitHub“ (nur Anbieter, die der Server nennt – /api/einstellungen),
+// Startseite: „Anmelden mit Google/Microsoft/GitHub“ (nur Anbieter, die der Server nennt – /api/einstellungen) und
+// „Mit Firmenkonto anmelden“ (E-Mail → IdP der Organisation, nur wenn eingerichtet),
 // Rückkehr vom Anbieter: Zwei-Faktor-Schritt (#zf=…), bestehendes Konto mit Passwort verknüpfen (#verknuepfen=…),
 // Fehler (?anmeldung=fehler&grund=…, nur feste Codes – der Text kommt aus dem Wörterbuch, nie aus der Adresse).
 import './anmeldung.css';
@@ -41,10 +42,20 @@ export async function anmeldungEinrichten({ angemeldet, weiter, zeigen, meldung,
   try { einst = await api('/api/einstellungen'); } catch { return; }
   const anbieter = Array.isArray(einst.anmeldung) ? einst.anmeldung : [];
   const box = $('#extern-knoepfe');
-  if (!box || !anbieter.length) return;
+  if (!box || (!anbieter.length && !einst.firmen_login)) return;
   box.replaceChildren(...anbieter.map((a) => h('button', { type: 'button', class: 'btn extern', 'data-anbieter': a.id,
     onclick: (e) => beschaeftigt(e.currentTarget, () => starten(a.id, { weiter }), $('#status')) },
   h('span', { class: `extern-marke extern-${a.id}`, 'aria-hidden': 'true' }, a.name.slice(0, 1)), t('anmeldung.mit', { name: a.name }))));
+  if (einst.firmen_login) {        // Firmen-Login (OIDC je Organisation): erst die Adresse, dann zum IdP der Firma
+    box.append(h('button', { type: 'button', class: 'btn extern', 'data-anbieter': 'firma', onclick: () => zeigen('f-firma') },
+      h('span', { class: 'extern-marke extern-firma', 'aria-hidden': 'true' }, 'F'), t('anmeldung.firmaKnopf')));
+    const f = $('#f-firma');
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!f.reportValidity()) return;
+      beschaeftigt(f.querySelector('button[type="submit"]'), () => starten('firma', { email: f.email.value.trim(), weiter }), $('#status'));
+    });
+  }
   $('#extern-anmelden').hidden = false;
 }
 

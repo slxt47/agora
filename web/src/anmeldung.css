@@ -11,3 +11,4 @@
 .extern-github { background: #3a3a4a; }
 .extern-firma { background: #7c3aed; }
 .anmeldungen-liste .extern-marke { width: 32px; height: 32px; border-radius: 9px; }
+#org-sso code { overflow-wrap: anywhere; font-size: .85rem; }

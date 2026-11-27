@@ -141,7 +141,8 @@ def test_csp_video_effekte():
 def test_einstellungen_und_test_posteingang():
     c = neu_client()
     assert c.get('/api/einstellungen').json() == {'livekit_url': 'ws://127.0.0.1:7980', 'max_teilnehmer': 50, 'version': '1.0.0',
-                                                 'anmeldung': []}      # ohne AGORA_<ANBIETER>_CLIENT_ID/_SECRET: aus
+                                                 'anmeldung': [], 'firmen_login': False,
+                                                 'firmen_login_an': False}   # ohne Zugangsdaten bzw. AGORA_FIRMEN_LOGIN: aus
     _c, email, _p = konto()
     mails = c.get('/api/test/posteingang').json()['mails']
     assert any(m['an'] == email and '/api/konto/bestaetigen?t=' in m['text'] for m in mails)

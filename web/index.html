@@ -102,6 +102,14 @@
             </div>
           </form>
 
+          <form class="formular oben" id="f-firma" hidden>
+            <h3 data-t="anmeldung.firmaTitel">Mit Firmenkonto anmelden</h3>
+            <p class="sec klein" data-t="anmeldung.firmaText">Gib deine geschäftliche E-Mail-Adresse ein. Hat deine Organisation den Firmen-Login eingerichtet, geht es weiter zur Anmeldung deiner Firma.</p>
+            <label class="feld"><span data-t="html.eMail">E-Mail</span><input name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+            <button class="btn primary" type="submit" data-t="anmeldung.firmaWeiter">Weiter</button>
+            <button class="btn leise" type="button" data-zeige="f-anmelden" data-t="html.zurueckZurAnmeldung">Zurück zur Anmeldung</button>
+          </form>
+
           <form class="formular oben" id="f-verknuepfen" hidden>
             <h3 data-t="anmeldung.verknuepfenTitel">Konto verknüpfen</h3>
             <p class="sec klein" id="verknuepfen-text"></p>

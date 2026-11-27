@@ -10,7 +10,7 @@ import { anmeldungEinrichten } from './anmeldung-start.js';     // Anmelden mit 
 const params = new URLSearchParams(location.search);
 // Nur eigene Pfade als Ziel nach der Anmeldung (kein //fremd.de)
 const weiter = (() => { const w = params.get('weiter') || ''; return /^\/(?!\/)[\w\-/#?=&.]*$/.test(w) ? w : ''; })();
-const FORMULARE = ['f-anmelden', 'f-registrieren', 'f-vergessen', 'f-erneut', 'f-code', 'f-verknuepfen'];
+const FORMULARE = ['f-anmelden', 'f-registrieren', 'f-vergessen', 'f-erneut', 'f-code', 'f-verknuepfen', 'f-firma'];
 let ich = null;
 let schritt = null;          // Zwei-Faktor: Passwort war richtig, Code fehlt noch
 
